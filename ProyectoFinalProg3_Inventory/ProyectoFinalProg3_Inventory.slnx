@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Business.Inventory/Business.Inventory.csproj" />
+  <Project Path="Core.Domain/Core.Domain.csproj" />
+</Solution>
