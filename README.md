@@ -33,7 +33,8 @@ flowchart LR
 ```
 
 ### Bitacora con el Agente - Punto 3
-Crítica de la bitácora con el agente
+Crítica de la bitácora con el agente.
+
 Le pedí que criticara el diagrama de componentes de acuerdo a las seis señales y me confirmó lo que supuse, la frontera de la dependencia Core- Negocio es unidireccional y correcta, pero me señaló que el componente Reportes no tenía conexiones en el diagrama visual, por lo que este agregó la relación de alimentación de reportes.
 
 Error puntual que noté:
