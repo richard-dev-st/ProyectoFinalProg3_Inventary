@@ -35,10 +35,10 @@ flowchart LR
 ### 4 Entidades base y relaciones
 Cree las siguientes clases a continuacion:
 
-1. DetalleOrden - Esta contiene sus atributos caracteristicos y una relacion con la clase OrdenCOmpra. 
-2. OrdenCompra - Esta contiene sus atributos caracteristicos y una relacion con las clases Proveedor y DetalleOrden.
-3. Producto - Esta contiene sus atributos correspondientes y tiene su relacion con las clases proveedor y DetalleOrden.
-4. Proveedor - Esta ultima contiene sus atributos correspondientes y sus relaciones con las clases Producto y OrdenCompra.
+1. **DetalleOrden** — Atributos: `Id`, `Cantidad`, `Precio`, `Subtotal`. Relaciones: `OrdenCompra` y `Producto`.
+2. **OrdenCompra** — Atributos: `Id`, `FechaCreacion`, `Total`, `CreadoPorUsuarioId`, `ProveedorId`. Relaciones: `Proveedor` y `Detalles`.
+3. **Producto** — Atributos: `Id`, `Nombre`, `Codigo`, `Precio`, `StockActual`, `StockMinimo`, `ProveedorId`. Relaciones: `Proveedor` y `DetallesOrden`.
+4. **Proveedor** — Atributos: `Id`, `Nombre`, `Cedula`, `Telefono`, `Email`. Relaciones: `Productos` y `OrdenesCompra`.
 
 #### Bitacora con el Agente - Punto 3
 Crítica de la bitácora con el agente.
