@@ -32,7 +32,15 @@ flowchart LR
     ACC -.-|"Registra inicio de sesión y registro"| AUD
 ```
 
-### Bitacora con el Agente - Punto 3
+### 4 Entidades base y relaciones
+Cree las siguientes clases a continuacion:
+
+1. DetalleOrden - Esta contiene sus atributos caracteristicos y una relacion con la clase OrdenCOmpra. 
+2. OrdenCompra - Esta contiene sus atributos caracteristicos y una relacion con las clases Proveedor y DetalleOrden.
+3. Producto - Esta contiene sus atributos correspondientes y tiene su relacion con las clases proveedor y DetalleOrden.
+4. Proveedor - Esta ultima contiene sus atributos correspondientes y sus relaciones con las clases Producto y OrdenCompra.
+
+#### Bitacora con el Agente - Punto 3
 Crítica de la bitácora con el agente.
 
 Le pedí que criticara el diagrama de componentes de acuerdo a las seis señales y me confirmó lo que supuse, la frontera de la dependencia Core- Negocio es unidireccional y correcta, pero me señaló que el componente Reportes no tenía conexiones en el diagrama visual, por lo que este agregó la relación de alimentación de reportes.
