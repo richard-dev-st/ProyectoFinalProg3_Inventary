@@ -454,4 +454,9 @@ documents_temp/
 *.sqlite
 *.sqlite3
 
+# Editor & System Files
+.idea/
+*.suo.local
+.DS_Store
+Thumbs.db
 # todo esta completo ahora
