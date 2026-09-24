@@ -47,3 +47,21 @@ Le pedí que criticara el diagrama de componentes de acuerdo a las seis señales
 
 Error puntual que noté:
 El agente me dio el diagrama corregido pero cometió un error, en la parte de los componentes del core no estaba el mensaje característico que decía de que se encargaba cada componente. tuve que corregirlo finalmente.
+
+## Requisitos previos
+- .NET SDK (versión 8.0 o superior)
+- Visual Studio 2022 / VS Code
+
+## Instrucciones de ejecución
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone [https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary.git](https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary.git)
+   cd ProyectoFinalProg3_Inventary
+
+Restaurar paquetes y dependencias:
+dotnet restore
+
+Compilar y ejecutar el proyecto:
+dotnet build
+dotnet run
