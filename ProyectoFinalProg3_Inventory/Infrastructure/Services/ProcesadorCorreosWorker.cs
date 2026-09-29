@@ -35,6 +35,7 @@ namespace Infrastructure.Services
 
                         var correosPendientes = await context.CorreosEnCola
                             .Where(c => c.Estado == "Pendiente")
+                            .OrderBy(c => c.FechaCreacion)
                             .Take(10)
                             .ToListAsync(stoppingToken);
 
@@ -51,6 +52,11 @@ namespace Infrastructure.Services
                                 if (enviado)
                                 {
                                     correo.MarcarComoEnviado();
+                                    _logger.LogInformation("Correo enviado exitosamente a {Destinatario}", correo.Destinatario);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("No se puedo enviar el correo a {Destinatario}. Verifique los logs de EmailService.", correo.Destinatario);
                                 }
                             }
 
@@ -63,7 +69,7 @@ namespace Infrastructure.Services
                     _logger.LogError(ex, "Ocurrió un error al procesar la cola de correos.");
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); // Espera 5 segundos antes de la siguiente iteración
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Espera 10 segundos antes de la siguiente iteración
 
             }
         }

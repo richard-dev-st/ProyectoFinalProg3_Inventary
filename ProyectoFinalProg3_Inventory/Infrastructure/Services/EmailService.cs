@@ -1,5 +1,6 @@
 using Core.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Mail;
 
@@ -8,10 +9,11 @@ namespace Infrastructure.Services
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _configuration;
-
-        public EmailService(IConfiguration configuration)
+        private readonly ILogger<EmailService> _logger;
+        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
         {
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<bool> EnviarCorreoAsync(string destinatario, string asunto, string cuerpoHtml)
@@ -30,17 +32,19 @@ namespace Infrastructure.Services
                 message.Body = cuerpoHtml;
                 message.IsBodyHtml = true;
 
-                using var client = new SmtpClient(smtpServer, port)
-                {
-                    Credentials = new NetworkCredential(senderEmail, senderPassword),
-                    EnableSsl = true
-                };
+                using var client = new SmtpClient(smtpServer, port);
+
+                client.UseDefaultCredentials = false; //Evita usar las credenciales predeterminadas del sistema
+                client.Credentials = new NetworkCredential(senderEmail, senderPassword);
+                client.EnableSsl = true;
+                client.DeliveryMethod = SmtpDeliveryMethod.Network; // Asegura que se use el método de entrega de red
 
                 await client.SendMailAsync(message);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error al intentar enviar el correo a {Destinatario}", destinatario);
                 return false;
             }
         }
