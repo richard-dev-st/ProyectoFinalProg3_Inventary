@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="Business.Inventory/Business.Inventory.csproj" />
+  <Project Path="Core.Application/Application.csproj" Id="964b7c5a-00cc-42b4-af64-200e20d734ea" />
   <Project Path="Core.Domain/Core.Domain.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" Id="09a8fd31-9324-444e-8fdd-c57c7d23f14d" />
+  <Project Path="Presentation.API/Presentation.API.csproj" Id="7ef01057-f06e-4776-bf87-bd4f97691fae" />
 </Solution>
