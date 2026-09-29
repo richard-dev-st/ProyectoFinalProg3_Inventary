@@ -12,7 +12,7 @@ namespace Business.Inventory.Entities
         public decimal Total { get; set; }
 
         //Referencia al usuario del Core que creo la orden (Sin aclopar la entidad Usuario)
-        public int CreadoPorUsuarioId { get; set; }
+        public Guid CreadoPorUsuarioId { get; set; }
 
         //Clave foranea y relacion con Proveedor
         public int ProveedorId { get; set; }
