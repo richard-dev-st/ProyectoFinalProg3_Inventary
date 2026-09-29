@@ -50,27 +50,21 @@ namespace Application.Services
         {
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
 
-            if (usuario == null)
+            //Si el usuario existe y no está activo, generamos un nuevo token de activación y lo enviamos por correo
+            if (usuario != null && !usuario.Activo)
             {
-                return new AuthResponseDto(false, "No existe un usuario registrado con ese correo.");
+                //Generamos un nuevo token de activación y lo asignamos al usuario
+                usuario.GenerarTokenActivacion();
+
+                string enlaceActivacion = $"{baseUrl}/api/auth/activar?token={usuario.TokenActivacion}";
+                string cuerpoCorreo = $"<p>Hola,</p><p>Has solicitado un nuevo enlace de activación:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a>";
+
+                _context.CorreosEnCola.Add(new CorreoEnCola(usuario.Email, "Nuevo enlace de activación", cuerpoCorreo));
+
+                await _context.SaveChangesAsync();
             }
 
-            if (usuario.Activo)
-            {
-                return new AuthResponseDto(false, "Esta cuenta ya está activada.");
-            }
-
-            //Generamos un nuevo token de activación y lo asignamos al usuario
-            usuario.GenerarTokenActivacion();
-
-            string enlaceActivacion = $"{baseUrl}/api/auth/activar?token={usuario.TokenActivacion}";
-            string cuerpoCorreo = $"<p>Hola,</p><p>Has solicitado un nuevo enlace de activación:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a>";
-
-            _context.CorreosEnCola.Add(new CorreoEnCola(usuario.Email, "Nuevo enlace de activación", cuerpoCorreo));
-
-            await _context.SaveChangesAsync();
-
-            return new AuthResponseDto(true, "Se ha enviado el correo de activación.");
+            return new AuthResponseDto(true, "Si el correo está registrado y no ha sido activado, se ha enviado un nuevo enlace de activación.");
         }
 
         public async Task<AuthResponseDto> RegistrarAsync(RegistroRequestDto request)
