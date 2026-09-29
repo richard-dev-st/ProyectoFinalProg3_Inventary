@@ -65,3 +65,5 @@ dotnet restore
 Compilar y ejecutar el proyecto:
 dotnet build
 dotnet run
+
+# Este es un comentario para generar conflictos - Version Rama A
