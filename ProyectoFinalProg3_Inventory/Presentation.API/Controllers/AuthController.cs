@@ -8,7 +8,6 @@ namespace Presentation.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -81,6 +80,7 @@ namespace Presentation.API.Controllers
         }
 
         [HttpGet("me")]
+        [Authorize]
         public async Task<IActionResult> ObtenerUsuarioAutenticado()
         {
             //Extraer el Id del usuario desde el claim del token JWT
@@ -103,15 +103,20 @@ namespace Presentation.API.Controllers
         }
 
         [HttpPost("logout")]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             //Extraer el token JWT de la cabecera Authorization
             string? token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
             //Declarar una variable para almacenar el resultado del logout
             var resultado = await _authService.LogoutAsync(token);
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(resultado);
+            }
             //Retornamos ok con el resultado.
             return Ok(resultado);
         }
-
     }
 }

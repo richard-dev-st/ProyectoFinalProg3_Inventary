@@ -12,6 +12,7 @@ namespace Infrastructure.Persistence
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
+        public DbSet<TokenRevocado> TokensRevocados { get; set; } //Nueva entidad para tokens revocados
         //Entidades del Core (Control de Acceso y Correos)
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<CorreoEnCola> CorreosEnCola { get; set; }
