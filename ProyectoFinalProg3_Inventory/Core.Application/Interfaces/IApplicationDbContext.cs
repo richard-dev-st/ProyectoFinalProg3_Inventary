@@ -9,6 +9,7 @@ namespace Application.Interfaces
     {
         DbSet<Usuario> Usuarios { get; set; }
         DbSet<CorreoEnCola> CorreosEnCola { get; set; }
+        DbSet<TokenRevocado> TokensRevocados { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

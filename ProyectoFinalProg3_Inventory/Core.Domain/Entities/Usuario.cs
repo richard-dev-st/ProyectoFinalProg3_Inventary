@@ -12,6 +12,12 @@
         public string? TokenActivacion { get; private set; }
         public DateTime? TokenActivacionExpiracion { get; private set; }
 
+        //Intentos de inicio de sesión fallidos
+        public int IntentosFallidos { get; private set; } = 0;
+
+        //Bloqueo de cuenta
+        public DateTime? BloqueadoHasta { get; private set; }
+
         private Usuario() { } // Constructor privado para EF Core)
 
         public Usuario(string email, string passwordHash)
@@ -35,11 +41,11 @@
             {
                 return false; // La cuenta ya está activa
             }
-            if(TokenActivacion != token) 
+            if (TokenActivacion != token)
             {
                 return false; // Token inválido
             }
-            if(TokenActivacionExpiracion == null || DateTime.UtcNow > TokenActivacionExpiracion) 
+            if (TokenActivacionExpiracion == null || DateTime.UtcNow > TokenActivacionExpiracion)
             {
                 return false; // Token expirado
             }
@@ -48,6 +54,43 @@
             TokenActivacion = null; // Limpiar el token
             TokenActivacionExpiracion = null; // Limpiar la expiración del token
             return true; // Activación exitosa
+        }
+
+        //Metodo que se encarga de revisar si la cuenta está bloqueada y manejar el desbloqueo si es necesario
+        public bool EstaBloqueado()
+        {
+            // Verificar si la cuenta está bloqueada
+            if (BloqueadoHasta.HasValue)
+            {
+                // Si la fecha de bloqueo aún no ha pasado, la cuenta sigue bloqueada
+                if (DateTime.UtcNow < BloqueadoHasta.Value)
+                {
+                    return true; // La cuenta está bloqueada
+                }
+                BloqueadoHasta = null; // Limpiar el bloqueo si ha expirado
+                IntentosFallidos = 0; // Reiniciar los intentos fallidos
+            }
+
+            return false; // La cuenta no está bloqueada
+        }
+
+        public void RegistrarIntentoFallido()
+        {
+            // Incrementar el contador de intentos fallidos
+            IntentosFallidos++;
+
+            // Si se alcanzan 5 intentos fallidos, bloquear la cuenta por 15 minutos
+            if (IntentosFallidos >= 5)
+            {
+                BloqueadoHasta = DateTime.UtcNow.AddMinutes(15); // Bloquear la cuenta por 15 minutos
+            }
+        }
+
+        // Reiniciar los intentos fallidos y desbloquear la cuenta
+        public void ReiniciarIntentos()
+        {
+            IntentosFallidos = 0;
+            BloqueadoHasta = null;
         }
     }
 }
