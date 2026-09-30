@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Text;
 using Application.DTOs.Auth;
+using Application.DTOs.Login;
 
 namespace Application.Services
 {
@@ -44,6 +45,77 @@ namespace Application.Services
             await _context.SaveChangesAsync();
 
             return new AuthResponseDto(true, "Cuenta activada con éxito. Ya puedes iniciar sesión.");
+        }
+
+        public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
+        {
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+
+            //Mensaje generico de seguridad si no existe el usuario (RF-CA-03)
+            if (usuario == null)
+            {
+                throw new InvalidOperationException("Correo o contrasena incorrectos");
+            }
+
+            //Verificamos si la cuenta está activa
+            if (!usuario.Activo)
+            {
+                throw new InvalidOperationException("La cuenta no está activa. Por favor revisa tu correo.");
+            }
+
+            //Verificar si esta bloqueado por 15 minutos tras realizar los 5 intentos fallidos (RF-CA-19)
+            if (usuario.EstaBloqueado())
+            {
+                throw new InvalidOperationException("La cuenta está temporalmente bloqueada por demasiados intentos fallidos. Intenta más tarde.");
+            }
+
+            //validar contrasena
+            bool passwordValida = _passwordService.VerifyPassword(request.Password, usuario.PasswordHash);
+
+            if (!passwordValida)
+            {
+                usuario.RegistrarIntentoFallido();
+                await _context.SaveChangesAsync();
+
+                throw new InvalidOperationException("Correo o contrasena incorrectos");
+            }
+
+            //Credenciales validad: reiniciar contador de intentos fallidos (RF-CA-19)
+            usuario.ReiniciarIntentos();
+            await _context.SaveChangesAsync();
+
+            //Generar JWT (Implementamos el generador de token)
+            string token = GenerarJwtToken(usuario);
+
+            return new LoginResponseDto(
+                Token: token,
+                Email: usuario.Email,
+                Rol: usuario.Rol,
+                Expiracion: DateTime.UtcNow.AddHours(8)
+                );
+        }
+
+        public async Task<AuthResponseDto> LogoutAsync(string token)
+        {
+            //RF-CA-18: El cierre de sesion cliente descarta el jwt local.
+            return await Task.FromResult(new AuthResponseDto(true, "Cierre de sesión exitoso."));
+        }
+
+        public async Task<UsuarioSesionDto?> ObtenerUsuarioAutenticadoAsync(Guid usuarioId)
+        {
+            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+
+            if (usuario == null || !usuario.Activo)
+            {
+                return null;
+            }
+
+            return new UsuarioSesionDto(
+                Id: usuario.Id,
+                Email: usuario.Email,
+                Rol: usuario.Rol,
+                Activo: usuario.Activo
+            );
         }
 
         public async Task<AuthResponseDto> ReenviarActivacionAsync(string email, string baseUrl)
