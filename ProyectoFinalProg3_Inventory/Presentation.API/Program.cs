@@ -1,13 +1,16 @@
+using System.Security.Claims;
 using Application.Interfaces;
 using Application.Services;
 using Core.Application.Configurations;
 using Core.Application.Interfaces;
+using Core.Application.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +65,8 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettingsSection.Issuer,
         ValidAudience = jwtSettingsSection.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSettingsSection.SecretKey))
+        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSettingsSection.SecretKey)),
+        RoleClaimType = ClaimTypes.Role
     };
 
     //Validacion del RF-CA-18: Rechazar tokens revocados (si el token está en la lista de revocados, no es válido)
@@ -72,6 +76,7 @@ builder.Services.AddAuthentication(options =>
         {
             var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
             var jti = context.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? context.Principal?.FindFirst("sub")?.Value;
 
             if (!string.IsNullOrEmpty(jti))
             {
@@ -79,6 +84,16 @@ builder.Services.AddAuthentication(options =>
                 if (estaRevocado)
                 {
                     context.Fail("La credencial de sesión ha sido cerrada y ya no es válida.");
+                }
+            }
+
+            //2. Validar RF-CA-20: si el usuario fue desactivado, su sesión abierta deja de ser válida de inmediato
+            if (Guid.TryParse(userId, out var usuarioId))
+            {
+                var usuario = await dbContext.Usuarios.FindAsync(usuarioId);
+                if (usuario == null || !usuario.Activo)
+                {
+                    context.Fail("El usuario no está activo o no existe.");
                 }
             }
         }
@@ -96,6 +111,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
 builder.Services.AddHostedService<ProcesadorCorreosWorker>();
 
 var app = builder.Build();
