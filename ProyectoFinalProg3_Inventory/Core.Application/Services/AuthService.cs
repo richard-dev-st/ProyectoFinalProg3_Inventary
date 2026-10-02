@@ -87,7 +87,7 @@ namespace Application.Services
                 throw new InvalidOperationException("Correo o contrasena incorrectos");
             }
 
-            //Credenciales validad: reiniciar contador de intentos fallidos (RF-CA-19)
+            //Credenciales validas: reiniciar contador de intentos fallidos (RF-CA-19)
             usuario.ReiniciarIntentos();
             await _context.SaveChangesAsync();
 
@@ -97,7 +97,7 @@ namespace Application.Services
             return new LoginResponseDto(
                 Token: token,
                 Email: usuario.Email,
-                Rol: usuario.Rol,
+                Rol: usuario.Rol.ToString(),
                 Expiracion: DateTime.UtcNow.AddHours(_jwtSettings.ExpirationInHours)
                 );
         }
@@ -168,7 +168,7 @@ namespace Application.Services
             return new UsuarioSesionDto(
                 Id: usuario.Id,
                 Email: usuario.Email,
-                Rol: usuario.Rol,
+                Rol: usuario.Rol.ToString(),
                 Activo: usuario.Activo
             );
         }

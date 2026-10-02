@@ -29,8 +29,8 @@ namespace Infrastructure.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), //Identificador único del token
-                new Claim(ClaimTypes.Role, usuario.Rol)
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), //Identificador único del 
+                new Claim(ClaimTypes.Role, usuario.Rol.ToString()) // <-- Asegura que el claim de rol se mapee correctamente
             };
 
             //Armamos el objeto del token

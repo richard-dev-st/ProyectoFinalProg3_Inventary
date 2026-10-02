@@ -35,7 +35,8 @@ namespace Infrastructure.Persistence
                 entity.Property(u => u.Email).IsRequired().HasMaxLength(150);
                 entity.HasIndex(u => u.Email).IsUnique();
                 entity.Property(u => u.PasswordHash).IsRequired();
-                entity.Property(u => u.Rol).HasMaxLength(20);
+                entity.Property(u => u.Rol).HasConversion<string>()
+                .HasMaxLength(20); //Almacenar el enum como string en la base de datos
             });
 
             modelBuilder.Entity<CorreoEnCola>(entity =>

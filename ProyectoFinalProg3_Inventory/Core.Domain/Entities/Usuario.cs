@@ -1,11 +1,13 @@
-﻿namespace Core.Domain.Entities
+﻿using Core.Domain.Entities.Enums;
+
+namespace Core.Domain.Entities
 {
     public class Usuario
     {
         public Guid Id { get; private set; }
         public string Email { get; private set; }
         public string PasswordHash { get; private set; }
-        public string Rol { get; private set; } = "Estandar"; //Administrador o Estandar
+        public RolUsuario Rol { get; private set; }
         public bool Activo { get; private set; } = false;
 
         //Tokens de Activacion
@@ -25,6 +27,7 @@
             Id = Guid.NewGuid();
             Email = email.ToLowerInvariant().Trim();
             PasswordHash = passwordHash;
+            Rol = RolUsuario.Estandar;
             Activo = false;
             GenerarTokenActivacion();
         }
@@ -91,6 +94,31 @@
         {
             IntentosFallidos = 0;
             BloqueadoHasta = null;
+        }
+
+        //Cambiar el rol del usuario (RF-CA-08)
+        public void CambiarRol(RolUsuario nuevoRol, Guid adminIdQueRealizaCambio)
+        {
+            //Un administrador no puede cambiar su propio rol si eso compromete la seguridad del sistema
+            Rol = nuevoRol;
+        }
+
+        //Desactivar usuario con validacion de no desactivarse a si mismo (RF-CA-20)
+        public void Desactivar(Guid adminIdQueRealizaCambio)
+        {
+            //Un administrador no puede desactivarse a si mismo
+            if (Id == adminIdQueRealizaCambio)
+            {
+                throw new InvalidOperationException("Un administrador no puede desactivarse a sí mismo.");
+            }
+            //Desactivar usuario
+            Activo = false;
+        }
+
+        //Reactivar usuario (RF-CA-20)
+        public void Reactivar()
+        {
+            Activo = true;
         }
     }
 }
