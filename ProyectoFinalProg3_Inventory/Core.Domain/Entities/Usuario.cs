@@ -20,6 +20,11 @@ namespace Core.Domain.Entities
         //Bloqueo de cuenta
         public DateTime? BloqueadoHasta { get; private set; }
 
+        //Gestionar el codigo de recuperacion de contraseña
+        public string? CodigoRecuperacion { get; private set; }
+        public DateTime? CodigoRecuperacionExpiracion { get; private set; }
+        public DateTime? FechaUltimoCambioPassword { get; private set; } // Muy util para RF-CA-12
+
         private Usuario() { } // Constructor privado para EF Core)
 
         public Usuario(string email, string passwordHash)
@@ -119,6 +124,22 @@ namespace Core.Domain.Entities
         public void Reactivar()
         {
             Activo = true;
+        }
+
+        //Generar codigo de 6 digitos para recuperacion de contraseña
+        public void GenerarCodigoRecuperacion()
+        {
+            CodigoRecuperacion = new Random().Next(100000, 999999).ToString(); // Genera un codigo de 6 dígitos
+            CodigoRecuperacionExpiracion = DateTime.UtcNow.AddMinutes(15); // Codigo válido por 15 minutos
+        }
+
+        //Metodo para completar restablecimiento de contrasena (RF-CA-11)
+        public void EstablecerNuevaPassword(string nuevoHash)
+        {
+            PasswordHash = nuevoHash;
+            CodigoRecuperacion = null; // Limpiar el código de recuperación
+            CodigoRecuperacionExpiracion = null; // Limpiar la expiración del código
+            FechaUltimoCambioPassword = DateTime.UtcNow; // Actualizar la fecha del último
         }
     }
 }
