@@ -118,5 +118,65 @@ namespace Presentation.API.Controllers
             //Retornamos ok con el resultado.
             return Ok(resultado);
         }
+
+        [HttpPost("solicitar-recuperacion")]
+        public async Task<IActionResult> SolicitarRecuperacion([FromBody] SolicitarRecuperacionDto dto)
+        {
+            await _authService.SolicitarRecuperacionPasswordAsync(dto);
+
+            //Respuesta exitosa, no se devuelve información sensible
+            return Ok(new { mensaje = "Si el correo esta registrado y activo, se ha enviado un enlace de recuperación." });
+        }
+
+        [HttpPost("restablecer-password")]
+        public async Task<IActionResult> RestablecerPassword([FromBody] RestablecerPasswordDto dto)
+        {
+            try
+            {
+                await _authService.RestablecerPasswordAsync(dto);
+                return Ok(new { mensaje = "Contraseña restablecida exitosamente." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpPost("cambiar-password")]
+        [Authorize]
+        public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordDto dto)
+        {
+            //Extraer el Id del usuario desde el claim del token JWT
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            //Verificar si el claim es nulo o no es un GUID válido
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var usuarioId))
+            {
+                return Unauthorized(new { mensaje = "Sin sesión válida." });
+            }
+
+            try
+            {
+                await _authService.CambiarPasswordAsync(usuarioId, dto);
+                return Ok(new { mensaje = "Contraseña actualizada exitosamente." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpPost("{id:guid}/forzar-restablecimiento")]
+        public async Task<IActionResult> ForzarRestablecimiento(Guid id, [FromServices] IAuthService authService)
+        {
+            try
+            {
+                await authService.ForzarRestablecimientoPasswordAsync(id);
+                return Ok(new { mensaje = "Se ha forzado el restablecimiento y enviado el código por correo." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensaje = ex.Message });
+            }
+        }
     }
 }

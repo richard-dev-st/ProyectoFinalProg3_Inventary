@@ -38,6 +38,7 @@ namespace Infrastructure.Services
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
                 claims: claims,
+                notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddHours(_jwtSettings.ExpirationInHours),
                 signingCredentials: credentials
                 );

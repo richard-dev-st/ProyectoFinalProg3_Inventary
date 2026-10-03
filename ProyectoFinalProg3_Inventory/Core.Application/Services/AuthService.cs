@@ -196,6 +196,12 @@ namespace Application.Services
 
         public async Task<AuthResponseDto> RegistrarAsync(RegistroRequestDto request)
         {
+            //Validar politica de contrasena (RF-CA-14)
+            if(!_passwordService.ValidarPolitica(request.Password, out var mensajePolitica))
+            {
+                return new AuthResponseDto(false, mensajePolitica);
+            }
+
             // Verificamos si el usuario ya existe
             var existeUsuario = await _context.Usuarios.AnyAsync(u => u.Email.ToLower() == request.Email.ToLower());
             if (existeUsuario)
@@ -219,6 +225,118 @@ namespace Application.Services
 
             return new AuthResponseDto(true, "Registro exitoso. Se ha enviado un correo para activar tu cuenta.");
 
+        }
+
+        public async Task CambiarPasswordAsync(Guid usuarioId, CambiarPasswordDto dto)
+        {
+            //Primero obtenemos el usuario de la base de datos
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
+
+            //Si el usuario no existe, lanzamos una excepción
+            if (usuario == null)
+            {
+                throw new KeyNotFoundException("Usuario no encontrado.");
+            }
+
+            //Verificamos si la contraseña actual proporcionada coincide con la almacenada en la base de datos
+            var verificacion = _passwordService.VerifyPassword(dto.PasswordActual, usuario.PasswordHash);
+
+           
+            if (!verificacion)
+            {
+                throw new InvalidOperationException("La contraseña actual es incorrecta.");
+            }
+
+            //Validar politica de contrasena (RF-CA-14)
+            if (!_passwordService.ValidarPolitica(dto.NuevaPassword, out var mensajePolitica))
+            {
+                throw new InvalidOperationException(mensajePolitica);
+            }
+
+            var nuevoHash = _passwordService.HashPassword(dto.NuevaPassword);
+            usuario.EstablecerNuevaPassword(nuevoHash);
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ForzarRestablecimientoPasswordAsync(Guid usuarioId)
+        {
+            //Buscamos el usuario en la base de datos
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
+
+            //Validamos si el usuario existe o no
+            if (usuario == null)
+            {
+                throw new KeyNotFoundException("Usuario no encontrado.");
+            }
+
+            usuario.EstablecerNuevaPassword("RESET_FORZADO_" + Guid.NewGuid().ToString("N")); //Invalida clave vieja y sesiones (limpia el código previo)
+            usuario.GenerarCodigoRecuperacion();
+
+            string cuerpoCorreo = $"<p>Un administrador ha iniciado el restablecimiento de tu contraseña. Tu código es: <strong>{usuario.CodigoRecuperacion}</strong>.</p>";
+
+            var correoEnCola = new CorreoEnCola(usuario.Email, "Restablecimiento de contraseña solicitado por un administrador", cuerpoCorreo);
+
+            _context.CorreosEnCola.Add(correoEnCola);
+            await _context.SaveChangesAsync();
+
+        }
+
+        // RF-CA-10, RF-CA-11 y RF-CA-12: Restablecimiento público con código
+        public async Task RestablecerPasswordAsync(RestablecerPasswordDto dto)
+        {
+            var emailLimpio = dto.Email.ToLowerInvariant().Trim();
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == emailLimpio);
+
+            if (usuario == null)
+            {
+                throw new KeyNotFoundException("El código es inválido o ha expirado.");
+            }
+
+            //Validar que el codigo coincida y no este vencido
+            if (string.IsNullOrEmpty(usuario.CodigoRecuperacion) || usuario.CodigoRecuperacion != dto.Codigo || usuario.CodigoRecuperacionExpiracion == null || DateTime.UtcNow > usuario.CodigoRecuperacionExpiracion)
+            {
+                throw new InvalidOperationException("El código es inválido o ha expirado.");
+            }
+
+            // Validar política para la nueva contraseña (RF-CA-14)
+            if (!_passwordService.ValidarPolitica(dto.NuevaPassword, out var mensajePolitica))
+            {
+                throw new InvalidOperationException(mensajePolitica);
+            }
+
+            var nuevoHash = _passwordService.HashPassword(dto.NuevaPassword);
+            usuario.EstablecerNuevaPassword(nuevoHash);
+
+            await _context.SaveChangesAsync();
+        }
+
+        //RF-CA-09: La respuesta no revela que correos estan registrados
+        public async Task SolicitarRecuperacionPasswordAsync(SolicitarRecuperacionDto dto)
+        {
+            //Hacemos que el email sea insensible a mayúsculas y minúsculas y eliminamos espacios en blanco al inicio y al final
+            var emailLimpio = dto.Email.ToLowerInvariant().Trim();
+
+            //buscamos el usuario por email
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == emailLimpio);
+
+            //Si el usuario no existe o no está activo, simplemente retornamos sin hacer nada
+            if (usuario == null || !usuario.Activo)
+            {
+                return;
+            }
+
+            //Generar el codigo de la entidad
+            usuario.GenerarCodigoRecuperacion();
+
+            string cuerpoCorreo = $"<p>Tu código de recuperación es: <strong>{usuario.CodigoRecuperacion}</strong></p><p>Este código expirará en 15 minutos.</p>";
+
+            //Creamos la entrada para el envio de correo
+            var correoEnCola = new CorreoEnCola(usuario.Email, "Código de recuperación de contraseña", cuerpoCorreo);
+
+            //Agregamos el correo a la cola y guardamos los cambios
+            _context.CorreosEnCola.Add(correoEnCola);
+            await _context.SaveChangesAsync();
         }
     }
 }

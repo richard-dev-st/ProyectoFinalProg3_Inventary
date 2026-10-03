@@ -94,6 +94,19 @@ builder.Services.AddAuthentication(options =>
                 if (usuario == null || !usuario.Activo)
                 {
                     context.Fail("El usuario no está activo o no existe.");
+                    return;
+                }
+
+                if(usuario.FechaUltimoCambioPassword.HasValue && context.SecurityToken != null)
+                {
+                    var fechaEmisionToken = context.SecurityToken.ValidFrom;
+
+                    //Margen de 2 segundos para evitar desajustes de reloj
+                    if(fechaEmisionToken < usuario.FechaUltimoCambioPassword.Value.AddSeconds(-2))
+                    {
+                        context.Fail("La contraseña fue cambiada. Debe iniciar sesión nuevamente.");
+                        return;
+                    }
                 }
             }
         }
