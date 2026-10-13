@@ -1,0 +1,18 @@
+#!/bin/sh
+# Pre-commit hook: evita commitear secretos (gitleaks).
+# Versionado en .githooks/pre-commit; activar en un clone con:
+#   git config core.hooksPath .githooks
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "ERROR: gitleaks no esta instalado o no esta en el PATH." >&2
+  echo "Instalarlo con:  winget install gitleaks.gitleaks" >&2
+  exit 1
+fi
+
+if [ -f .gitleaks.toml ]; then
+  gitleaks git --staged --config .gitleaks.toml --redact
+else
+  gitleaks git --staged --redact
+fi
+
+exit $?
