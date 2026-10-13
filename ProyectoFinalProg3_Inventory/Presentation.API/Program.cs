@@ -125,7 +125,7 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
-builder.Services.AddHostedService<ProcesadorCorreosWorker>();
+
 
 var app = builder.Build();
 
