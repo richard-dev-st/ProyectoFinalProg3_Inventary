@@ -25,6 +25,8 @@ namespace Infrastructure.Services
                 var senderEmail = _configuration["EmailSettings:SenderEmail"];
                 var senderPassword = _configuration["EmailSettings:SenderPassword"];
 
+                var useSsl = bool.TryParse(_configuration["EmailSettings:UseSsl"], out var ssl) ? ssl: true;
+
                 using var message = new MailMessage();
                 message.From = new MailAddress(senderEmail!, "Sistema de Inventario");
                 message.To.Add(new MailAddress(destinatario));
@@ -36,7 +38,7 @@ namespace Infrastructure.Services
 
                 client.UseDefaultCredentials = false; //Evita usar las credenciales predeterminadas del sistema
                 client.Credentials = new NetworkCredential(senderEmail, senderPassword);
-                client.EnableSsl = true;
+                client.EnableSsl = useSsl; // Usa la configuración de UseSsl desde appsettings.json
                 client.DeliveryMethod = SmtpDeliveryMethod.Network; // Asegura que se use el método de entrega de red
 
                 await client.SendMailAsync(message);
