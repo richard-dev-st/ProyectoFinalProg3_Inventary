@@ -166,6 +166,7 @@ namespace Presentation.API.Controllers
         }
 
         [HttpPost("{id:guid}/forzar-restablecimiento")]
+        [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ForzarRestablecimiento(Guid id, [FromServices] IAuthService authService)
         {
             try

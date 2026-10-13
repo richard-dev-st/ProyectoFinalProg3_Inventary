@@ -270,7 +270,7 @@ namespace Application.Services
                 throw new KeyNotFoundException("Usuario no encontrado.");
             }
 
-            usuario.EstablecerNuevaPassword("RESET_FORZADO_" + Guid.NewGuid().ToString("N")); //Invalida clave vieja y sesiones (limpia el código previo)
+            usuario.EstablecerNuevaPassword(_passwordService.HashPassword("RESET_FORZADO_" + Guid.NewGuid().ToString("N"))); //Invalida clave vieja y sesiones (limpia el código previo)
             usuario.GenerarCodigoRecuperacion();
 
             string cuerpoCorreo = $"<p>Un administrador ha iniciado el restablecimiento de tu contraseña. Tu código es: <strong>{usuario.CodigoRecuperacion}</strong>.</p>";
@@ -290,7 +290,7 @@ namespace Application.Services
 
             if (usuario == null)
             {
-                throw new KeyNotFoundException("El código es inválido o ha expirado.");
+                throw new InvalidOperationException("El código es inválido o ha expirado.");
             }
 
             //Validar que el codigo coincida y no este vencido
