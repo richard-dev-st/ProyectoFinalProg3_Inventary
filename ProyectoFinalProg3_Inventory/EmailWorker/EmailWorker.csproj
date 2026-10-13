@@ -5,6 +5,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Comparte el mismo almacén de user-secrets que Presentation.API
+         para leer EmailSettings:SenderEmail/SenderPassword en desarrollo. -->
+    <UserSecretsId>7169530e-9a70-43c1-828a-c6e6e1a68ad7</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,7 +7,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var builder = Host.CreateApplicationBuilder(args);
+//La raíz de configuración se fija en la carpeta del ejecutable para que
+//appsettings.json se encuentre sin importar desde dónde se lance el worker.
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 //Lee ConnectionStrings:DefaultConnection desde appsettings.json y lo inyecta en el DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("No se encontró 'DefaultConnection'.");
