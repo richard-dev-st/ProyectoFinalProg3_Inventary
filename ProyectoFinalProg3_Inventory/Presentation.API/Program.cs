@@ -44,6 +44,11 @@ builder.Services.AddSwaggerGen(opt =>
 var jwtSettingsSection = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
     // Si no se encuentra la configuración, lanzar una excepción
     ?? throw new InvalidOperationException($"No se encontró la configuración de JwtSettings.");
+
+// Validación fail-fast: la clave de firma no se guarda en el repositorio, se inyecta por variable de entorno.
+if (string.IsNullOrWhiteSpace(jwtSettingsSection.SecretKey))
+    throw new InvalidOperationException("No se encontró JwtSettings:SecretKey. Defínala con la variable de entorno JwtSettings__SecretKey.");
+
 //Aplicamos la configuración de JwtSettings al contenedor de servicios
 builder.Services.AddSingleton(jwtSettingsSection);
 
