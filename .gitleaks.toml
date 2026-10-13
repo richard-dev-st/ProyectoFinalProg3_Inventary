@@ -18,3 +18,12 @@ regexTarget = "line"
 regexes = [
   '''(?i)(tu_|your_|your-|change_?me|xxxx|placeholder|changeme|__password|envirofile)''',
 ]
+
+# Valores de ejemplo/placeholder usados en la documentacion (README). No son credenciales reales.
+[allowlist]
+description = "Placeholders de documentacion que no son secretos"
+regexTarget = "line"
+regexes = [
+  '''una_clave_secreta_de_al_menos_32_caracteres_aqui''',
+  '''TU_APP_PASSWORD''',
+]
