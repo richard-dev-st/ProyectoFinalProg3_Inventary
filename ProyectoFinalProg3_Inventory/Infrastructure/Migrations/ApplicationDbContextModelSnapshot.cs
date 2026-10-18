@@ -63,6 +63,9 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("CreadoPorUsuarioId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
@@ -183,6 +186,82 @@ namespace Infrastructure.Migrations
                     b.ToTable("CorreosEnCola");
                 });
 
+            modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ConcedidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Permiso")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("SolicitudId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SolicitudId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("PermisosUsuario");
+                });
+
+            modelBuilder.Entity("Core.Domain.Entities.SolicitudPermiso", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("FechaResolucion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MotivoRechazo")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Permiso")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ResueltoPorUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SolicitanteUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResueltoPorUsuarioId");
+
+                    b.HasIndex("SolicitanteUsuarioId");
+
+                    b.ToTable("SolicitudesPermiso");
+                });
+
             modelBuilder.Entity("Core.Domain.Entities.TokenRevocado", b =>
                 {
                     b.Property<int>("Id")
@@ -300,6 +379,35 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Proveedor");
+                });
+
+            modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>
+                {
+                    b.HasOne("Core.Domain.Entities.SolicitudPermiso", null)
+                        .WithMany()
+                        .HasForeignKey("SolicitudId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Core.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Core.Domain.Entities.SolicitudPermiso", b =>
+                {
+                    b.HasOne("Core.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("ResueltoPorUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Core.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("SolicitanteUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Business.Inventory.Entities.OrdenCompra", b =>
