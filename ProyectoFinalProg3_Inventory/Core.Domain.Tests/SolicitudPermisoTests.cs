@@ -7,14 +7,14 @@ namespace Core.Domain.Tests
     public class SolicitudPermisoTests
     {
         [Fact]
-        public void Aprobar_SolicitudPendienteDeOtroUsuario_LaDejaAplicadaYRegistraQuienYCuando()
+        public void RF_GP_03_Aprobar_SolicitudPendienteDeOtroUsuario_LaDejaAplicadaYRegistraQuienYCuando()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var admin = Guid.NewGuid();
             //Declarar la fecha de resolucion.
             var fecha = new DateTime(2026, 10, 17, 12, 0, 0, DateTimeKind.Utc);
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
 
             //Actuar
             solicitud.Aprobar(admin, fecha);
@@ -26,13 +26,13 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void Rechazar_SolicitudPendienteConMotivo_LaDejaRechazadaYRegistraElMotivo()
+        public void RF_GP_04_Rechazar_SolicitudPendienteConMotivo_LaDejaRechazadaYRegistraElMotivo()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var admin = Guid.NewGuid();
             var motivo = "No cumple con los requisitos.";
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
 
             //Actuar
             solicitud.Rechazar(admin, motivo, DateTime.UtcNow);
@@ -44,13 +44,13 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void Aprobar_SolicitudYaAplicada_LanzaYElEstadoNoCambia()
+        public void RF_GP_06_Aprobar_SolicitudYaAplicada_LanzaYElEstadoNoCambia()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var admin = Guid.NewGuid();
             var fecha = DateTime.UtcNow;
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
             solicitud.Aprobar(admin, fecha);
 
             //Actuar
@@ -62,13 +62,13 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void Aprobar_SolicitudRechazada_LanzaYElEstadoNoCambia()
+        public void RF_GP_06_Aprobar_SolicitudRechazada_LanzaYElEstadoNoCambia()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var admin = Guid.NewGuid();
             var motivo = "No cumple con los requisitos.";
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
             solicitud.Rechazar(admin, motivo, DateTime.UtcNow);
 
             //Actuar
@@ -80,12 +80,12 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void Aprobar_SolicitudCreadaPorElMismoAdministrador_LanzaYElEstadoNoCambia()
+        public void RF_GP_07_Aprobar_SolicitudCreadaPorElMismoAdministrador_LanzaYElEstadoNoCambia()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var fecha = DateTime.UtcNow;
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
 
             //Actuar
             var exception = Assert.Throws<InvalidOperationException>(() => solicitud.Aprobar(solicitante, fecha));
@@ -96,12 +96,12 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void Rechazar_SolicitudSinMotivo_LanzaYElEstadoNoCambia()
+        public void RF_GP_04_Rechazar_SolicitudSinMotivo_LanzaYElEstadoNoCambia()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
             var admin = Guid.NewGuid();
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
 
             //Actuar
             var exception = Assert.Throws<InvalidOperationException>(() => solicitud.Rechazar(admin, "", DateTime.UtcNow));
@@ -112,16 +112,42 @@ namespace Core.Domain.Tests
         }
 
         [Fact]
-        public void CrearSolicitud_NaceEnEstadoPendiente()
+        public void RF_GP_01_CrearSolicitud_NaceEnEstadoPendiente()
         {
             //Preparar
             var solicitante = Guid.NewGuid();
 
             //Actuar
-            var solicitud = new SolicitudPermiso(solicitante, "Necesito permiso para salir temprano.");
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
 
             //Verificar
             Assert.Equal(EstadoSolicitudPermiso.Pendiente, solicitud.Estado);
+        }
+
+        [Fact]
+        public void RF_GP_01_CrearSolicitud_GuardarElPermisoPedido()
+        {
+            //Preparar
+            var solicitante = Guid.NewGuid();
+
+            //Actuar
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Para cerrar el mes.");
+
+            //Verificar
+            Assert.Equal("exportar-inventario", solicitud.Permiso);
+        }
+
+        [Fact]
+        public void RF_GP_01_CrearSolicitud_SinPermiso_Lanza()
+        {
+            //Preparar
+            var solicitante = Guid.NewGuid();
+
+            //Actuar
+            var exception = Assert.Throws<InvalidOperationException>(() => new SolicitudPermiso(solicitante, "", "Descripción."));
+
+            //Verificar
+            Assert.Equal("El permiso solicitado es obligatorio.", exception.Message);
         }
     }
 }

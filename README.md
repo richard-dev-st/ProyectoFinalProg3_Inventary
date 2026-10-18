@@ -51,6 +51,7 @@ El agente me dio el diagrama corregido pero cometió un error, en la parte de lo
 ## Requisitos previos
 - .NET SDK 10.0
 - SQL Server (LocalDB o Express)
+- EF Core CLI para aplicar las migraciones: `dotnet tool install --global dotnet-ef`
 - Gmail con contraseña de aplicación (para el envío de correos)
 - gitleaks (opcional, hook de seguridad): `winget install gitleaks.gitleaks`
 
@@ -67,28 +68,35 @@ Ningún valor real debe guardarse en el repositorio; se inyectan por variables d
 
 ## Instrucciones de ejecución
 
-1. Colocá las variables de entorno (ejemplo en PowerShell):
+1. Coloca las variables de entorno (ejemplo en PowerShell):
    ```powershell
    $env:JwtSettings__SecretKey = "una_clave_secreta_de_al_menos_32_caracteres_aqui"
    $env:EmailSettings__SenderEmail = "tucorreo@gmail.com"
    $env:EmailSettings__SenderPassword = "TU_APP_PASSWORD"
+   ```
 
-2. Aplica las migraciones y ejecuta la API web (no envía correos):
+2. Aplica las migraciones y ejecuta la API web (desde la raíz del repositorio):
+   ```powershell
+   dotnet ef database update --project ProyectoFinalProg3_Inventory/Infrastructure --startup-project ProyectoFinalProg3_Inventory/Presentation.API
+   dotnet run --project ProyectoFinalProg3_Inventory/Presentation.API
+   ```
+   Swagger: http://localhost:5176/swagger
 
-dotnet run --project ProyectoFinalProg3_Inventory/Presentation.API
-Swagger: http://localhost:5176/swagger
-
-3. Ejecuta el worker de correos en otro proceso (procesa la cola CorreosEnCola):
-
-cd ProyectoFinalProg3_Inventory/EmailWorker
-dotnet run
-Ejecutá el worker desde su carpeta: dotnet run toma el directorio actual para leer appsettings.json.
+3. Ejecuta el worker de correos en otro proceso (procesa la cola `CorreosEnCola`):
+   ```powershell
+   cd ProyectoFinalProg3_Inventory/EmailWorker
+   dotnet run
+   ```
+   Ejecuta el worker desde su carpeta: `dotnet run` toma el directorio actual para leer `appsettings.json`.
 
 ### ¿Cómo crear un Administrador?
-El registro crea usuarios con rol Estandar. Para el primer administrador, promové un usuario ya registrado en la BD:
+El registro crea usuarios con rol Estandar. Para el primer administrador, promueve un usuario ya registrado en la BD:
 
+```sql
 UPDATE Usuarios SET Rol = 'Administrador' WHERE Email = 'tucorreo@gmail.com';
-Luego volvé a hacer login para obtener un token con el rol incluido.
+```
+
+Luego vuelve a iniciar sesión para obtener un token con el rol incluido.
 
 ## Criterios implementados y cómo verificarlos
 
@@ -112,4 +120,87 @@ Luego volvé a hacer login para obtener un token con el rol incluido.
 ### Corrección Puntual aplicada - Problema de Credencial filtrada:
 
 El Problema puntual identificado por el maestro cuando realizó la corrección de la práctica 1 fue resuelto, el problema era el siguiente: En el historial de commits había datos de una credencial de Gmail visible que no debía estar ahí. Finalmente, este error fue corregido.
+
+## Gestión de permisos (Asignación 2)
+
+Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y un **Administrador** las resuelve. Las transiciones válidas son `Pendiente → Aprobada → Aplicada` y `Pendiente → Rechazada`; ninguna otra está permitida. Al aprobar, el sistema **concede el permiso automáticamente** (queda registrado en `PermisosUsuario`) y el solicitante ya puede ejecutar la acción que pidió, sin ningún paso manual. Las solicitudes se guardan en SQL Server, por lo que **sobreviven a reiniciar la aplicación** (RD-09).
+
+### Preparación
+- Un usuario **Estándar** (el registro crea usuarios con rol `Estandar`).
+- Un usuario **Administrador** (ver «¿Cómo crear un Administrador?»).
+- Ejemplos usados abajo: Estándar `florhernandez@gmail.com`, Administrador `richardstorm71@gmail.com`.
+- En Swagger: `POST /api/Auth/Login` → copia el campo `token` → botón **Authorize** → pega **solo el token** (sin `Bearer`).
+
+### Cómo provocar cada criterio
+
+#### RF-GP-01 — Un usuario Estándar crea una solicitud (nace en `Pendiente`)
+1. Autentícate con el token del **Estándar**.
+2. `POST /api/solicitudes`:
+   ```json
+   { "permiso": "exportar-inventario", "descripcion": "Prueba manual" }
+   ```
+   Respuesta **200** con `"estado": "Pendiente"`. Guarda el `id`.
+
+#### RF-GP-02 — El Administrador consulta las pendientes; un Estándar no ve las de otros
+1. Con el token **Estándar**: `GET /api/solicitudes/pendientes` → **403**.
+2. `GET /api/solicitudes/mias` → **solo** las solicitudes de ese usuario.
+3. Con el token **Administrador**: `GET /api/solicitudes/pendientes` → **200** con la lista (incluye la solicitud recién creada).
+
+#### RF-GP-03 — El Administrador aprueba (queda quién y cuándo)
+1. `POST /api/solicitudes/{id}/aprobar` con el token **Administrador** (pega el `id`).
+2. Respuesta **200** con `"estado": "Aplicada"`, `"resueltoPorUsuarioId"` (el admin) y `"fechaResolucion"`.
+
+#### RF-GP-04 — El Administrador rechaza indicando el motivo
+1. Crea otra solicitud como **Estándar** y guarda su `id`.
+2. `POST /api/solicitudes/{id}/rechazar` con `{ "motivo": "" }` → **400** (`El motivo de rechazo es obligatorio.`).
+3. Repite con `{ "motivo": "No cumple los requisitos" }` → **200** con `"estado": "Rechazada"` y `"motivoRechazo"`.
+
+#### RF-GP-05 — Al aprobar se aplica el permiso automáticamente
+1. La solicitud de RF-GP-01 pide `exportar-inventario`. Con el token **Estándar**:
+   - `GET /api/mis-permisos` → `[]`
+   - `GET /api/inventario/exportar` → **403**
+2. Aprueba esa solicitud (RF-GP-03) con el token **Administrador**.
+3. De vuelta con el token **Estándar**:
+   - `GET /api/mis-permisos` → ahora incluye `exportar-inventario`.
+   - `GET /api/inventario/exportar` → **200** (descarga el CSV del inventario).
+   No hizo falta ninguna intervención manual entre aprobar y poder exportar.
+
+#### RF-GP-06 — Solo se permiten las transiciones de la tabla
+1. Sobre una solicitud ya **Aplicada**, vuelve a ejecutar `POST /api/solicitudes/{id}/aprobar` → **400** (`Transición inválida: Aplicada -> Aprobada.`) y el estado sigue `Aplicada`.
+2. Sobre una solicitud **Rechazada**, `POST /api/solicitudes/{id}/aprobar` → **400** y el estado sigue `Rechazada`.
+
+#### RF-GP-07 — Nadie resuelve su propia solicitud
+1. Autentícate con el token **Administrador**.
+2. `POST /api/solicitudes` → crea una solicitud (el admin queda como solicitante). Guarda el `id`.
+3. `POST /api/solicitudes/{id}/aprobar` con el mismo admin → **400** (`El solicitante no puede aprobar su propia solicitud.`). Lo mismo al intentar rechazarla.
+
+#### RD-09 — Las solicitudes sobreviven a reiniciar
+1. Anota una solicitud (`GET /api/solicitudes/mias`).
+2. Detén la API (Ctrl+C) y vuelve a `dotnet run`.
+3. Vuelve a iniciar sesión y repite `GET /api/solicitudes/mias` → la solicitud sigue con el mismo `id` y estado.
+
+### Tabla resumen
+| Criterio | Request | Esperado |
+|---|---|---|
+| RF-GP-01 | `POST /api/solicitudes` | 200, `Pendiente` |
+| RF-GP-02 | `GET /api/solicitudes/pendientes` (Estándar) | 403 |
+| RF-GP-02 | `GET /api/solicitudes/pendientes` (Admin) | 200, lista |
+| RF-GP-02 | `GET /api/solicitudes/mias` | solo las propias |
+| RF-GP-03 | `POST /{id}/aprobar` | 200, `Aplicada` + quién/cuándo |
+| RF-GP-04 | `POST /{id}/rechazar` `{"motivo":""}` | 400 |
+| RF-GP-04 | `POST /{id}/rechazar` `{"motivo":"..."}` | 200, `Rechazada` + motivo |
+| RF-GP-05 | `GET /api/mis-permisos` + `GET /api/inventario/exportar` | `[]`/403 → con permiso/200 |
+| RF-GP-06 | `POST /{id}/aprobar` (ya resuelta) | 400, estado igual |
+| RF-GP-07 | `POST /{id}/aprobar` (propia del admin) | 400 |
+| RD-09 | Reiniciar la API y `GET /api/solicitudes/mias` | la solicitud persiste |
+
+## Pruebas
+
+La suite de pruebas unitarias de Gestión de permisos está en `ProyectoFinalProg3_Inventory/Core.Domain.Tests` y ejercita el dominio **directamente, sin levantar la aplicación** (RD-12). Desde la raíz del repositorio, un único comando ejecuta toda la suite:
+
+```powershell
+dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
+```
+
+Salida esperada: `Passed: 9`. Las pruebas cubren la creación (RF-GP-01), una transición válida verificando el dato registrado —quién/cuándo y el motivo— (RF-GP-03/04) y transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07).
 

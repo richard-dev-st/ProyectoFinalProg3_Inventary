@@ -22,6 +22,8 @@ namespace Infrastructure.Persistence
         public DbSet<DetalleOrden> DetallesOrden { get; set; }
         public DbSet<Producto> Productos { get; set; }
         public DbSet<Proveedor> Proveedores { get; set; }
+        public DbSet<SolicitudPermiso> SolicitudesPermiso { get; set; }
+        public DbSet<PermisoUsuario> PermisosUsuario { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -96,6 +98,42 @@ namespace Infrastructure.Persistence
                 entity.HasOne(d => d.Producto)
                       .WithMany(p => p.DetallesOrden)
                       .HasForeignKey(d => d.ProductoId);
+            });
+
+            modelBuilder.Entity<SolicitudPermiso>(entity =>
+            {
+                entity.HasKey(s => s.Id);
+                entity.Property(s => s.Permiso).IsRequired().HasMaxLength(100);
+                entity.Property(s => s.Descripcion).HasMaxLength(500);
+                entity.Property(s => s.Estado).IsRequired().HasConversion<string>().HasMaxLength(20);
+                entity.Property(s => s.MotivoRechazo).HasMaxLength(500);
+                //Relacion Usuario -> SolicitudPermiso (Uno a Muchos)
+                entity.HasOne<Usuario>()
+                      .WithMany()
+                      .HasForeignKey(s => s.SolicitanteUsuarioId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                //Relacion Usuario -> SolicitudPermiso (Uno a Muchos) para ResueltoPorUsuarioId
+                entity.HasOne<Usuario>()
+                      .WithMany()
+                      .HasForeignKey(s => s.ResueltoPorUsuarioId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<PermisoUsuario>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Permiso).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.ConcedidoEn).IsRequired();
+                //Relacion Usuario -> PermisoUsuario (Uno a Muchos)
+                entity.HasOne<Usuario>()
+                      .WithMany()
+                      .HasForeignKey(p => p.UsuarioId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                //Relacion SolicitudPermiso -> PermisoUsuario (Uno a Muchos)
+                entity.HasOne<SolicitudPermiso>()
+                      .WithMany()
+                      .HasForeignKey(p => p.SolicitudId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

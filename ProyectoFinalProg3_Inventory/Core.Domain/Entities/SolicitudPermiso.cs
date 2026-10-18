@@ -11,6 +11,7 @@ namespace Core.Domain.Entities
         public EstadoSolicitudPermiso Estado { get; private set; } = EstadoSolicitudPermiso.Pendiente;
         public Guid SolicitanteUsuarioId { get; private set; }
         public string Descripcion { get; private set; } = string.Empty;
+        public string Permiso { get; private set; } = string.Empty;
         public DateTime CreadoEn { get; private set; }
         public Guid? ResueltoPorUsuarioId { get; private set; }
         public DateTime? FechaResolucion { get; private set; }
@@ -26,10 +27,17 @@ namespace Core.Domain.Entities
         };
 
         private SolicitudPermiso() { }
-        public SolicitudPermiso(Guid solicitanteUsuarioId, string descripcion)
+        public SolicitudPermiso(Guid solicitanteUsuarioId, string permiso, string descripcion)
         {
+
+            if (string.IsNullOrWhiteSpace(permiso))
+            {
+                throw new InvalidOperationException("El permiso solicitado es obligatorio.");
+            }
+
             Id = Guid.NewGuid();
             SolicitanteUsuarioId = solicitanteUsuarioId;
+            Permiso = permiso.Trim();
             Descripcion = descripcion;
             CreadoEn = DateTime.UtcNow;
         }

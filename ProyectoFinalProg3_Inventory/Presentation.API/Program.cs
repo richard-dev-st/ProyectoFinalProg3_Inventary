@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Application.Interfaces;
 using Application.Services;
 using Core.Application.Configurations;
@@ -7,10 +6,14 @@ using Core.Application.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Presentation.API.Authorization;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +54,6 @@ if (string.IsNullOrWhiteSpace(jwtSettingsSection.SecretKey))
 
 //Aplicamos la configuración de JwtSettings al contenedor de servicios
 builder.Services.AddSingleton(jwtSettingsSection);
-
 
 //Configurar Autenticación Bearer
 builder.Services.AddAuthentication(options =>
@@ -122,6 +124,13 @@ builder.Services.AddAuthentication(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'DefaultConnection'.");
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Permiso:exportar-inventario",
+        p => p.Requirements.Add(new PermisoRequirement("exportar-inventario")));
+});
+builder.Services.AddScoped<IAuthorizationHandler, PermisoAuthorizationHandler>();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
@@ -130,6 +139,7 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
+builder.Services.AddScoped<ISolicitudPermisoService, SolicitudPermisoService>();
 
 
 var app = builder.Build();
