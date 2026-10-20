@@ -49,7 +49,14 @@ namespace Core.Domain.Entities
                 throw new InvalidOperationException("El solicitante no puede aprobar su propia solicitud.");
             }
 
-            CambiarEstado(EstadoSolicitudPermiso.Aprobada); //Valida la transicion
+            if(Estado == EstadoSolicitudPermiso.Rechazada)
+            {
+                throw new InvalidOperationException($"Transición inválida: {Estado} -> {EstadoSolicitudPermiso.Aprobada}.");
+
+            } //Valida la transicion
+
+            Estado = EstadoSolicitudPermiso.Aprobada;
+
             ResueltoPorUsuarioId = resueltoPorUsuarioId; //RF: Registrar quien
             FechaResolucion = fecha;
 
