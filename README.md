@@ -196,11 +196,29 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 
 ## Pruebas
 
-La suite de pruebas unitarias de Gestión de permisos está en `ProyectoFinalProg3_Inventory/Core.Domain.Tests` y ejercita el dominio **directamente, sin levantar la aplicación** (RD-12). Desde la raíz del repositorio, un único comando ejecuta toda la suite:
+La suite cubre el dominio y la capa de aplicación de Gestión de permisos **sin levantar la aplicación** (RD-12):
+
+- `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 7 pruebas de `SolicitudPermisoService` con EF Core InMemory.
+
+Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 
 ```powershell
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 9`. Las pruebas cubren la creación (RF-GP-01), una transición válida verificando el dato registrado —quién/cuándo y el motivo— (RF-GP-03/04) y transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07).
+Salida esperada: `Passed: 19` (12 de dominio + 7 de aplicación). Las pruebas cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07).
+
+## Práctica 2 — Defectos plantados (Variante A)
+
+El tag `practica-2` corresponde a la suite en verde. Cada defecto se plantó en un commit independiente (hijo directo de `practica-2`) y se etiquetó como `practica-2-defecto-N`. Esta tabla declara qué prueba detecta cada defecto.
+
+| # | Requisito | Archivo y cambio plantado | Prueba que lo detecta |
+|---|---|---|---|
+| 1 | RF-GP-06 | `Core.Domain/Entities/SolicitudPermiso.cs` — en `Aprobar`, se sustituye la validación «estado Pendiente» por «estado no Rechazada». | `RF_GP_06_Aprobar_SolicitudYaAplicada_LanzaYElEstadoNoCambia` |
+| 2 | RF-GP-06 | `SolicitudPermiso.cs` — `TransicionesPermitidas`: se agrega `Rechazada → Aplicada`. | `RF_GP_06_CambiarEstado_DeRechazadaAAplicada_LanzaYNoCambia` |
+| 3 | RF-GP-07 | `SolicitudPermiso.cs` — en `Aprobar` y `Rechazar` se elimina la verificación de auto-resolución. | `RF_GP_07_Aprobar_SolicitudCreadaPorElMismoAdministrador_LanzaYElEstadoNoCambia` y `RF_GP_07_Rechazar_SolicitudCreadaPorElMismoAdministrador_LanzaYElEstadoNoCambia` |
+| 4 | RF-GP-02 | `Core.Application/Services/SolicitudPermisoService.cs` — en `MiasAsync`, `==` pasa a `!=`. | `RF_GP_02_MiasAsync_SoloDevuelveLasDelUsuario` |
+| 5 | RF-GP-06 | `SolicitudPermiso.cs` — `TransicionesPermitidas`: se agrega `Aprobada → Pendiente`. | `RF_GP_06_CambiarEstado_DeAprobadaAPendiente_LanzaYNoCambia` |
+| 6 | RF-GP-04 | `SolicitudPermiso.cs` — en `Rechazar` se elimina `MotivoRechazo = motivo;`. | `RF_GP_04_Rechazar_SolicitudPendienteConMotivo_LaDejaRechazadaYRegistraElMotivo` |
 

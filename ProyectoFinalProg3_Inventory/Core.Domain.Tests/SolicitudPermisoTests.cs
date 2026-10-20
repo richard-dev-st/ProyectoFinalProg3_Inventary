@@ -149,5 +149,53 @@ namespace Core.Domain.Tests
             //Verificar
             Assert.Equal("El permiso solicitado es obligatorio.", exception.Message);
         }
+
+        [Fact]
+        public void RF_GP_06_CambiarEstado_DeRechazadaAAplicada_LanzaYNoCambia()
+        {
+            //Preparar
+            var solicitante = Guid.NewGuid();
+            var admin = Guid.NewGuid();
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
+            solicitud.Rechazar(admin, "No cumple con los requisitos.", DateTime.UtcNow);
+
+            //Actuar
+            var exception = Assert.Throws<InvalidOperationException>(() => solicitud.CambiarEstado(EstadoSolicitudPermiso.Aplicada));
+
+            //Verificar
+            Assert.Contains("Transición inválida", exception.Message);
+            Assert.Equal(EstadoSolicitudPermiso.Rechazada, solicitud.Estado);
+        }
+
+        [Fact]
+        public void RF_GP_06_CambiarEstado_DeAprobadaAPendiente_LanzaYNoCambia()
+        {
+            //Preparar
+            var solicitante = Guid.NewGuid();
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
+            solicitud.CambiarEstado(EstadoSolicitudPermiso.Aprobada);
+
+            //Actuar
+            var exception = Assert.Throws<InvalidOperationException>(() => solicitud.CambiarEstado(EstadoSolicitudPermiso.Pendiente));
+
+            //Verificar
+            Assert.Contains("Transición inválida", exception.Message);
+            Assert.Equal(EstadoSolicitudPermiso.Aprobada, solicitud.Estado);
+        }
+
+        [Fact]
+        public void RF_GP_07_Rechazar_SolicitudCreadaPorElMismoAdministrador_LanzaYElEstadoNoCambia()
+        {
+            //Preparar
+            var solicitante = Guid.NewGuid();
+            var solicitud = new SolicitudPermiso(solicitante, "exportar-inventario", "Necesito permiso para salir temprano.");
+
+            //Actuar
+            var exception = Assert.Throws<InvalidOperationException>(() => solicitud.Rechazar(solicitante, "No cumple con los requisitos.", DateTime.UtcNow));
+
+            //Verificar
+            Assert.Equal("No puedes resolver tu propia solicitud.", exception.Message);
+            Assert.Equal(EstadoSolicitudPermiso.Pendiente, solicitud.Estado);
+        }
     }
 }
