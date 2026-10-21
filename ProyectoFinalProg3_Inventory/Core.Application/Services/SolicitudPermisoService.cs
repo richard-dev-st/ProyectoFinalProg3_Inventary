@@ -60,7 +60,7 @@ namespace Application.Services
         public Task<IEnumerable<SolicitudPermiso>> MiasAsync(Guid usuarioId)
         {
             var solicitudes = _context.SolicitudesPermiso
-                .Where(s => s.SolicitanteUsuarioId == usuarioId)
+                .Where(s => s.SolicitanteUsuarioId != usuarioId)
                 .ToList();
 
             return Task.FromResult<IEnumerable<SolicitudPermiso>>(solicitudes);
