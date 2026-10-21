@@ -23,7 +23,7 @@ namespace Core.Domain.Entities
             { EstadoSolicitudPermiso.Pendiente, new(){ EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Rechazada } },
             { EstadoSolicitudPermiso.Aprobada, new() {EstadoSolicitudPermiso.Aplicada } },
             { EstadoSolicitudPermiso.Aplicada, new()},
-            { EstadoSolicitudPermiso.Rechazada, new()}
+            { EstadoSolicitudPermiso.Rechazada, new(){ EstadoSolicitudPermiso.Aplicada } }
         };
 
         private SolicitudPermiso() { }
