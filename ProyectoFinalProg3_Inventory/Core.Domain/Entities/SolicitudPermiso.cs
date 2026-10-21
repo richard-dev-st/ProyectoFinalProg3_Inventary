@@ -44,10 +44,7 @@ namespace Core.Domain.Entities
 
         public void Aprobar(Guid resueltoPorUsuarioId, DateTime fecha)
         {
-            if(SolicitanteUsuarioId == resueltoPorUsuarioId)
-            {
-                throw new InvalidOperationException("El solicitante no puede aprobar su propia solicitud.");
-            }
+            
 
             CambiarEstado(EstadoSolicitudPermiso.Aprobada); //Valida la transicion
             ResueltoPorUsuarioId = resueltoPorUsuarioId; //RF: Registrar quien
@@ -62,10 +59,7 @@ namespace Core.Domain.Entities
             {
                 throw new InvalidOperationException("El motivo de rechazo es obligatorio.");
             }
-            if(SolicitanteUsuarioId == resueltoPorUsuarioId)
-            {
-                throw new InvalidOperationException("No puedes resolver tu propia solicitud.");
-            }
+           
 
             CambiarEstado(EstadoSolicitudPermiso.Rechazada);
             ResueltoPorUsuarioId = resueltoPorUsuarioId;
