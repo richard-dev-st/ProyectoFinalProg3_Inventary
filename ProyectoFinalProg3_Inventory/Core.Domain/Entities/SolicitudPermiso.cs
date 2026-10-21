@@ -70,7 +70,7 @@ namespace Core.Domain.Entities
             CambiarEstado(EstadoSolicitudPermiso.Rechazada);
             ResueltoPorUsuarioId = resueltoPorUsuarioId;
             FechaResolucion = fecha;
-            MotivoRechazo = motivo;
+            
         }
 
         internal void CambiarEstado(EstadoSolicitudPermiso nuevo)
