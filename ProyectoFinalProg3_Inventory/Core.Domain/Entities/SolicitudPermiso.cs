@@ -21,7 +21,7 @@ namespace Core.Domain.Entities
         private static readonly Dictionary<EstadoSolicitudPermiso, List<EstadoSolicitudPermiso>> TransicionesPermitidas = new()
         {
             { EstadoSolicitudPermiso.Pendiente, new(){ EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Rechazada } },
-            { EstadoSolicitudPermiso.Aprobada, new() {EstadoSolicitudPermiso.Aplicada } },
+            { EstadoSolicitudPermiso.Aprobada, new() {EstadoSolicitudPermiso.Aplicada, EstadoSolicitudPermiso.Pendiente } },
             { EstadoSolicitudPermiso.Aplicada, new()},
             { EstadoSolicitudPermiso.Rechazada, new()}
         };
