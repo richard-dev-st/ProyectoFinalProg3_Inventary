@@ -73,7 +73,7 @@ namespace Core.Domain.Entities
             MotivoRechazo = motivo;
         }
 
-        private void CambiarEstado(EstadoSolicitudPermiso nuevo)
+        internal void CambiarEstado(EstadoSolicitudPermiso nuevo)
         {
             if (!TransicionesPermitidas[Estado].Contains(nuevo))
             {
