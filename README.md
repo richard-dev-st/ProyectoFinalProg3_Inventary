@@ -222,3 +222,63 @@ El tag `practica-2` corresponde a la suite en verde. Cada defecto se plantó en 
 | 5 | RF-GP-06 | `SolicitudPermiso.cs` — `TransicionesPermitidas`: se agrega `Aprobada → Pendiente`. | `RF_GP_06_CambiarEstado_DeAprobadaAPendiente_LanzaYNoCambia` |
 | 6 | RF-GP-04 | `SolicitudPermiso.cs` — en `Rechazar` se elimina `MotivoRechazo = motivo;`. | `RF_GP_04_Rechazar_SolicitudPendienteConMotivo_LaDejaRechazadaYRegistraElMotivo` |
 
+## Práctica 3 — Módulo de negocio, sus pruebas e integración
+
+### 1. Módulo de Negocio (OrdenCompra)
+El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro del sistema de inventario.
+
+#### Requisitos de negocio implementados (RF-NEG)
+
+* **RF-NEG-02 — Al menos cinco funcionalidades separables:**
+  1. `POST /api/OrdenesCompra/crear-borrador`: Registra una nueva orden de compra en estado inicial con sus detalles de productos, cantidades y precios.
+  2. `POST /api/OrdenesCompra/{id}/enviar-aprobacion`: Avanza la orden de estado `Borrador` a `PendienteAprobacion`.
+  3. `POST /api/OrdenesCompra/{id}/aprobar`: Cambia el estado de `PendienteAprobacion` a `Aprobada`.
+  4. `POST /api/OrdenesCompra/{id}/recibir`: Marca una orden `Aprobada` como `Recibida` (impactando inventario).
+  5. `POST /api/OrdenesCompra/{id}/cancelar`: Cancela una orden activa desde los estados permitidos.
+
+* **RF-NEG-03 — Máquina de estados propia:**
+  Posee 5 estados (`Borrador`, `PendienteAprobacion`, `Aprobada`, `Recibida`, `Cancelada`). Todas las reglas de transición y estados están declarados exclusivamente en un solo punto del código: `Business.Inventory/Entities/OrdenCompra.cs` (RD-04).
+
+* **RF-NEG-04 — Transiciones prohibidas:**
+  Intentar transiciones no válidas (por ejemplo, saltar de `Borrador` a `Recibida` o de `PendienteAprobacion` a `Recibida`) es rechazado explícitamente y el estado de la entidad no se modifica (RD-07).
+
+* **RF-NEG-05 — Estados terminales:**
+  Los estados `Recibida` y `Cancelada` son terminales; no es posible realizar ninguna transición a partir de ellos.
+
+* **RF-NEG-06 — Protección por Control de Acceso:**
+  Todas las operaciones de negocio requieren una sesión válida (JWT) y la verificación del rol correspondiente.
+
+* **RF-NEG-09 — Independencia:**
+  La máquina de estados del módulo de compras es completamente independiente de la máquina de estados de Gestión de Permisos.
+
+---
+
+### Cómo provocar cada funcionalidad del Módulo de Negocio
+
+#### Preparación previa:
+1. Inicia sesión como usuario **Estándar** o **Administrador** (`POST /api/Auth/Login`).
+2. Copia el token de respuesta y autorízate en el botón **Authorize** de Swagger.
+3. Asegúrate de tener al menos un proveedor y un producto creados en la base de datos (por ejemplo, con ID `1`).
+
+#### Pasos para probar el ciclo completo:
+
+1. **Crear Borrador:**
+   * Invoca `POST /api/OrdenesCompra/crear-borrador` enviando el `ProveedorId` y la lista de items.
+   * **Esperado:** Respuesta `200 OK` devolviendo el `ordenId` (por ejemplo, `3`) y estado en BD = `Borrador` (o `1`).
+
+2. **Enviar a Aprobación:**
+   * Invoca `POST /api/OrdenesCompra/{id}/enviar-aprobacion` usando el `ordenId` recién creado.
+   * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `EnAprobacion` (o `2`).
+
+3. **Aprobar Orden:**
+   * Invoca `POST /api/OrdenesCompra/{id}/aprobar` con el `ordenId`.
+   * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `Aprobada` (o `3`).
+
+4. **Recibir Orden (Estado Terminal):**
+   * Invoca `POST /api/OrdenesCompra/{id}/recibir` con el `ordenId`.
+   * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `Recibida` (o `4`).
+
+5. **Verificar Transición Prohibida o Salida de Estado Terminal:**
+   * Sobre la orden ya en estado `Recibida`, intenta invocar `POST /api/OrdenesCompra/{id}/cancelar` o cualquier otra transición.
+   * **Esperado:** Respuesta `400 Bad Request` indicando que la transición no está permitida y el estado se mantiene en `Recibida`.
+
