@@ -1,6 +1,6 @@
 # Máquina de Estados - OrdenCompra
 
-Documento que describe la máquina de estados de la entidad central de negocio **`OrdenCompra`** (RF-NEG-03, RD-04, RF-NEG-04, RF-NEG-05).
+Documento que describe la máquina de estados de la entidad central de negocio **`OrdenCompra`** (RF-NEG-03, RD-04, RF-NEG-04, RF-NEG-05, RF-NEG-09).
 
 ## Estado actual de la entidad
 
@@ -20,30 +20,50 @@ La entidad `OrdenCompra` (proyecto `Business.Inventory`) expone el atributo `Est
 | 4 | `Recibida` | El inventario llegó y se registró. | **Terminal** (RF-NEG-05) |
 | 5 | `Cancelada` | La orden se canceló; no puede cambiar de estado. | **Terminal** (RF-NEG-05) |
 
-## Tabla de transiciones permitidas (RD-04)
+## Métodos de la entidad y su transición
 
-Igual que la tabla de Gestión de permisos de los Requerimientos del Core.
+| Método | Transición que ejecuta | Notas |
+| :--- | :--- | :--- |
+| `EnviarAAprobacion()` | `Borrador` → `PendienteAprobacion` | Delegado a `CambiarEstado(EstadoOrden.PendienteAprobacion)`. |
+| `Aprobar()` | `PendienteAprobacion` → `Aprobada` | Delegado a `CambiarEstado(EstadoOrden.Aprobada)`. |
+| `Recibir()` | `Aprobada` → `Recibida` | Delegado a `CambiarEstado(EstadoOrden.Recibida)`. |
+| `Cancelar()` | Desde estados permitidos → `Cancelada` | Delegado a `CambiarEstado(EstadoOrden.Cancelada)`. |
+
+## Tabla de transiciones permitidas (RD-04)
 
 | Desde | Hacia | Quién la ejecuta | Condición |
 | :--- | :--- | :--- | :--- |
-| `Borrador` | `PendienteAprobacion` | Estándar / quien crea la orden | La orden tiene al menos un detalle y un proveedor asignado, y el usuario la envía. |
+| `Borrador` | `PendienteAprobacion` | Estándar / Administrador (quien crea la orden) | La orden tiene al menos un detalle y un proveedor asignado, y el usuario la envía. |
 | `Borrador` | `Cancelada` | Estándar / Administrador | El creador desiste o el administrador descarta la orden en borrador. |
-| `PendienteAprobacion` | `Aprobada` | Administrador | El administrador evalúa el presupuesto y aprueba la orden. |
-| `PendienteAprobacion` | `Cancelada` | Administrador | El administrador rechaza o cancela la orden. |
-| `Aprobada` | `Recibida` | Estándar | El inventario llega físicamente y se registra la recepción en el almacén. |
-| `Aprobada` | `Cancelada` | Administrador | El proveedor informa que no puede despachar la orden. |
+| `PendienteAprobacion` | `Aprobada` | **Administrador** | El administrador evalúa el presupuesto y aprueba la orden. |
+| `PendienteAprobacion` | `Cancelada` | **Administrador** | El administrador rechaza o cancela la orden. |
+| `Aprobada` | `Recibida` | Estándar / Administrador | El inventario llega físicamente y se registra la recepción en el almacén. **Requiere tener el permiso `recibir-orden` concedido por Gestión de Permisos (aprobado en `SolicitudPermiso`) y registrado en `PermisosUsuario`.** |
+| `Aprobada` | `Cancelada` | **Administrador** | El proveedor informa que no puede despachar la orden. |
 | `Recibida` | *(ninguna)* | — | Estado terminal: no admite transiciones de salida (RF-NEG-05). |
 | `Cancelada` | *(ninguna)* | — | Estado terminal: no admite transiciones de salida (RF-NEG-05). |
 
-## Transiciones prohibidas explícitas (RF-NEG-04)
+## Regla de validación (RD-07)
 
-El mapa `TransicionesPermitidas` valida que solo existan las transiciones de la tabla anterior. Cualquier intento de transición no listada lanza una excepción de negocio controlada (`InvalidOperationException`), por ejemplo:
+Toda transición se resuelve **exclusivamente** en `OrdenCompra.CambiarEstado(EstadoOrden nuevoEstado)`.
 
-- `Recibida` → cualquier estado (terminal).
-- `Cancelada` → cualquier estado (terminal).
-- `Borrador` → `Aprobada` de forma directa (debe pasar por `PendienteAprobacion`).
-- `PendienteAprobacion` → `Recibida` sin pasar por `Aprobada`.
-- `Aprobada` → `PendienteAprobacion` (una orden aprobada no vuelve a espera).
+- Si `nuevoEstado` **no** se encuentra en `TransicionesPermitidas[EstadoActual]`, se lanza `InvalidOperationException` con el mensaje `Transición inválida: No se puede cambiar el estado de {Estado} a {nuevoEstado}.`
+- **El estado de la entidad no se modifica** cuando la transición es inválida.
+- Los estados `Recibida` y `Cancelada` son terminales: al no tener salidas en el mapa, **cualquier intento de transición desde ellos es rechazado**.
+
+## Tabla de transiciones prohibidas explícitas (RF-NEG-04)
+
+Estas son las transiciones que no están declaradas en `TransicionesPermitidas` y deben ser rechazadas de forma controlada.
+
+| Desde | Hacia | Razón | Comportamiento esperado |
+| :--- | :--- | :--- | :--- |
+| `Borrador` | `Aprobada` | Salto de estado. Debe pasar obligatoriamente por `PendienteAprobacion`. | `InvalidOperationException`. El estado permanece en `Borrador`. |
+| `Borrador` | `Recibida` | Salto de estado. Debe pasar por `PendienteAprobacion` y `Aprobada`. | `InvalidOperationException`. El estado permanece en `Borrador`. |
+| `PendienteAprobacion` | `Recibida` | Salto de estado. Debe pasar obligatoriamente por `Aprobada`. | `InvalidOperationException`. El estado permanece en `PendienteAprobacion`. |
+| `PendienteAprobacion` | `PendienteAprobacion` | No hay auto-transición declarada. | `InvalidOperationException`. El estado permanece en `PendienteAprobacion`. |
+| `Aprobada` | `Borrador` | Retroceso no permitido. | `InvalidOperationException`. El estado permanece en `Aprobada`. |
+| `Aprobada` | `PendienteAprobacion` | Retroceso no permitido. Una orden aprobada no vuelve a espera. | `InvalidOperationException`. El estado permanece en `Aprobada`. |
+| `Recibida` | `Borrador` / `PendienteAprobacion` / `Aprobada` / `Cancelada` / `Recibida` | **Estado terminal.** No admite transiciones de salida (RF-NEG-05). | `InvalidOperationException`. El estado permanece en `Recibida`. |
+| `Cancelada` | `Borrador` / `PendienteAprobacion` / `Aprobada` / `Recibida` / `Cancelada` | **Estado terminal.** No admite transiciones de salida (RF-NEG-05). | `InvalidOperationException`. El estado permanece en `Cancelada`. |
 
 ## Diagrama
 
