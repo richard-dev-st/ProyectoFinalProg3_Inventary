@@ -196,10 +196,11 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 
 ## Pruebas
 
-La suite cubre el dominio y la capa de aplicación de Gestión de permisos **sin levantar la aplicación** (RD-12):
+La suite cubre el dominio y la capa de aplicación de Gestión de permisos, así como la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
 - `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 7 pruebas de `SolicitudPermisoService` con EF Core InMemory.
+- `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 15 pruebas de la máquina de estados de `OrdenCompra` (entidad `Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas y estados terminales.
 
 Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 
@@ -207,7 +208,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 19` (12 de dominio + 7 de aplicación). Las pruebas cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07).
+Salida esperada: `Passed: 34` (12 de dominio + 7 de aplicación + 15 de `OrdenCompra`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
