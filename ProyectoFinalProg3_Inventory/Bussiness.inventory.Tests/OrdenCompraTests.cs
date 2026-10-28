@@ -369,4 +369,23 @@ public class OrdenCompraTests
         Assert.Equal(EstadoOrden.Cancelada, orden.Estado);
         Assert.Contains("Transición inválida", ex.Message);
     }
+
+    [Fact]
+    public void Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia()
+    {
+        //Arrange
+        var orden = new OrdenCompra
+        {
+            ProveedorId = 20,
+            CreadoPorUsuarioId = Guid.NewGuid(),
+            Detalles = new List<DetalleOrden>() // Sin detalles
+        };
+        
+        //Act
+        var ex = Assert.Throws<InvalidOperationException>(() => orden.EnviarAAprobacion());
+        
+        //Assert
+        Assert.Equal(EstadoOrden.Borrador, orden.Estado);
+        Assert.Contains("detalle", ex.Message.ToLower());
+    }
 }
