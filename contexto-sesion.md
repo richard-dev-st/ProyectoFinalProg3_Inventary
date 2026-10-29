@@ -177,7 +177,7 @@ Falta de permiso → `403`.
 | Requisito | Evidencia | Veredicto |
 |---|---|---|
 | 4 defectos, uno por tag | `practica-3-defecto-1..4` | ✅ Cumple |
-| Cada tag es **hijo directo** de `practica-3` | Padres verificados: `2d4ffcd` en los cuatro | ✅ Cumple |
+| Cada tag es **hijo directo** de `practica-3` | Padres verificados: `1c45d3a` en los cuatro | ✅ Cumple |
 | Solo tocan **código de producción** | `git show --name-only` lista únicamente `OrdenCompra.cs` (1-3) y `OrdenCompraService.cs` (4) | ✅ Cumple |
 | Mensaje de commit nombra **archivo y línea** | Ej.: `defecto-1: ... en Business.Inventory/Entities/OrdenCompra.cs linea 29` | ✅ Cumple |
 | Cada defecto hace **fallar ≥1 prueba** | Verificado con `dotnet test` sobre cada tag (§6) | ✅ Cumple |
@@ -271,12 +271,12 @@ registro del permiso al aprobar y la persistencia con EF Core InMemory (RF-GP-01
 
 | Tag | Commit | Padre | Archivo y línea | Prueba que falla | Comportamiento introducido |
 |---|---|---|---|---|---|
-| `practica-3-defecto-1` | `3446b00` | `2d4ffcd` | `Business.Inventory/Entities/OrdenCompra.cs` L29 | `Borrador_Aprobar_LanzaInvalidOperationException_YEstaNoCambia` | Añade `Aprobada` a las salidas de `Borrador` (salto de estado permitido) |
-| `practica-3-defecto-2` | `4dbfe20` | `2d4ffcd` | `Business.Inventory/Entities/OrdenCompra.cs` L32 | `Recibida_Recibir_LanzaInvalidOperationException_YEstaNoCambia` | Añade `Recibida` a las salidas de `Recibida` (rompe el estado terminal) |
-| `practica-3-defecto-3` | `0040cf7` | `2d4ffcd` | `Business.Inventory/Entities/OrdenCompra.cs` L39-46 | `Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia` | Elimina la validación de detalles/proveedor en `EnviarAAprobacion` |
-| `practica-3-defecto-4` | `dcee56d` | `2d4ffcd` | `Core.Application/Services/OrdenCompraService.cs` L83-88 | `Recibir_SinPermisoAprobado_Rechaza_YConPermisoAprobado_Permite` (integración) | Elimina la consulta a `PermisosUsuario` y el rechazo |
+| `practica-3-defecto-1` | `46ce800` | `1c45d3a` | `Business.Inventory/Entities/OrdenCompra.cs` L29 | `Borrador_Aprobar_LanzaInvalidOperationException_YEstaNoCambia` | Añade `Aprobada` a las salidas de `Borrador` (salto de estado permitido) |
+| `practica-3-defecto-2` | `f9055bb` | `1c45d3a` | `Business.Inventory/Entities/OrdenCompra.cs` L32 | `Recibida_Recibir_LanzaInvalidOperationException_YEstaNoCambia` | Añade `Recibida` a las salidas de `Recibida` (rompe el estado terminal) |
+| `practica-3-defecto-3` | `d779d66` | `1c45d3a` | `Business.Inventory/Entities/OrdenCompra.cs` L39-46 | `Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia` | Elimina la validación de detalles/proveedor en `EnviarAAprobacion` |
+| `practica-3-defecto-4` | `44fe284` | `1c45d3a` | `Core.Application/Services/OrdenCompraService.cs` L83-88 | `Recibir_SinPermisoAprobado_Rechaza_YConPermisoAprobado_Permite` (integración) | Elimina la consulta a `PermisosUsuario` y el rechazo |
 
-Cada tag fue comprobado ejecutando la suite completa: **1 fallo**, el resto en verde, y el
+Cada tag fue comprobado ejecutando la prueba objetivo (falla de forma aislada) y la suite completa de practica-3, que queda en verde, y el
 `git show --name-only` confirma que **solo** se modificó el archivo de producción indicado.
 
 ---
@@ -284,13 +284,13 @@ Cada tag fue comprobado ejecutando la suite completa: **1 fallo**, el resto en v
 ## 6. Estado de Git y publicación
 
 ```
-main             eb496c5  merge: practica 3 final (README + docs alineados)
-practica-3       2d4ffcd  docs(practica-3): alinea tabla de transiciones, añade
+main             7664e53  merge: correcciones de exactitud en README (linea del defecto 3 y alcance de recibir)
+practica-3       1c45d3a  docs(practica-3): alinea tabla de transiciones, añade
                           prueba de auto-transición y documenta la revisión acumulada
-practica-3-defecto-1  3446b00
-practica-3-defecto-2  4dbfe20
-practica-3-defecto-3  0040cf7
-practica-3-defecto-4  dcee56d
+practica-3-defecto-1  46ce800
+practica-3-defecto-2  f9055bb
+practica-3-defecto-3  d779d66
+practica-3-defecto-4  44fe284
 ```
 
 - `main` y `practica-3` tienen **árbol idéntico** salvo `contexto-sesion.md`, que vive solo en `main`
@@ -307,11 +307,11 @@ git checkout p3-final
 git add -A; git commit -m "..."
 git tag -f practica-3
 
-# 2) Recrear cada defecto (los commits viejos son 3446b00, 4dbfe20, 0040cf7, dcee56d)
-git checkout -B d1 practica-3; git cherry-pick 3446b00; git tag -f practica-3-defecto-1
-git checkout -B d2 practica-3; git cherry-pick 4dbfe20; git tag -f practica-3-defecto-2
-git checkout -B d3 practica-3; git cherry-pick 0040cf7; git tag -f practica-3-defecto-3
-git checkout -B d4 practica-3; git cherry-pick dcee56d; git tag -f practica-3-defecto-4
+# 2) Recrear cada defecto (los hashes actuales de los defectos son 46ce800, f9055bb, d779d66, 44fe284)
+git checkout -B d1 practica-3; git cherry-pick 46ce800; git tag -f practica-3-defecto-1
+git checkout -B d2 practica-3; git cherry-pick f9055bb; git tag -f practica-3-defecto-2
+git checkout -B d3 practica-3; git cherry-pick d779d66; git tag -f practica-3-defecto-3
+git checkout -B d4 practica-3; git cherry-pick 44fe284; git tag -f practica-3-defecto-4
 
 # 3) Verificar y publicar
 git checkout main; git merge p3-final --no-ff
@@ -332,7 +332,7 @@ dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx `
 git show --name-only --format="" practica-3-defecto-1
 
 # Comprobar ascendencia
-git rev-parse --short practica-3-defecto-1^   # debe ser 2d4ffcd
+git rev-parse --short practica-3-defecto-1^   # debe ser 1c45d3a
 ```
 
 ---
@@ -437,9 +437,9 @@ git rev-parse --short practica-3-defecto-1^   # debe ser 2d4ffcd
    (`Count` es `int`). Simplificar a `Detalles.Count == 0`.
 7. **Advertencias NU1902/NU1903:** `System.Security.Cryptography.Pkcs` 9.0.11 tiene una vulnerabilidad
    **alta** conocida (transitiva). Actualizar el paquete que la arrastra o fijar una versión parcheada.
-8. **Encoding:** varios `.cs` y el README muestran caracteres mal codificados en consola
-   (`Transici�n`, `contrase�a`). El contenido real es UTF-8 válido; si se edita en un editor que no
-   detecta UTF-8 conviene forzar la codificación para evitar corrupción.
+8. **Encoding:** en la consola de Windows algunos `.cs` y el README muestran los acentos como
+   signos de interrogación. Los archivos están guardados en UTF-8; conviene forzar esa codificación
+   al editarlos para no corromperlos.
 9. **`OrdenCompraRepository.GetByIdAsync` devuelve `OrdenCompra?`** y la interfaz declara no-nulo
    (warning CS8603). Ajustar la firma a nullable.
 10. **`Business.Inventory` y `Bussiness.inventory.Tests`:** nombres con errata (`Bussiness`). No es
