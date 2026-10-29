@@ -11,7 +11,7 @@ namespace Application.Interfaces
         Task<int> CrearBorradorAsync(CrearOrdenCompraDto dto, Guid usuarioId);
         Task EnviarAprobacionAsync(int id);
         Task AprobarAsync(int id);
-        Task RecibirAsync(int id);
+        Task RecibirAsync(int id, Guid usuarioId);
         Task CancelarAsync(int id);
     }
 }

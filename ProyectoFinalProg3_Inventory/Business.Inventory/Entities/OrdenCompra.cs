@@ -34,7 +34,19 @@ namespace Business.Inventory.Entities
         };
 
         // Métodos de comportamiento de negocio para encapsular las transiciones
-        public void EnviarAAprobacion() => CambiarEstado(EstadoOrden.PendienteAprobacion);
+        public void EnviarAAprobacion()
+        {
+            if(Detalles.Count == null || Detalles.Count == 0)
+            {
+                throw new InvalidOperationException("La orden debe tener al menos un detalle para enviarse a aprobación.");
+            }
+            if(ProveedorId <= 0)
+            {
+                throw new InvalidOperationException("La orden debe tener un proveedor asignado para enviarse a aprobación.");
+            }
+            CambiarEstado(EstadoOrden.PendienteAprobacion);
+        }
+
         public void Aprobar() => CambiarEstado(EstadoOrden.Aprobada);
         public void Recibir() => CambiarEstado(EstadoOrden.Recibida);
         public void Cancelar() => CambiarEstado(EstadoOrden.Cancelada);

@@ -10,10 +10,12 @@ namespace Application.Services
     public class OrdenCompraService : IOrdenCompraService
     {
         private readonly IOrdenCompraRepository _repository;
+        private readonly IApplicationDbContext _context;
 
-        public OrdenCompraService(IOrdenCompraRepository repository)
+        public OrdenCompraService(IOrdenCompraRepository repository, IApplicationDbContext context)
         {
             _repository = repository;
+            _context = context;
         }
 
         public async Task AprobarAsync(int id)
@@ -70,13 +72,21 @@ namespace Application.Services
             await _repository.SaveChangesAsync();
         }
 
-        public async Task RecibirAsync(int id)
+        public async Task RecibirAsync(int id, Guid usuarioId)
         {
             var orden = await _repository.GetByIdAsync(id);
             if (orden == null)
             {
                 throw new InvalidOperationException("Orden de compra no encontrada");
             }
+
+            bool tienePermiso = _context.PermisosUsuario.Any(p => p.UsuarioId == usuarioId && p.Permiso == "recibir-orden");
+            
+            if (!tienePermiso)
+            {
+                throw new UnauthorizedAccessException("No posees el permiso 'recibir-orden'. Debe solicitarlo a través de gestión de permisos.");
+            }
+
             orden.Recibir();
             await _repository.SaveChangesAsync();
         }

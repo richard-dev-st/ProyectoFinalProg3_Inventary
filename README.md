@@ -200,7 +200,9 @@ La suite cubre el dominio y la capa de aplicación de Gestión de permisos, así
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
 - `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 7 pruebas de `SolicitudPermisoService` con EF Core InMemory.
-- `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 15 pruebas de la máquina de estados de `OrdenCompra` (entidad `Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas y estados terminales.
+- `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 17 pruebas del módulo de negocio:
+  - 16 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
+  - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
 
 Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 
@@ -208,7 +210,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 34` (12 de dominio + 7 de aplicación + 15 de `OrdenCompra`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 36` (12 de dominio + 7 de aplicación + 17 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -269,17 +271,33 @@ El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro
 
 2. **Enviar a Aprobación:**
    * Invoca `POST /api/OrdenesCompra/{id}/enviar-aprobacion` usando el `ordenId` recién creado.
-   * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `EnAprobacion` (o `2`).
+   * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `PendienteAprobacion` (o `2`).
 
 3. **Aprobar Orden:**
    * Invoca `POST /api/OrdenesCompra/{id}/aprobar` con el `ordenId`.
    * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `Aprobada` (o `3`).
 
 4. **Recibir Orden (Estado Terminal):**
+   * Requiere tener el permiso `recibir-orden` concedido por Gestión de Permisos: el usuario Estándar lo solicita (`POST /api/solicitudes`), un Administrador la aprueba (`POST /api/solicitudes/{id}/aprobar`) y solo entonces la operación queda habilitada. Sin ese permiso la API responde `403`.
    * Invoca `POST /api/OrdenesCompra/{id}/recibir` con el `ordenId`.
    * **Esperado:** Respuesta `200 OK`. Estado en BD pasa a `Recibida` (o `4`).
 
 5. **Verificar Transición Prohibida o Salida de Estado Terminal:**
    * Sobre la orden ya en estado `Recibida`, intenta invocar `POST /api/OrdenesCompra/{id}/cancelar` o cualquier otra transición.
    * **Esperado:** Respuesta `400 Bad Request` indicando que la transición no está permitida y el estado se mantiene en `Recibida`.
+
+---
+
+### Defectos plantados (Práctica 3)
+
+Cada defecto vive en un commit cuyo padre es el commit etiquetado `practica-3`, modificando **solo código de producción** (ningún archivo de pruebas). Sobre `practica-3` la suite pasa completa; sobre `practica-3-defecto-N` falla al menos la prueba indicada.
+
+| # | Archivo y cambio plantado | Prueba que lo detecta | Comportamiento que comprueba |
+|---|---|---|---|
+| 1 | `Business.Inventory/Entities/OrdenCompra.cs` línea 29 — se agrega `EstadoOrden.Aprobada` a la lista de transiciones permitidas desde `Borrador`. | `Borrador_Aprobar_LanzaInvalidOperationException_YEstaNoCambia` | La transición prohibida `Borrador → Aprobada` pasa a estar permitida: ya no se lanza `InvalidOperationException` y el estado cambia a `Aprobada`. |
+| 2 | `Business.Inventory/Entities/OrdenCompra.cs` línea 32 — se agrega `EstadoOrden.Recibida` a la lista de transiciones permitidas desde `Recibida`. | `Recibida_Recibir_LanzaInvalidOperationException_YEstaNoCambia` | El estado terminal `Recibida` deja de ser terminal: `Recibir()` desde `Recibida` ya no se rechaza. |
+| 3 | `Business.Inventory/Entities/OrdenCompra.cs` líneas 39-44 — se elimina la condición de la transición `Borrador → PendienteAprobacion` (exigir al menos un detalle y un proveedor) dentro de `EnviarAAprobacion`. | `Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia` | La transición se ejecuta sin cumplir su condición: una orden sin detalles pasa a `PendienteAprobacion` en lugar de ser rechazada. |
+| 4 | `Core.Application/Services/OrdenCompraService.cs` líneas 83-88 — se elimina la consulta a `PermisosUsuario` y el rechazo en `RecibirAsync`. | `Recibir_SinPermisoAprobado_Rechaza_YConPermisoAprobado_Permite` | La operación se permite aunque el permiso `recibir-orden` no esté aprobado: ya no se lanza `UnauthorizedAccessException` y la orden pasa a `Recibida`. |
+
+Etiquetas: `practica-3-defecto-1` … `practica-3-defecto-4`, todas hijas directas de `practica-3`.
 
