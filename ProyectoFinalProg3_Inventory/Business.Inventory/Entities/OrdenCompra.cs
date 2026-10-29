@@ -26,7 +26,7 @@ namespace Business.Inventory.Entities
         // RD-04: Transiciones permitidas declaradas en UN SOLO LUGAR (en la entidad)
         private static readonly Dictionary<EstadoOrden, List<EstadoOrden>> TransicionesPermitidas = new()
         {
-            { EstadoOrden.Borrador, new() { EstadoOrden.PendienteAprobacion, EstadoOrden.Cancelada } },
+            { EstadoOrden.Borrador, new() { EstadoOrden.PendienteAprobacion, EstadoOrden.Cancelada, EstadoOrden.Aprobada } },
             { EstadoOrden.PendienteAprobacion, new() { EstadoOrden.Aprobada, EstadoOrden.Cancelada } },
             { EstadoOrden.Aprobada, new() { EstadoOrden.Recibida, EstadoOrden.Cancelada } },
             { EstadoOrden.Recibida, new() }, // Estado terminal (RF-NEG-05): sin salidas
