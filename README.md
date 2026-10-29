@@ -16,7 +16,7 @@ flowchart LR
     end
 
     subgraph NEGOCIO ["MÓDULO DE NEGOCIO"]
-        INV["Módulo de Inventario<br/><i>Entidades: Producto, Proveedor, OrdenCompra<br/>Estado: Borrador → Solicitada → Recibida / Cancelada</i>"]
+        INV["Módulo de Inventario<br/><i>Entidades: Producto, Proveedor, OrdenCompra<br/>Estado: Borrador → PendienteAprobacion → Aprobada → Recibida / Cancelada</i>"]
     end
 
     %% Relaciones del Módulo hacia el Core
@@ -200,8 +200,8 @@ La suite cubre el dominio y la capa de aplicación de Gestión de permisos, así
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
 - `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 7 pruebas de `SolicitudPermisoService` con EF Core InMemory.
-- `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 17 pruebas del módulo de negocio:
-  - 16 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
+- `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
+  - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
 
 Desde la raíz del repositorio, un único comando ejecuta toda la suite:
@@ -210,7 +210,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 36` (12 de dominio + 7 de aplicación + 17 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 37` (12 de dominio + 7 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -236,7 +236,7 @@ El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro
   1. `POST /api/OrdenesCompra/crear-borrador`: Registra una nueva orden de compra en estado inicial con sus detalles de productos, cantidades y precios.
   2. `POST /api/OrdenesCompra/{id}/enviar-aprobacion`: Avanza la orden de estado `Borrador` a `PendienteAprobacion`.
   3. `POST /api/OrdenesCompra/{id}/aprobar`: Cambia el estado de `PendienteAprobacion` a `Aprobada`.
-  4. `POST /api/OrdenesCompra/{id}/recibir`: Marca una orden `Aprobada` como `Recibida` (impactando inventario).
+  4. `POST /api/OrdenesCompra/{id}/recibir`: Marca una orden `Aprobada` como `Recibida` (recepción de la mercancía en el almacén).
   5. `POST /api/OrdenesCompra/{id}/cancelar`: Cancela una orden activa desde los estados permitidos.
 
 * **RF-NEG-03 — Máquina de estados propia:**
@@ -288,6 +288,64 @@ El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro
 
 ---
 
+### Revisión acumulada — los cinco frentes (Práctica 3, punto 1.5)
+
+Recorrido completo de Control de acceso y Gestión de permisos sobre el proyecto arrancado desde este tag. Si no hay SMTP configurado, los tokens/códigos se leen de la base de datos (indicado en cada frente) y el resto del flujo es idéntico.
+
+#### Frente 1 — Registro con activación por correo
+1. `POST /api/Auth/registrar` con:
+   ```json
+   { "email": "nuevo@test.com", "password": "Password123", "baseUrl": "http://localhost:5176" }
+   ```
+   **Esperado:** `200` con `"exito": true`. El usuario queda `Activo = false` y el correo se encola en `CorreosEnCola`.
+2. Intenta iniciar sesión antes de activar → **`400`** (`La cuenta no está activa...`).
+3. Activación por dos vías:
+   - **Con correo:** ejecuta el worker (`EmailWorker`) con las credenciales SMTP y abre el enlace del correo.
+   - **Sin correo (clon limpio):** obtén el token y actívalo por API:
+     ```sql
+     SELECT TokenActivacion FROM Usuarios WHERE Email = 'nuevo@test.com';
+     ```
+     `GET /api/Auth/activar?token={TokenActivacion}` → **`200`**.
+4. `POST /api/Auth/Login` con ese usuario → **`200`** con `token`.
+
+#### Frente 2 — Inicio y cierre de sesión
+1. `POST /api/Auth/Login` → **`200`** con `token`, `rol` y `expiracion`.
+2. `GET /api/Auth/me` con `Authorization: Bearer {token}` → **`200`** con el usuario autenticado.
+3. `POST /api/Auth/logout` con el mismo token → **`200`**.
+4. Reutiliza ese token en `GET /api/Auth/me` → **`401`** (token revocado).
+
+#### Frente 3 — Un Estándar no puede ejecutar una operación de Administrador
+1. Inicia sesión con un usuario **Estándar**.
+2. `GET /api/solicitudes/pendientes` → **`403`**.
+3. `PUT /api/admin/usuarios/{id}/rol` → **`403`**.
+4. `POST /api/Auth/{id}/forzar-restablecimiento` → **`403`**.
+   (Con token **Administrador**, las tres responden `200`.)
+
+#### Frente 4 — Recuperación de contraseña
+1. `POST /api/Auth/solicitar-recuperacion` con `{ "email": "nuevo@test.com" }` → **`200`** con mensaje genérico (no revela si el correo existe).
+2. Obtén el código de 6 dígitos (válido 15 minutos):
+   ```sql
+   SELECT CodigoRecuperacion FROM Usuarios WHERE Email = 'nuevo@test.com';
+   ```
+3. `POST /api/Auth/restablecer-password` con:
+   ```json
+   { "email": "nuevo@test.com", "codigo": "123456", "nuevaPassword": "NuevaPassword123" }
+   ```
+   **Esperado:** `200`. Con un código inválido o expirado → **`400`**.
+4. Inicia sesión con la contraseña nueva → **`200`**; con la anterior → **`400`**.
+
+#### Frente 5 — Gestión de permisos completa
+Sigue los pasos de la sección **«Gestión de permisos (Asignación 2)»**: crear (`RF-GP-01`), listar pendientes como Administrador y no como Estándar (`RF-GP-02`), aprobar (`RF-GP-03`), rechazar con motivo (`RF-GP-04`), permiso aplicado automáticamente (`RF-GP-05`), transiciones fuera de la tabla rechazadas (`RF-GP-06`) y auto-resolución bloqueada (`RF-GP-07`).
+
+#### Integración negocio ↔ permisos (punto 1.4)
+1. Crea una orden y llévala a `Aprobada` (`crear-borrador` → `enviar-aprobacion` → `aprobar`).
+2. Con un usuario **Estándar sin** el permiso `recibir-orden`: `POST /api/OrdenesCompra/{id}/recibir` → **`403`** y la orden sigue `Aprobada`.
+3. Como Estándar, solicita el permiso `recibir-orden` (`POST /api/solicitudes`).
+4. Como **Administrador**, apruébala (`POST /api/solicitudes/{id}/aprobar`).
+5. Repite el paso 2 → **`200`** y la orden pasa a `Recibida` (estado terminal).
+
+---
+
 ### Defectos plantados (Práctica 3)
 
 Cada defecto vive en un commit cuyo padre es el commit etiquetado `practica-3`, modificando **solo código de producción** (ningún archivo de pruebas). Sobre `practica-3` la suite pasa completa; sobre `practica-3-defecto-N` falla al menos la prueba indicada.
@@ -296,7 +354,7 @@ Cada defecto vive en un commit cuyo padre es el commit etiquetado `practica-3`, 
 |---|---|---|---|
 | 1 | `Business.Inventory/Entities/OrdenCompra.cs` línea 29 — se agrega `EstadoOrden.Aprobada` a la lista de transiciones permitidas desde `Borrador`. | `Borrador_Aprobar_LanzaInvalidOperationException_YEstaNoCambia` | La transición prohibida `Borrador → Aprobada` pasa a estar permitida: ya no se lanza `InvalidOperationException` y el estado cambia a `Aprobada`. |
 | 2 | `Business.Inventory/Entities/OrdenCompra.cs` línea 32 — se agrega `EstadoOrden.Recibida` a la lista de transiciones permitidas desde `Recibida`. | `Recibida_Recibir_LanzaInvalidOperationException_YEstaNoCambia` | El estado terminal `Recibida` deja de ser terminal: `Recibir()` desde `Recibida` ya no se rechaza. |
-| 3 | `Business.Inventory/Entities/OrdenCompra.cs` líneas 39-44 — se elimina la condición de la transición `Borrador → PendienteAprobacion` (exigir al menos un detalle y un proveedor) dentro de `EnviarAAprobacion`. | `Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia` | La transición se ejecuta sin cumplir su condición: una orden sin detalles pasa a `PendienteAprobacion` en lugar de ser rechazada. |
+| 3 | `Business.Inventory/Entities/OrdenCompra.cs` líneas 39-46 — se elimina la condición de la transición `Borrador → PendienteAprobacion` (exigir al menos un detalle y un proveedor) dentro de `EnviarAAprobacion`. | `Borrador_EnviarAAprobacion_SinDetalles_LanzaInvalidOperationException_YElEstadoNoCambia` | La transición se ejecuta sin cumplir su condición: una orden sin detalles pasa a `PendienteAprobacion` en lugar de ser rechazada. |
 | 4 | `Core.Application/Services/OrdenCompraService.cs` líneas 83-88 — se elimina la consulta a `PermisosUsuario` y el rechazo en `RecibirAsync`. | `Recibir_SinPermisoAprobado_Rechaza_YConPermisoAprobado_Permite` | La operación se permite aunque el permiso `recibir-orden` no esté aprobado: ya no se lanza `UnauthorizedAccessException` y la orden pasa a `Recibida`. |
 
 Etiquetas: `practica-3-defecto-1` … `practica-3-defecto-4`, todas hijas directas de `practica-3`.

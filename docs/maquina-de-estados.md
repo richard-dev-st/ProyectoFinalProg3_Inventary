@@ -60,7 +60,7 @@ Estas son las transiciones que no están declaradas en `TransicionesPermitidas` 
 | `Borrador` | `Recibida` | Salto de estado. Debe pasar por `PendienteAprobacion` y `Aprobada`. | `InvalidOperationException`. El estado permanece en `Borrador`. |
 | `PendienteAprobacion` | `Recibida` | Salto de estado. Debe pasar obligatoriamente por `Aprobada`. | `InvalidOperationException`. El estado permanece en `PendienteAprobacion`. |
 | `PendienteAprobacion` | `PendienteAprobacion` | No hay auto-transición declarada. | `InvalidOperationException`. El estado permanece en `PendienteAprobacion`. |
-| `Aprobada` | `Borrador` | Retroceso no permitido. | `InvalidOperationException`. El estado permanece en `Aprobada`. |
+| `Aprobada` | `Aprobada` | No hay auto-transición declarada: una orden ya aprobada no se vuelve a aprobar. | `InvalidOperationException`. El estado permanece en `Aprobada`. |
 | `Aprobada` | `PendienteAprobacion` | Retroceso no permitido. Una orden aprobada no vuelve a espera. | `InvalidOperationException`. El estado permanece en `Aprobada`. |
 | `Recibida` | `Borrador` / `PendienteAprobacion` / `Aprobada` / `Cancelada` / `Recibida` | **Estado terminal.** No admite transiciones de salida (RF-NEG-05). | `InvalidOperationException`. El estado permanece en `Recibida`. |
 | `Cancelada` | `Borrador` / `PendienteAprobacion` / `Aprobada` / `Recibida` / `Cancelada` | **Estado terminal.** No admite transiciones de salida (RF-NEG-05). | `InvalidOperationException`. El estado permanece en `Cancelada`. |
