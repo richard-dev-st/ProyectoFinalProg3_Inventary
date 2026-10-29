@@ -80,13 +80,6 @@ namespace Application.Services
                 throw new InvalidOperationException("Orden de compra no encontrada");
             }
 
-            bool tienePermiso = _context.PermisosUsuario.Any(p => p.UsuarioId == usuarioId && p.Permiso == "recibir-orden");
-            
-            if (!tienePermiso)
-            {
-                throw new UnauthorizedAccessException("No posees el permiso 'recibir-orden'. Debe solicitarlo a través de gestión de permisos.");
-            }
-
             orden.Recibir();
             await _repository.SaveChangesAsync();
         }
