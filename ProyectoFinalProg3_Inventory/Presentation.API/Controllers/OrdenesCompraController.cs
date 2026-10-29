@@ -82,8 +82,12 @@ namespace Presentation.API.Controllers
 
             try
             {
-                await _ordenCompraService.RecibirAsync(id);
+                await _ordenCompraService.RecibirAsync(id, ObtenerUsuarioIdActual());
                 return Ok();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (Exception ex)
             {
