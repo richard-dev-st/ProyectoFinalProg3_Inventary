@@ -29,7 +29,7 @@ namespace Business.Inventory.Entities
             { EstadoOrden.Borrador, new() { EstadoOrden.PendienteAprobacion, EstadoOrden.Cancelada } },
             { EstadoOrden.PendienteAprobacion, new() { EstadoOrden.Aprobada, EstadoOrden.Cancelada } },
             { EstadoOrden.Aprobada, new() { EstadoOrden.Recibida, EstadoOrden.Cancelada } },
-            { EstadoOrden.Recibida, new() }, // Estado terminal (RF-NEG-05): sin salidas
+            { EstadoOrden.Recibida, new() { EstadoOrden.Recibida } }, // Estado terminal (RF-NEG-05): sin salidas
             { EstadoOrden.Cancelada, new() } // Estado terminal (RF-NEG-05): sin salidas
         };
 
