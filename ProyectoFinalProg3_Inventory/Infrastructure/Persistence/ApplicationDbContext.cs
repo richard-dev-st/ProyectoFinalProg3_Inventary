@@ -24,6 +24,7 @@ namespace Infrastructure.Persistence
         public DbSet<Proveedor> Proveedores { get; set; }
         public DbSet<SolicitudPermiso> SolicitudesPermiso { get; set; }
         public DbSet<PermisoUsuario> PermisosUsuario { get; set; }
+        public DbSet<Documento> Documentos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -133,6 +134,20 @@ namespace Infrastructure.Persistence
                 entity.HasOne<SolicitudPermiso>()
                       .WithMany()
                       .HasForeignKey(p => p.SolicitudId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Documento>(entity =>
+            {
+                entity.HasKey(d => d.Id);
+                entity.Property(d => d.NombreOriginal).IsRequired().HasMaxLength(255);
+                entity.Property(d => d.NombreAlmacenado).IsRequired().HasMaxLength(255);
+                entity.Property(d => d.TipoContenido).IsRequired().HasMaxLength(100);
+                entity.HasIndex(d => d.SubidoPorUsuarioId);
+
+                entity.HasOne(d => d.SubidoPorUsuario)
+                      .WithMany()
+                      .HasForeignKey(d => d.SubidoPorUsuarioId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
         }

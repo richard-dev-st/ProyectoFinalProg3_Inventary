@@ -186,6 +186,49 @@ namespace Infrastructure.Migrations
                     b.ToTable("CorreosEnCola");
                 });
 
+            modelBuilder.Entity("Core.Domain.Entities.Documento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("EsEliminado")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("FechaEliminacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaSubida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NombreAlmacenado")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("NombreOriginal")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("SubidoPorUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("TamanioBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TipoContenido")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubidoPorUsuarioId");
+
+                    b.ToTable("Documentos");
+                });
+
             modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>
                 {
                     b.Property<Guid>("Id")
@@ -379,6 +422,17 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Proveedor");
+                });
+
+            modelBuilder.Entity("Core.Domain.Entities.Documento", b =>
+                {
+                    b.HasOne("Core.Domain.Entities.Usuario", "SubidoPorUsuario")
+                        .WithMany()
+                        .HasForeignKey("SubidoPorUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SubidoPorUsuario");
                 });
 
             modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>
