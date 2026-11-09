@@ -146,8 +146,30 @@ builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
 builder.Services.AddScoped<IAlmacenDocumentos, AlmacenDocumentosLocal>();
 
-
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    var intento = 0;
+    while (true)
+    {
+        try
+        {
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Migraciones aplicadas correctamente");
+            break;
+        }
+        catch(Exception ex) when (intento < 10)
+        {
+            intento++;
+            logger.LogWarning(ex, "SQL Server no disponible. Reintento {Intento}/10 en 5 s.", intento);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

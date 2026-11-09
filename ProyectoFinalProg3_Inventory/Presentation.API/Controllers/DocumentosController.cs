@@ -22,7 +22,8 @@ namespace Presentation.API.Controllers
         //POST /api/documentos/subir
         [Authorize]
         [HttpPost("/api/documentos/subir")]
-        public async Task<IActionResult> Subir([FromForm] IFormFile archivo)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Subir(IFormFile archivo)
         {
             try
             {
