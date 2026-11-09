@@ -202,11 +202,12 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 La suite cubre el dominio, la capa de aplicación (permisos y documentos) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 30 pruebas con EF Core InMemory:
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 32 pruebas con EF Core InMemory:
   - 7 de `SolicitudPermisoService` (RF-GP-01..07).
   - 12 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07).
   - 8 de `CurrencyApiTasaCambioService` (respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout).
   - 3 de `OrdenCompraService` (orden inexistente, conversión con redondeo y propagación del error externo).
+  - 2 de `EmailService` (fallback a log con SMTP vacío y con los valores de ejemplo).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
@@ -217,7 +218,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 60` (12 de dominio + 30 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 62` (12 de dominio + 32 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -297,7 +298,7 @@ El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro
 
 ### Revisión acumulada — los cinco frentes (Práctica 3, punto 1.5)
 
-Recorrido completo de Control de acceso y Gestión de permisos sobre el proyecto arrancado desde este tag. Si no hay SMTP configurado, los tokens/códigos se leen de la base de datos (indicado en cada frente) y el resto del flujo es idéntico.
+Recorrido completo de Control de acceso y Gestión de permisos sobre el proyecto arrancado desde este tag. Si no hay SMTP configurado, los tokens/códigos se leen de la base de datos (indicado en cada frente) y el resto del flujo es idéntico. **En el contenedor no se publica el puerto de SQL Server: usa el log del worker tal como se explica en el punto 1.5.**
 
 #### Frente 1 — Registro con activación por correo
 1. `POST /api/Auth/registrar` con:
@@ -402,11 +403,11 @@ Reglas de la subida:
 ### Preparación
 
 1. Crea **dos usuarios Estándar** (`dueno@test.com` y `otro@test.com`) y un **Administrador** (ver «¿Cómo crear un Administrador?»).
-2. Actívalos y obtén el token de cada uno con `POST /api/Auth/Login`. Si no hay SMTP configurado, el token de activación se lee de la base:
+2. Actívalos y obtén el token de cada uno con `POST /api/Auth/Login`. Si no hay SMTP configurado, el token de activación se lee de la base en local:
    ```sql
    SELECT TokenActivacion FROM Usuarios WHERE Email = 'dueno@test.com';
    ```
-   y se activa con `GET /api/Auth/activar?token={TokenActivacion}`.
+   y se activa con `GET /api/Auth/activar?token={TokenActivacion}`. **En el contenedor se lee del log del worker; ver «Práctica 4 - Revisión acumulada de los seis frentes (punto 1.5)».**
 3. En Swagger pulsa **Authorize** y pega el token del usuario que quieras usar. Repite el login para cambiar de usuario.
 
 ### Prueba paso a paso (Swagger)
@@ -516,7 +517,7 @@ En PowerShell 5.1 no existe `-Form`; usa `curl.exe` o haz la subida desde Swagge
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 60` (12 de dominio + 30 de aplicación: 7 de permisos, 12 de documentos, 8 de API externa y 3 de órdenes + 18 de negocio).
+Salida esperada: `Passed: 62` (12 de dominio + 32 de aplicación: 7 de permisos, 12 de documentos, 8 de API externa, 3 de órdenes y 2 del fallback de correo + 18 de negocio).
 
 ## Práctica 4 - API externa (punto 1.4)
 
@@ -573,6 +574,337 @@ La clave nunca se escribe en código, `Dockerfile`, `docker-compose.yml`, `appse
 ### Pruebas
 
 `CurrencyApiTasaCambioServiceTests` cubre respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout usando un `HttpMessageHandler` falso (sin red real). `OrdenCompraServiceTests` cubre orden inexistente, conversión con redondeo y propagación del error externo.
+
+## Práctica 4 - Revisión acumulada de los seis frentes (punto 1.5)
+
+Esta sección recorre los seis frentes **desde el contenedor**, sin SMTP real y sin publicar el puerto de SQL Server. Sustituye, para Docker, la lectura de tokens y códigos desde SQL que aparece en la revisión de la Práctica 3.
+
+### Preparación
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+El `docker-compose.yml` incluye un `healthcheck` en `db` y `depends_on: condition: service_healthy` en `api` y `worker`. Así la API no intenta migrar antes de que SQL Server acepte conexiones.
+
+Comprueba que todo esté arriba:
+
+```powershell
+docker compose ps
+Invoke-WebRequest "http://localhost:8080/swagger/v1/swagger.json" -UseBasicParsing
+```
+
+- API y Swagger: **http://localhost:8080** y **http://localhost:8080/swagger**.
+- SQL Server **no** publica el puerto `1433`; se entra con `docker compose exec db`.
+- Los correos se leen del log del **worker**, no de la API.
+
+### Correos sin SMTP real (fallback)
+
+`.env.example` trae valores de ejemplo (`tu_correo@gmail.com`, `valor-de-ejemplo`). `EmailService` los detecta antes de intentar enviar y escribe el correo completo en el log del worker:
+
+```text
+[FALLBACK CORREO] SMTP sin configurar; el correo no se envio realmente.
+Destinatario: ... | Asunto: ... | Cuerpo: <a href='http://localhost:8080/api/auth/activar?token=...'>
+```
+
+El método devuelve `true`, así que la cola marca el correo como `Enviado` y no lo reintenta. Para ver los correos:
+
+```powershell
+docker compose logs worker | Select-String "FALLBACK CORREO"
+
+# En vivo, mientras se registra o solicita recuperación
+docker compose logs -f worker
+```
+
+Cada línea incluye el destinatario, el asunto y el cuerpo con el enlace de activación o el código de 6 dígitos.
+
+### Usuarios de revisión
+
+1. **Estándar:** regístralo en el frente 1 con `revision.estandar@test.com` / `Revision123`.
+2. **Administrador:** registra `revision.admin@test.com` / `Admin1234`, actívalo igual que el Estándar y promuévelo dentro del contenedor:
+
+```powershell
+$pw = ((Get-Content .env | Where-Object { $_ -match '^MSSQL_SA_PASSWORD=' }) -split '=',2)[1].Trim()
+
+docker compose exec -T db /opt/mssql-tools18/bin/sqlcmd `
+  -S localhost -U sa -P $pw -C -d InventarioBP4 -Q `
+  "UPDATE Usuarios SET Rol = 'Administrador' WHERE Email = 'revision.admin@test.com';"
+```
+
+3. Vuelve a hacer **login** con el Administrador después del `UPDATE`: el rol viaja dentro del JWT y el token anterior todavía dice `Estandar`.
+4. Guarda los tokens en variables para los frentes siguientes:
+
+```powershell
+$base = 'http://localhost:8080'
+
+function Login($email, $password) {
+    $body = @{ email = $email; password = $password } | ConvertTo-Json
+    (Invoke-RestMethod "$base/api/Auth/Login" -Method Post `
+        -ContentType 'application/json' -Body $body).token
+}
+
+$std = Login 'revision.estandar@test.com' 'Revision123'
+$adm = Login 'revision.admin@test.com' 'Admin1234'
+```
+
+### Frente 1 - Registro con activación por correo
+
+1. Registra al Estándar:
+
+```powershell
+Invoke-RestMethod "$base/api/Auth/registrar" -Method Post -ContentType 'application/json' -Body (@{
+    email    = 'revision.estandar@test.com'
+    password = 'Revision123'
+    baseUrl  = $base
+} | ConvertTo-Json)
+```
+
+**Esperado:** `200` con `{"exito":true,"mensaje":"Registro exitoso..."}`. El usuario queda con `Activo = 0`.
+
+2. Antes de activar, intenta iniciar sesión.
+   **Esperado:** `400` con «La cuenta no está activa».
+
+3. Lee el enlace del worker:
+
+```powershell
+docker compose logs worker --since 5m | Select-String "FALLBACK CORREO" | Select-String "revision.estandar"
+```
+
+Copia el valor de `token=` del enlace y actívalo:
+
+```powershell
+Invoke-RestMethod "$base/api/Auth/activar?token=TOKEN_COPIADO"
+```
+
+**Esperado:** `200` con «Cuenta activada con éxito».
+
+4. Inicia sesión.
+   **Esperado:** `200` con `token`, `email`, `rol: "Estandar"` y `expiracion`.
+
+### Frente 2 - Inicio y cierre de sesión
+
+```powershell
+$login = @{ email = 'revision.estandar@test.com'; password = 'Revision123' } | ConvertTo-Json
+$token = (Invoke-RestMethod "$base/api/Auth/Login" -Method Post `
+    -ContentType 'application/json' -Body $login).token
+
+# Sesión válida
+Invoke-RestMethod "$base/api/Auth/me" -Headers @{ Authorization = "Bearer $token" }
+
+# Cerrar sesión
+Invoke-RestMethod "$base/api/Auth/logout" -Method Post -Headers @{ Authorization = "Bearer $token" }
+
+# El mismo token ya no sirve
+Invoke-WebRequest "$base/api/Auth/me" -Headers @{ Authorization = "Bearer $token" } -UseBasicParsing
+```
+
+| Paso | Esperado |
+|---|---|
+| `POST /api/Auth/Login` con credenciales válidas | `200` + token |
+| `GET /api/Auth/me` con el token | `200` con `id`, `email`, `rol`, `activo` |
+| `POST /api/Auth/logout` | `200` con «Sesión cerrada exitosamente» |
+| `GET /api/Auth/me` con el token revocado | `401` |
+
+### Frente 3 - Estándar rechazado en una operación de Administrador
+
+Con el token del Estándar:
+
+```powershell
+Invoke-WebRequest "$base/api/admin/usuarios" `
+    -Headers @{ Authorization = "Bearer $std" } -UseBasicParsing
+```
+
+**Esperado:** `403 Forbidden`. Con el token del Administrador, la misma ruta responde `200` con la lista de usuarios.
+
+### Frente 4 - Recuperación de contraseña
+
+1. Solicita el código:
+
+```powershell
+Invoke-RestMethod "$base/api/Auth/solicitar-recuperacion" -Method Post -ContentType 'application/json' `
+    -Body (@{ email = 'revision.estandar@test.com' } | ConvertTo-Json)
+```
+
+**Esperado:** `200` con un mensaje genérico. La respuesta no revela si el correo existe.
+
+2. Lee el código de 6 dígitos del worker:
+
+```powershell
+docker compose logs worker --since 5m | Select-String "FALLBACK CORREO" | Select-String "revision.estandar"
+```
+
+El cuerpo contiene `<strong>123456</strong>`. El código vale 15 minutos.
+
+3. Restablece la contraseña:
+
+```powershell
+Invoke-RestMethod "$base/api/Auth/restablecer-password" -Method Post -ContentType 'application/json' -Body (@{
+    email         = 'revision.estandar@test.com'
+    codigo        = '123456'
+    nuevaPassword = 'Revision456'
+} | ConvertTo-Json)
+```
+
+**Esperado:** `200`. Con un código inválido o expirado: `400`.
+
+4. Inicia sesión con `Revision456` (`200`) y con `Revision123` (`400`).
+
+> Después de este frente, la contraseña del Estándar es `Revision456`. Si necesitas un token nuevo para los frentes 5 y 6, usa esa contraseña.
+
+### Frente 5 - Gestión de permisos: crear, aprobar, rechazar y transiciones inválidas
+
+Este frente deja al Estándar con el permiso `recibir-orden`, que el frente 6 necesita para recibir la orden.
+
+1. Crea dos solicitudes como Estándar:
+
+```powershell
+$solicitudA = Invoke-RestMethod "$base/api/solicitudes" -Method Post -ContentType 'application/json' `
+    -Headers @{ Authorization = "Bearer $std" } -Body (@{
+        permiso     = 'recibir-orden'
+        descripcion = 'Permiso para recibir ordenes de compra'
+    } | ConvertTo-Json)
+
+$solicitudB = Invoke-RestMethod "$base/api/solicitudes" -Method Post -ContentType 'application/json' `
+    -Headers @{ Authorization = "Bearer $std" } -Body (@{
+        permiso     = 'reporte-inventario'
+        descripcion = 'Permiso para exportar reportes'
+    } | ConvertTo-Json)
+```
+
+**Esperado:** `200` y estado `Pendiente` en ambas.
+
+2. Consulta y verifica la autorización:
+
+| Acción | Quién | Esperado |
+|---|---|---|
+| `GET /api/solicitudes/mias` | Estándar | `200`, solo sus solicitudes |
+| `GET /api/solicitudes/pendientes` | Estándar | `403` |
+| `GET /api/solicitudes/pendientes` | Administrador | `200` con las pendientes |
+
+3. Aprueba la solicitud A como Administrador:
+
+```powershell
+Invoke-RestMethod "$base/api/solicitudes/$($solicitudA.id)/aprobar" -Method Post `
+    -Headers @{ Authorization = "Bearer $adm" }
+```
+
+**Esperado:** `200` con estado `Aplicada` (la entidad pasa por `Aprobada` y aplica el permiso en la misma transacción).
+
+4. Comprueba que el permiso se aplicó:
+
+```powershell
+Invoke-RestMethod "$base/api/mis-permisos" -Headers @{ Authorization = "Bearer $std" }
+```
+
+**Esperado:** `200` con `permiso: "recibir-orden"`.
+
+5. Intenta aprobar la misma solicitud otra vez.
+   **Esperado:** `400` con «Transición inválida: Aplicada -> Aprobada».
+
+6. Rechaza la solicitud B con motivo:
+
+```powershell
+Invoke-RestMethod "$base/api/solicitudes/$($solicitudB.id)/rechazar" -Method Post `
+    -ContentType 'application/json' -Headers @{ Authorization = "Bearer $adm" } `
+    -Body (@{ motivo = 'No aplica para el cargo' } | ConvertTo-Json)
+```
+
+**Esperado:** `200` con estado `Rechazada` y `motivoRechazo` guardado. Rechazarla otra vez responde `400`.
+
+### Frente 6 - Módulo de negocio: operación válida y transición prohibida
+
+1. Crea un proveedor y un producto de prueba dentro del contenedor:
+
+```powershell
+$pw = ((Get-Content .env | Where-Object { $_ -match '^MSSQL_SA_PASSWORD=' }) -split '=',2)[1].Trim()
+
+docker compose exec -T db /opt/mssql-tools18/bin/sqlcmd `
+  -S localhost -U sa -P $pw -C -d InventarioBP4 -Q "
+SET NOCOUNT ON;
+IF NOT EXISTS (SELECT 1 FROM Proveedores WHERE Email = 'proveedor.revision@test.com')
+    INSERT INTO Proveedores (Nombre, Cedula, Telefono, Email)
+    VALUES ('Proveedor Revision', '001-0000001-1', '809-111-2222', 'proveedor.revision@test.com');
+
+DECLARE @pid INT = (SELECT Id FROM Proveedores WHERE Email = 'proveedor.revision@test.com');
+
+IF NOT EXISTS (SELECT 1 FROM Productos WHERE Codigo = 'REV-001')
+    INSERT INTO Productos (Nombre, Codigo, Precio, StockActual, StockMinimo, ProveedorId)
+    VALUES ('Producto Revision', 'REV-001', 25.00, 100, 10, @pid);
+
+SELECT @pid AS ProveedorId, (SELECT Id FROM Productos WHERE Codigo = 'REV-001') AS ProductoId;
+"
+```
+
+Anota `ProveedorId` y `ProductoId` de la última fila.
+
+2. Crea el borrador con el token del Estándar. El endpoint recibe el usuario por query string:
+
+```powershell
+$uid = (Invoke-RestMethod "$base/api/Auth/me" -Headers @{ Authorization = "Bearer $std" }).id
+
+$orden = Invoke-RestMethod "$base/api/OrdenesCompra/crear-borrador?usuarioId=$uid" `
+    -Method Post -ContentType 'application/json' -Headers @{ Authorization = "Bearer $std" } `
+    -Body (@{
+        proveedorId = 1          # el ProveedorId que devolvió el SQL
+        ordenes     = @(@{
+            productoId = 1       # el ProductoId que devolvió el SQL
+            cantidad   = 4
+            precio     = 25.00
+        })
+    } | ConvertTo-Json -Depth 5)
+
+$ordenId = $orden.ordenId
+```
+
+**Esperado:** `200` con `ordenId`. La orden nace en `Borrador` y el total se calcula como `4 × 25.00 = 100.00`.
+
+3. Recorre la operación válida completa:
+
+```powershell
+# Estándar envía a aprobación
+Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/enviar-aprobacion" -Method Post `
+    -Headers @{ Authorization = "Bearer $std" }
+
+# Administrador aprueba
+Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/aprobar" -Method Post `
+    -Headers @{ Authorization = "Bearer $adm" }
+
+# El Estándar ya tiene 'recibir-orden' (frente 5) y recibe
+Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/recibir" -Method Post `
+    -Headers @{ Authorization = "Bearer $std" }
+```
+
+**Esperado:** los tres pasos responden `200`. La orden queda en `Recibida`, un estado terminal.
+
+4. Intenta una transición prohibida: cancelar una orden ya `Recibida` como Administrador.
+
+```powershell
+Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/cancelar" -Method Post `
+    -Headers @{ Authorization = "Bearer $adm" }
+```
+
+**Esperado:** `400` con «Transición inválida: No se puede cambiar el estado de Recibida a Cancelada». El estado no cambia.
+
+5. Opcional: comprueba la integración del punto 1.4 sobre la misma orden.
+
+```powershell
+Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/total-en-dop" `
+    -Headers @{ Authorization = "Bearer $std" }
+```
+
+**Esperado:** `200` con `totalUsd: 100.0`, `tasa` del día y `totalDop` redondeado a 2 decimales.
+
+### Resumen de los seis frentes
+
+| Frente | Verificación mínima | Resultado esperado |
+|---|---|---|
+| 1. Registro y activación | Registrar, leer token del worker y activar | `200` y cuenta activa |
+| 2. Login y logout | Login, `me`, logout, reutilizar token | `200`, `200`, `200`, `401` |
+| 3. Estándar en ruta de Administrador | `GET /api/admin/usuarios` con token Estándar | `403` |
+| 4. Recuperación de contraseña | Solicitar, leer código del worker, restablecer | `200`; código inválido `400` |
+| 5. Permisos | Crear, listar, aprobar, rechazar y repetir transición | `200`; transición inválida `400`; Estándar en pendientes `403` |
+| 6. Negocio | Crear, enviar, aprobar, recibir y cancelar la recibida | `200`; cancelación de terminal `400` |
 
 ## Contenedor
 
