@@ -26,4 +26,5 @@ regexTarget = "line"
 regexes = [
   '''una_clave_secreta_de_al_menos_32_caracteres_aqui''',
   '''TU_APP_PASSWORD''',
+  '''cambia-esta-clave-por-una-larga-y-aleatoria-de-32-o-mas''',
 ]

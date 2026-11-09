@@ -1,0 +1,51 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: Express
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=InventarioBP4;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True"
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY}
+      JwtSettings__Issuer: ProyectoFinalProg3_Inventory
+      JwtSettings__Audience: ProyectoFinalProg3_Inventory
+      Documentos__RutaBase: /app/uploads
+      EmailSettings__SmtpServer: ${SMTP_SERVER}
+      EmailSettings__SmtpPort: ${SMTP_PORT}
+      EmailSettings__SenderEmail: ${SMTP_USER}
+      EmailSettings__SenderPassword: ${SMTP_PASSWORD}
+      EmailSettings__UseSsl: ${SMTP_USE_SSL}
+    depends_on:
+      - db
+    volumes:
+      - documents_data:/app/uploads
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=InventarioBP4;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True"
+      EmailSettings__SmtpServer: ${SMTP_SERVER}
+      EmailSettings__SmtpPort: ${SMTP_PORT}
+      EmailSettings__SenderEmail: ${SMTP_USER}
+      EmailSettings__SenderPassword: ${SMTP_PASSWORD}
+      EmailSettings__UseSsl: ${SMTP_USE_SSL}
+    depends_on:
+      - db
+
+volumes:
+  sqlserver_data:
+  documents_data:
