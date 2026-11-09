@@ -12,6 +12,7 @@ namespace Application.Interfaces
         DbSet<TokenRevocado> TokensRevocados { get; set; }
         DbSet<SolicitudPermiso> SolicitudesPermiso { get; set; }
         DbSet<PermisoUsuario> PermisosUsuario { get; set; }
+        DbSet<Documento> Documentos { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

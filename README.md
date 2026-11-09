@@ -196,10 +196,12 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 
 ## Pruebas
 
-La suite cubre el dominio y la capa de aplicación de Gestión de permisos, así como la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
+La suite cubre el dominio, la capa de aplicación (permisos y documentos) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 7 pruebas de `SolicitudPermisoService` con EF Core InMemory.
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 19 pruebas con EF Core InMemory:
+  - 7 de `SolicitudPermisoService` (RF-GP-01..07).
+  - 12 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
@@ -210,7 +212,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 37` (12 de dominio + 7 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 49` (12 de dominio + 19 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -359,3 +361,174 @@ Cada defecto vive en un commit cuyo padre es el commit etiquetado `practica-3`, 
 
 Etiquetas: `practica-3-defecto-1` … `practica-3-defecto-4`, todas hijas directas de `practica-3`.
 
+## Práctica 4 — Módulo de documentos (punto 1.1)
+
+El módulo permite **subir, listar, descargar y eliminar** documentos asociados a un usuario. Las cuatro operaciones exigen una sesión válida (JWT) y la autorización se aplica **en el servicio** (`DocumentoService`), no solo en el controlador (RD-06).
+
+### Requisitos implementados
+
+| Requisito | Implementación | Cómo se verifica |
+|---|---|---|
+| **RF-DOC-01** — subir registrando nombre, tipo, tamaño, fecha y autor | `POST /api/documentos/subir`. `Documento` guarda `NombreOriginal`, `TipoContenido`, `TamanioBytes`, `FechaSubida` y `SubidoPorUsuarioId`; el DTO devuelve además `SubidoPorEmail`. | Respuesta `200` con el documento creado y fila nueva en `Documentos`. |
+| **RF-DOC-02** — listar solo lo permitido | `GET /api/documentos`. Un Estándar ve solo los suyos; un Administrador ve todos; nunca aparecen los eliminados. | Con dos usuarios distintos: cada uno ve lo suyo y el Administrador ve ambos. |
+| **RF-DOC-03** — descargar solo dueño o Administrador | `GET /api/documentos/{id}/descargar`; otro usuario recibe `403`. | Descarga como dueño (`200`), como otro Estándar (`403`) y como Administrador (`200`). |
+| **RF-DOC-04** — eliminación lógica | `DELETE /api/documentos/{id}` marca `EsEliminado = true` y `FechaEliminacion`; el registro y el archivo físico se conservan. | La fila sigue en BD y el archivo sigue en `uploads`; la descarga posterior responde `404`. |
+| **RD-06** — autorización del lado del servidor | La regla dueño/Administrador vive en `DocumentoService`; las pruebas llaman al servicio **directamente** con otro usuario y verifican el rechazo. | `DocumentoServiceTests`: `RF_DOC_03_Descargar_OtroUsuarioEsRechazado` y `RF_DOC_04_Eliminar_OtroUsuarioEsRechazado`. |
+| **RD-07** — archivo ausente o vacío rechazado de forma controlada | Vacío → `400`; sin archivo → `400`; extensión o tamaño inválidos → `400`; documento o archivo físico ausente → `404`. | Casos de la tabla «Rechazo controlado». |
+
+### Endpoints
+
+| Método | Ruta | Quién puede | Respuestas |
+|---|---|---|---|
+| `POST` | `/api/documentos/subir` | Cualquier usuario autenticado | `200` documento creado · `400` archivo inválido · `401` sin sesión |
+| `GET` | `/api/documentos` | Autenticado (filtra por rol) | `200` lista · `401` sin sesión |
+| `GET` | `/api/documentos/{id}/descargar` | Dueño o Administrador | `200` archivo · `403` sin permiso · `404` no existe o eliminado |
+| `DELETE` | `/api/documentos/{id}` | Dueño o Administrador | `200` · `403` sin permiso · `404` no existe o eliminado |
+
+Reglas de la subida:
+
+- Extensiones permitidas: `.pdf`, `.png`, `.jpg`, `.jpeg`, `.docx`, `.xlsx`, `.txt`.
+- Tamaño máximo: **10 MB**.
+- El nombre físico es un **GUID + extensión** (`NombreAlmacenado`); el nombre original se guarda aparte y se devuelve al descargar.
+- La carpeta se configura con `Documentos:RutaBase` (`uploads` en local, `/app/uploads` en el contenedor).
+
+> Las cuatro rutas requieren `Authorization: Bearer {token}`. Sin token responden `401`.
+
+### Preparación
+
+1. Crea **dos usuarios Estándar** (`dueno@test.com` y `otro@test.com`) y un **Administrador** (ver «¿Cómo crear un Administrador?»).
+2. Actívalos y obtén el token de cada uno con `POST /api/Auth/Login`. Si no hay SMTP configurado, el token de activación se lee de la base:
+   ```sql
+   SELECT TokenActivacion FROM Usuarios WHERE Email = 'dueno@test.com';
+   ```
+   y se activa con `GET /api/Auth/activar?token={TokenActivacion}`.
+3. En Swagger pulsa **Authorize** y pega el token del usuario que quieras usar. Repite el login para cambiar de usuario.
+
+### Prueba paso a paso (Swagger)
+
+1. **Subir como dueño** — `POST /api/documentos/subir`, elige un `.txt` (o cualquier extensión permitida) y ejecuta.
+   **Esperado:** `200` con `id`, `nombreOriginal`, `tamanioBytes`, `subidoPorEmail` y `esEliminado: false`. Anota el `id`.
+2. **Listar como dueño** — `GET /api/documentos`.
+   **Esperado:** aparece el documento.
+3. **Listar como otro Estándar** — cambia el token en **Authorize**.
+   **Esperado:** `[]` (no ve documentos ajenos).
+4. **Descargar como otro Estándar** — `GET /api/documentos/{id}/descargar`.
+   **Esperado:** **`403`**.
+5. **Eliminar como otro Estándar** — `DELETE /api/documentos/{id}`.
+   **Esperado:** **`403`**.
+6. **Descargar como Administrador** — con token de Administrador.
+   **Esperado:** `200` y el archivo.
+7. **Eliminar como dueño (o Administrador)** — `DELETE /api/documentos/{id}`.
+   **Esperado:** `200`.
+8. **Comprobar el borrado lógico:**
+   - `GET /api/documentos` → ya no aparece.
+   - `GET /api/documentos/{id}/descargar` → **`404`**.
+   - La fila sigue en BD con `EsEliminado = 1` y `FechaEliminacion`.
+   - El archivo físico sigue en disco.
+
+### Verificación de RF-DOC-04 (registro y archivo permanecen)
+
+Después del `DELETE`, consulta la base y el almacenamiento:
+
+```sql
+SELECT NombreOriginal, NombreAlmacenado, EsEliminado, FechaEliminacion
+FROM Documentos
+ORDER BY FechaSubida DESC;
+```
+
+Debes ver `EsEliminado = 1`, una `FechaEliminacion` con valor y el `NombreAlmacenado` (GUID + extensión) del archivo.
+
+Localizar la carpeta de archivos en local:
+
+```powershell
+Get-ChildItem -Recurse -Directory -Filter uploads |
+    Where-Object { $_.FullName -notmatch '\\bin\\|\\obj\\' }
+```
+
+En el contenedor:
+
+```powershell
+docker compose exec api ls -l /app/uploads
+```
+
+La descarga responde `404` por el filtro `!EsEliminado`, aunque el archivo siga existiendo: eso es exactamente RF-DOC-04.
+
+### Prueba rápida con PowerShell
+
+```powershell
+$base = 'http://localhost:8080'
+
+function Login($email, $password) {
+    $body = @{ email = $email; password = $password } | ConvertTo-Json
+    (Invoke-RestMethod "$base/api/Auth/Login" -Method Post -ContentType 'application/json' -Body $body).token
+}
+
+$dueno = Login 'dueno@test.com' 'Password123'
+$otro  = Login 'otro@test.com'  'Password123'
+
+# Subir
+$doc = Invoke-RestMethod "$base/api/documentos/subir" -Method Post `
+    -Headers @{ Authorization = "Bearer $dueno" } `
+    -Form @{ archivo = Get-Item 'C:\ruta\documento.txt' }
+
+# Listar
+Invoke-RestMethod "$base/api/documentos" -Headers @{ Authorization = "Bearer $dueno" }
+
+# Descargar como dueño
+Invoke-WebRequest "$base/api/documentos/$($doc.id)/descargar" `
+    -Headers @{ Authorization = "Bearer $dueno" } -OutFile "$env:TEMP\descargado.txt"
+
+# Como otro Estándar: 403 en descarga y borrado
+Invoke-WebRequest "$base/api/documentos/$($doc.id)/descargar" `
+    -Headers @{ Authorization = "Bearer $otro" } -OutFile "$env:TEMP\no.txt"   # 403
+Invoke-RestMethod "$base/api/documentos/$($doc.id)" -Method Delete `
+    -Headers @{ Authorization = "Bearer $otro" }                              # 403
+
+# Borrado lógico como dueño
+Invoke-RestMethod "$base/api/documentos/$($doc.id)" -Method Delete `
+    -Headers @{ Authorization = "Bearer $dueno" }                             # 200
+```
+
+En PowerShell 5.1 no existe `-Form`; usa `curl.exe` o haz la subida desde Swagger.
+
+### Casos de rechazo controlado (RD-07)
+
+| Caso | Cómo | Esperado |
+|---|---|---|
+| Sin archivo | `POST /api/documentos/subir` sin seleccionar archivo | `400` |
+| Archivo vacío | Subir un `.txt` de 0 bytes | `400` |
+| Extensión no permitida | Subir un `.exe` | `400` |
+| Más de 10 MB | Subir un archivo mayor al límite | `400` |
+| Documento eliminado | `GET .../descargar` tras `DELETE` | `404` |
+| Archivo físico borrado | Quitar el archivo de `uploads` y descargar | `404` |
+| Sin sesión | Cualquier ruta sin `Authorization` | `401` |
+
+### Pruebas automatizadas
+
+`Core.Application.Tests/DocumentoServiceTests.cs` contiene 12 pruebas que cubren RF-DOC-01..04, RD-06 y RD-07, incluida la invocación **directa al servicio** con otro usuario (RD-06) y el rechazo de archivos vacíos, ausentes o con extensión no permitida (RD-07).
+
+```powershell
+dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
+```
+
+Salida esperada: `Passed: 49` (12 de dominio + 19 de aplicación: 7 de permisos y 12 de documentos + 18 de negocio).
+
+## Contenedor
+
+Requisitos: Docker Desktop con contenedores Linux.
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+La API responde en **http://localhost:8080**.
+Documentación interactiva: **http://localhost:8080/swagger**.
+
+Para detener el proyecto:
+
+```powershell
+docker compose down
+```
+
+Los datos (usuarios, documentos) se conservan entre reinicios. Solo se borran si ejecutas `docker compose down -v`.
