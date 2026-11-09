@@ -8,6 +8,16 @@ namespace Infrastructure.Services
 {
     public class EmailService : IEmailService
     {
+        // Valores de ejemplo de .env.example / appsettings.json. Si el correo real no se
+        // configuro, el worker no puede enviar nada y la revision manual se queda sin enlace.
+        private static readonly string[] ValoresDeEjemplo =
+        {
+            "tu_correo@gmail.com",
+            "TU_PASSWORD_DE_APLICACION",
+            "valor-de-ejemplo",
+            "cambia-esta-clave"
+        };
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<EmailService> _logger;
         public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
@@ -16,14 +26,37 @@ namespace Infrastructure.Services
             _logger = logger;
         }
 
+        private static bool EsValorDeEjemplo(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return true;
+            }
+
+            return ValoresDeEjemplo.Any(v => string.Equals(valor.Trim(), v, StringComparison.OrdinalIgnoreCase));
+        }
+
         public async Task<bool> EnviarCorreoAsync(string destinatario, string asunto, string cuerpoHtml)
         {
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var senderPassword = _configuration["EmailSettings:SenderPassword"];
+
+            if (EsValorDeEjemplo(smtpServer) || EsValorDeEjemplo(senderEmail) || EsValorDeEjemplo(senderPassword))
+            {
+                // Fallback de revision: sin SMTP real el correo se escribe en el log del worker
+                // y se marca como enviado para no reintentar indefinidamente.
+                _logger.LogWarning(
+                    "[FALLBACK CORREO] SMTP sin configurar; el correo no se envio realmente. Destinatario: {Destinatario} | Asunto: {Asunto} | Cuerpo: {Cuerpo}",
+                    destinatario,
+                    asunto,
+                    cuerpoHtml);
+                return true;
+            }
+
             try
             {
-                var smtpServer = _configuration["EmailSettings:SmtpServer"];
                 var port = int.TryParse(_configuration["EmailSettings:SmtpPort"], out int p) ? p : 587; // Valor predeterminado si no se puede analizar
-                var senderEmail = _configuration["EmailSettings:SenderEmail"];
-                var senderPassword = _configuration["EmailSettings:SenderPassword"];
 
                 var useSsl = bool.TryParse(_configuration["EmailSettings:UseSsl"], out var ssl) ? ssl: true;
 
