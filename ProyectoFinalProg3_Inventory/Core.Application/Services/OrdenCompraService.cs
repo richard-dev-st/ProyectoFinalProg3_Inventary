@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Ordenes;
+﻿using Application.DTOs.Divisa;
+using Application.DTOs.Ordenes;
 using Application.Interfaces;
 using Business.Inventory.Entities;
 using System;
@@ -10,11 +11,15 @@ namespace Application.Services
     public class OrdenCompraService : IOrdenCompraService
     {
         private readonly IOrdenCompraRepository _repository;
+        private readonly ITasaCambioService _service;
         private readonly IApplicationDbContext _context;
 
-        public OrdenCompraService(IOrdenCompraRepository repository, IApplicationDbContext context)
+        public OrdenCompraService(IOrdenCompraRepository repository,
+            ITasaCambioService service,
+            IApplicationDbContext context)
         {
             _repository = repository;
+            _service = service;
             _context = context;
         }
 
@@ -70,6 +75,33 @@ namespace Application.Services
             }
             orden.EnviarAAprobacion();
             await _repository.SaveChangesAsync();
+        }
+
+        public async Task<TotalEnDopDto> ObtenerTotalEnDopAsync(int ordenId, CancellationToken ct = default)
+        {
+            var orden = await _repository.GetByIdAsync(ordenId);
+            if(orden == null)
+            {
+                //Lanzamos 404
+                throw new InvalidOperationException("Orden de compra no encontrada");
+            }
+
+            var tasaCambio = await _service.ObtenerTasaAsync("USD", "DOP", ct);
+
+            //Se redondea a 2 decimales porque es un monto de dinero.
+            var totalDop = decimal.Round(
+                orden.Total * tasaCambio.Tasa,
+                2,
+                MidpointRounding.AwayFromZero);
+
+            //Devolvemos el DTO sin persistirlo ni modificar la orden, solo para mostrar el total en DOP
+            return new TotalEnDopDto(
+                OrdenId: orden.Id,
+                TotalUsd: orden.Total,
+                Tasa: tasaCambio.Tasa,
+                TotalDop: totalDop,
+                ActualizadoEn: tasaCambio.ActualizadoEn
+            );
         }
 
         public async Task RecibirAsync(int id, Guid usuarioId)

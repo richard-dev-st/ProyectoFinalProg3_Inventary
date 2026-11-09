@@ -65,6 +65,9 @@ Ningún valor real debe guardarse en el repositorio; se inyectan por variables d
 | `EmailSettings__SenderEmail` | Correo remitente (SMTP) | Para enviar correos reales |
 | `EmailSettings__SenderPassword` | App Password de Gmail | Para enviar correos reales |
 | `EmailSettings__UseSsl` | `true`/`false`; activa SSL del SMTP | Opcional (por defecto `true`) |
+| `ApiExterna__ApiKey` | Clave de currencyapi.com | Para `GET /api/OrdenesCompra/{id}/total-en-dop` |
+| `ApiExterna__BaseUrl` | URL base de currencyapi | Opcional (por defecto `https://api.currencyapi.com/v3`) |
+| `ApiExterna__TimeoutSeconds` | Timeout de la API externa en segundos | Opcional (por defecto `10`) |
 
 ## Instrucciones de ejecución
 
@@ -199,9 +202,11 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 La suite cubre el dominio, la capa de aplicación (permisos y documentos) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 19 pruebas con EF Core InMemory:
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 30 pruebas con EF Core InMemory:
   - 7 de `SolicitudPermisoService` (RF-GP-01..07).
   - 12 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07).
+  - 8 de `CurrencyApiTasaCambioService` (respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout).
+  - 3 de `OrdenCompraService` (orden inexistente, conversión con redondeo y propagación del error externo).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
@@ -212,7 +217,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 49` (12 de dominio + 19 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 60` (12 de dominio + 30 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -511,7 +516,63 @@ En PowerShell 5.1 no existe `-Form`; usa `curl.exe` o haz la subida desde Swagge
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 49` (12 de dominio + 19 de aplicación: 7 de permisos y 12 de documentos + 18 de negocio).
+Salida esperada: `Passed: 60` (12 de dominio + 30 de aplicación: 7 de permisos, 12 de documentos, 8 de API externa y 3 de órdenes + 18 de negocio).
+
+## Práctica 4 - API externa (punto 1.4)
+
+La operación `GET /api/OrdenesCompra/{id}/total-en-dop` convierte el `Total` (USD) de una orden a pesos dominicanos usando la tasa del día de [currencyapi.com](https://currencyapi.com). El endpoint requiere sesión y rol `Estandar` o `Administrador`.
+
+### Configuración
+
+| Variable | Valor |
+|---|---|
+| `EXCHANGE_RATE_API_KEY` | Clave real de currencyapi. Se guarda solo en `.env` (no versionado). |
+| `ApiExterna__BaseUrl` | `https://api.currencyapi.com/v3` |
+| `ApiExterna__TimeoutSeconds` | `10` |
+
+En Docker, `docker-compose.yml` mapea `EXCHANGE_RATE_API_KEY` a `ApiExterna__ApiKey`. En ejecución local, define la variable directamente:
+
+```powershell
+$env:ApiExterna__ApiKey = "tu_clave_real"
+dotnet run --project ProyectoFinalProg3_Inventory/Presentation.API
+```
+
+`.env.example` contiene `EXCHANGE_RATE_API_KEY=clave-de-ejemplo-invalida`, una clave **inválida a propósito** para demostrar el rechazo controlado.
+
+### Uso
+
+```powershell
+Invoke-RestMethod "http://localhost:8080/api/OrdenesCompra/1/total-en-dop" `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+Respuesta esperada:
+
+```json
+{
+  "ordenId": 1,
+  "totalUsd": 100.0,
+  "tasa": 59.42,
+  "totalDop": 5942.0,
+  "actualizadoEn": "2026-11-09T00:00:00Z"
+}
+```
+
+### Rechazos controlados
+
+| Caso | Esperado |
+|---|---|
+| Sin token | `401` |
+| Orden inexistente | `404` |
+| Clave ausente o de ejemplo (el proveedor la rechaza) | `503` |
+| Timeout del proveedor | `504` |
+| Respuesta JSON inválida o sin la moneda solicitada | `502` |
+
+La clave nunca se escribe en código, `Dockerfile`, `docker-compose.yml`, `appsettings.json` ni en el historial de Git. Solo se lee de `ApiExterna:ApiKey`, que en Docker viene de `.env`.
+
+### Pruebas
+
+`CurrencyApiTasaCambioServiceTests` cubre respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout usando un `HttpMessageHandler` falso (sin red real). `OrdenCompraServiceTests` cubre orden inexistente, conversión con redondeo y propagación del error externo.
 
 ## Contenedor
 

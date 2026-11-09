@@ -1,3 +1,4 @@
+using Application.Configurations;
 using Application.Interfaces;
 using Application.Services;
 using Core.Application.Configurations;
@@ -145,6 +146,15 @@ builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
 builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
 builder.Services.AddScoped<IAlmacenDocumentos, AlmacenDocumentosLocal>();
+builder.Services.Configure<ApiExternaSettings>(builder.Configuration.GetSection(ApiExternaSettings.SectionName));
+builder.Services.AddHttpClient<ITasaCambioService, CurrencyApiTasaCambioService>((sp, client) =>
+{
+    var apiExterna = sp.GetRequiredService<IOptions<ApiExternaSettings>>().Value;
+    if (!string.IsNullOrWhiteSpace(apiExterna.BaseUrl))
+    {
+        client.BaseAddress = new Uri(apiExterna.BaseUrl.TrimEnd('/') + "/");
+    }
+});
 
 var app = builder.Build();
 

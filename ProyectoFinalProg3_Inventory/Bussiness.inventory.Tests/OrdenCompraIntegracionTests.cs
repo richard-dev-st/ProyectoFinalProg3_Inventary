@@ -1,4 +1,6 @@
-﻿using Application.Services;
+﻿using Application.DTOs.Divisa;
+using Application.Interfaces;
+using Application.Services;
 using Business.Inventory.Entities;
 using Core.Domain.Entities;
 using Core.Domain.Entities.Enums;
@@ -16,6 +18,16 @@ namespace Bussiness.inventory.Tests
     /// </summary>
     public class OrdenCompraIntegracionTests
     {
+        //Doble de prueba: esta integración no depende de la API externa.
+        private sealed class TasaCambioFalsa : ITasaCambioService
+        {
+            public Task<TasaCambioDto> ObtenerTasaAsync(
+                string origen,
+                string destino,
+                CancellationToken ct = default)
+                => Task.FromResult(new TasaCambioDto(58.50m, origen, destino, DateTime.UtcNow));
+        }
+
         private static ApplicationDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -68,7 +80,7 @@ namespace Bussiness.inventory.Tests
 
             // Componentes reales de ambos módulos
             var ordenRepository = new OrdenCompraRepository(context);
-            var ordenService = new OrdenCompraService(ordenRepository, context);
+            var ordenService = new OrdenCompraService(ordenRepository, new TasaCambioFalsa(), context);
             var solicitudService = new SolicitudPermisoService(context);
 
             // Act + Assert (cara 1): sin el permiso aprobado la operación se rechaza
