@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Application.DTOs.Ordenes;
+using Application.Exceptions;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -107,6 +108,42 @@ namespace Presentation.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/total-en-dop")]
+        [Authorize(Roles = "Estandar,Administrador")]
+        public async Task<IActionResult> ObtenerTotalEnDop(int id, CancellationToken ct)
+        {
+            try
+            {
+                var totalEnDop = await _ordenCompraService.ObtenerTotalEnDopAsync(id, ct);
+                return Ok(totalEnDop);
+            }
+            catch (ServicioExternoException ex)
+            {
+                var status = ex.Motivo switch
+                {
+                    ServicioExternoException.Causa.Timeout => StatusCodes.Status504GatewayTimeout,
+                    ServicioExternoException.Causa.RespuestaInvalida => StatusCodes.Status502BadGateway,
+                    _ => StatusCodes.Status503ServiceUnavailable
+                };
+
+                var message = ex.Motivo == ServicioExternoException.Causa.Timeout
+                    ? "La API de tasas de cambio no respondió a tiempo."
+                    : "No se pudo obtener la tasa de cambio. Inténtelo más tarde.";
+
+                return StatusCode(status, new { message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new { message = "Ocurrió un error inesperado al convertir el total." });
             }
         }
 

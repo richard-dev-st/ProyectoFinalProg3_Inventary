@@ -26,6 +26,9 @@ services:
       EmailSettings__SenderEmail: ${SMTP_USER}
       EmailSettings__SenderPassword: ${SMTP_PASSWORD}
       EmailSettings__UseSsl: ${SMTP_USE_SSL}
+      ApiExterna__BaseUrl: https://api.currencyapi.com/v3
+      ApiExterna__ApiKey: ${EXCHANGE_RATE_API_KEY}
+      ApiExterna__TimeoutSeconds: "10"
     depends_on:
       - db
     volumes:
