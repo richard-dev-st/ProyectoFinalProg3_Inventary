@@ -5,7 +5,7 @@
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 18/11/2026
 **Rama actual:** `feat/practica-5` (local, sin upstream)
-**HEAD:** `7f67c68 feat(notificaciones): entidad, preferencia de correo, servicio y enganches (RF-NOT-01..07)`
+**HEAD:** `59bd20c feat(correos): reintentos limitados, estado fallido y consulta de la cola (RF-NOT-08..12)`
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -33,7 +33,7 @@ Estado por punto de la Práctica 5:
 |---|---|---|
 | 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ✅ Hecho y commiteado (`a90538b`) |
 | 1.2 | Notificaciones RF-NOT-01..07 | ✅ Entidad, servicio, controlador, preferencia y enganches (`7f67c68`) |
-| 1.3 | Cola de correos RF-NOT-08..13 | 🟡 Base existente; faltan reintentos, estado fallido e idempotencia |
+| 1.3 | Cola de correos RF-NOT-08..13 | ✅ Reintentos (máx. 3), `Fallido`, `GET /api/correos`, idempotencia (`59bd20c`) |
 | 1.4 | Reportes con agregación RF-REP-01..05 | ⬜ 0 % |
 | 1.5 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
 | — | Tag `practica-5` + push + Moodle | ⬜ 0 % |
@@ -43,12 +43,11 @@ Verificación al cierre de esta sesión (18/11/2026):
 ```
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 62/62
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 72/72 (12 + 42 + 18)
 ```
 
-> El build del backend mantiene warnings heredados (CS8618 en `CorreoEnCola` y `Usuario`,
-> CS0472 en `OrdenCompra`, CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`).
-> No bloquean; la Práctica 5 seguramente obligará a tocar `CorreoEnCola` y conviene limpiarlos ahí.
+> El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
+> CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
 
 ---
 
@@ -58,7 +57,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 
 ```
 main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       7f67c68  feat(notificaciones): entidad, preferencia de correo, servicio y enganches (RF-NOT-01..07)
+feat/practica-5       59bd20c  feat(correos): reintentos limitados, estado fallido y consulta de la cola (RF-NOT-08..12)
 feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
@@ -174,42 +173,35 @@ frontend/Inventario.Web
 
 ## 4. Lo que ya existe y sirve para la Práctica 5
 
-### 4.1 Entidad `CorreoEnCola` (existe, incompleta)
+### 4.1 Entidad `CorreoEnCola` (completada en `59bd20c`)
 
-`Core.Domain/Entities/CorreoEnCola.cs`:
+`Core.Domain/Entities/CorreoEnCola.cs` ya tiene:
 
 ```csharp
-public Guid Id { get; private set; }
-public string Destinatario { get; private set; }
-public string Asunto { get; private set; }
-public string Cuerpo { get; private set; }
 public string Estado { get; private set; }   // Pendiente | Enviado | Fallido
-public DateTime FechaCreacion { get; private set; }
-public DateTime? FechaEnvio { get; private set; }
+public int Intentos { get; private set; }
+public string? UltimoError { get; private set; }
+public DateTime? FechaUltimoIntento { get; private set; }
 
-public void MarcarComoEnviado() { Estado = "Enviado"; FechaEnvio = DateTime.UtcNow; }
+public void RegistrarIntento();
+public void MarcarComoEnviado();              // idempotente (RF-NOT-12)
+public void RegistrarFallo(string error, int maximoIntentos); // pasa a Fallido al agotar
+public bool PuedeProcesarse(int maximoIntentos);
 ```
 
-**Falta para RF-NOT-10 y RF-NOT-11:**
+Migración asociada: `AgregarReintentosColaCorreos`.
 
-- `int Intentos`
-- `string? UltimoError`
-- `DateTime? FechaUltimoIntento`
-- Un método `MarcarComoFallido(string error)` y otro `RegistrarIntentoFallido(...)`.
-- `MarcarComoEnviado()` debe ser idempotente (si ya está `Enviado`, no hacer nada) para RF-NOT-12.
+### 4.2 Procesamiento de la cola (corregido en `59bd20c`)
 
-### 4.2 `ProcesadorCorreosWorker` (existe, con defectos para esta práctica)
+- `Infrastructure/Services/ProcesadorCorreos.cs`: lógica probada sin host. Toma hasta 10
+  `Pendiente` con `Intentos < 3`, registra el intento **antes** de enviar, guarda tras cada
+  correo, reintenta hasta 3 y deja `Fallido` con `UltimoError` (`MaximoIntentos = 3`).
+- `ProcesadorCorreosWorker` solo lo invoca cada 10 s y maneja la cancelación.
+- `GET /api/correos` (`CorreosController`, solo Administrador) expone estado, intentos, fechas y
+  último error (RF-NOT-11).
+- Un correo `Enviado` o `Fallido` no vuelve a seleccionarse (RF-NOT-12).
 
-`Infrastructure/Services/ProcesadorCorreosWorker.cs`:
-
-- Corre cada **10 s**, toma **10** `Pendiente` por `FechaCreacion`.
-- Si `EnviarCorreoAsync` devuelve `true` → `MarcarComoEnviado()`.
-- Si devuelve `false` → **solo loguea**. El correo sigue `Pendiente` → **reintento infinito**.
-- No bloquea el lote antes de enviar → dos instancias podrían enviar el mismo correo.
-
-**Incumple hoy:** RF-NOT-10 (reintentos limitados y estado fallido) y RF-NOT-12 (no duplicar).
-
-### 4.3 `EmailService` (existe, con fallback de revisión)
+### 4.3 `EmailService` (sin cambios, con fallback de revisión)
 
 `Infrastructure/Services/EmailService.cs`:
 
@@ -223,18 +215,12 @@ usar un `SMTP_SERVER` que **no** sea valor de ejemplo y que no resuelva (p. ej.
 `smtp.invalido.local`), con credenciales no-ejemplo, para que `SmtpClient` lance y
 `EnviarCorreoAsync` devuelva `false`.
 
-### 4.4 Puntos de enganche para RF-NOT-01 y RF-NOT-02
+### 4.4 Enganches de notificaciones (implementados en `7f67c68`)
 
-`Core.Application/Services/SolicitudPermisoService.cs`:
-
-| Método | Qué hace hoy | Enganche |
-|---|---|---|
-| `CrearAsync(usuarioId, permiso, descripcion)` | crea `SolicitudPermiso` en `Pendiente` | notificar a **todos los Administradores activos** (RF-NOT-01) |
-| `AprobarAsync(solicitudId, adminId)` | `s.Aprobar(...)` + inserta `PermisoUsuario` | notificar al **solicitante**: aprobada (RF-NOT-02) |
-| `RechazarAsync(solicitudId, adminId, motivo)` | `s.Rechazar(..., motivo, ...)` | notificar al **solicitante**: rechazada **con motivo** (RF-NOT-02) |
-
-DTO de respuesta: `SolicitudPermisoDto` (`Id`, `SolicitanteUsuarioId`, `Permiso`,
-`Descripcion`, `Estado`, `CreadoEn`, `ResueltoPorUsuarioId`, `FechaResolucion`, `MotivoRechazo`).
+`SolicitudPermisoService` ya notifica: al crear (Administradores activos), al aprobar y al
+rechazar (solicitante, con motivo). `OrdenCompraService.EnviarAprobacionAsync` notifica a los
+Administradores (evento RF-NOT-03). `NotificacionService` crea la notificación interna y encola
+el correo solo si `Usuario.RecibeCorreos` es `true`.
 
 ### 4.5 Inventario de endpoints actuales
 
@@ -248,7 +234,7 @@ DTO de respuesta: `SolicitudPermisoDto` (`Id`, `SolicitanteUsuarioId`, `Permiso`
 | Inventario | `api/inventario/exportar` | CSV de productos |
 | Permisos | `api/solicitudes` | ver arriba |
 
-### 4.6 Estado de los huecos (actualizado tras `7f67c68`)
+### 4.6 Estado de los huecos (actualizado tras `59bd20c`)
 
 Ya existen:
 
@@ -258,13 +244,15 @@ Ya existen:
   `GET/PUT preferencia`).
 - Enganches RF-NOT-01/02 en `SolicitudPermisoService` y RF-NOT-03 en
   `OrdenCompraService.EnviarAprobacionAsync`.
+- Reintentos limitados (3), estado `Fallido`, `UltimoError` e idempotencia en `CorreoEnCola` y
+  `ProcesadorCorreos` (migración `AgregarReintentosColaCorreos`).
+- `GET /api/correos` solo para Administrador (`CorreosController`).
 
 Siguen pendientes:
 
-- Endpoint de consulta de la cola de correos para Administrador (RF-NOT-11).
-- Reintentos limitados, estado fallido e idempotencia en `CorreoEnCola`/worker (RF-NOT-10/12).
 - Cualquier reporte con agregación (RF-REP).
 - Secciones **Notificaciones** y **Reportes** del README.
+- Revisión acumulada y tag `practica-5`.
 
 ---
 
@@ -441,7 +429,7 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 | 3 | ✅ Entidad `Notificacion` + migración + `NotificacionService` + controlador (`7f67c68`) | 2-3 h |
 | 4 | ✅ Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` (`7f67c68`) | 1-2 h |
 | 5 | ✅ Preferencia de correo (`RecibeCorreos`) + encolado condicional (`7f67c68`) | 1 h |
-| 6 | Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` | 2-3 h |
+| 6 | ✅ Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` (`59bd20c`) | 2-3 h |
 | 7 | Reportes Core + negocio con `GroupBy`, rol y fechas | 2-3 h |
 | 8 | README: Notificaciones y Reportes | 1-2 h |
 | 9 | Revisión acumulada desde clon limpio | 1 h |
