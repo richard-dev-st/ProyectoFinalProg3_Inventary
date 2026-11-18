@@ -1,0 +1,54 @@
+@page "/login"
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<h1>Iniciar sesión</h1>
+
+<EditForm Model="modelo" OnValidSubmit="Entrar">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" @bind-Value="modelo.Email" />
+        <ValidationMessage For="() => modelo.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <InputText class="form-control" type="password" @bind-Value="modelo.Password" />
+        <ValidationMessage For="() => modelo.Password" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Entrar</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <p class="text-danger mt-3">@error</p>
+}
+
+@code {
+    private LoginRequest modelo = new();
+    private string? error;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private async Task Entrar()
+    {
+        var (ok, mensaje) = await Auth.LoginAsync(modelo);
+
+        if (!ok)
+        {
+            error = mensaje;
+            return;
+        }
+        
+        var destino = !string.IsNullOrEmpty(ReturnUrl) && ReturnUrl.StartsWith("/") ? ReturnUrl
+                : "/";
+
+        Nav.NavigateTo(destino);
+    }
+}

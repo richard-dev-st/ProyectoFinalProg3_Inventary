@@ -1,0 +1,34 @@
+﻿@using Inventario.Web.Services
+@inject SesionActual Sesion
+
+@if (cargada)
+{
+    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+}
+else
+{
+    <p>Cargando…</p>
+}
+
+@code {
+    private bool cargada;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // La sesión vive en sessionStorage, que solo es accesible con el circuito ya conectado.
+        await Sesion.CargarAsync();
+        cargada = true;
+        StateHasChanged();
+    }
+}

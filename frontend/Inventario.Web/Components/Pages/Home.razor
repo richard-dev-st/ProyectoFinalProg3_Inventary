@@ -1,0 +1,39 @@
+﻿@page "/"
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+@attribute [Authorize]
+
+<PageTitle>Home</PageTitle>
+
+@if (usuario is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <h1>Hola, @usuario.Email</h1>
+    <p>Rol: <strong>@usuario.Rol</strong></p>
+    <button class="btn btn-outline-danger" @onclick="Salir">Cerrar sesión</button>
+}
+
+@code {
+    private UsuarioSesion? usuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        usuario = await Auth.ObtenerUsuarioActualAsync();
+
+        if (usuario is null)
+        {
+            Nav.NavigateTo("/login");
+        }
+    }
+
+    private async Task Salir()
+    {
+        await Auth.LogoutAsync();
+        Nav.NavigateTo("/login");
+    }
+}
