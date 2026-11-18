@@ -5,7 +5,7 @@
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 18/11/2026
 **Rama actual:** `feat/practica-5` (local, sin upstream)
-**HEAD:** `59bd20c feat(correos): reintentos limitados, estado fallido y consulta de la cola (RF-NOT-08..12)`
+**HEAD:** `f52a070 feat(reportes): agregados de solicitudes y ordenes por rol y rango de fechas (RF-REP-01..05)`
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -34,7 +34,7 @@ Estado por punto de la Práctica 5:
 | 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ✅ Hecho y commiteado (`a90538b`) |
 | 1.2 | Notificaciones RF-NOT-01..07 | ✅ Entidad, servicio, controlador, preferencia y enganches (`7f67c68`) |
 | 1.3 | Cola de correos RF-NOT-08..13 | ✅ Reintentos (máx. 3), `Fallido`, `GET /api/correos`, idempotencia (`59bd20c`) |
-| 1.4 | Reportes con agregación RF-REP-01..05 | ⬜ 0 % |
+| 1.4 | Reportes con agregación RF-REP-01..05 | ✅ `/api/reportes/solicitudes` y `/ordenes` con rol y fechas (`f52a070`) |
 | 1.5 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
 | — | Tag `practica-5` + push + Moodle | ⬜ 0 % |
 
@@ -43,7 +43,7 @@ Verificación al cierre de esta sesión (18/11/2026):
 ```
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 72/72 (12 + 42 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 77/77 (12 + 47 + 18)
 ```
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
@@ -57,7 +57,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 
 ```
 main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       59bd20c  feat(correos): reintentos limitados, estado fallido y consulta de la cola (RF-NOT-08..12)
+feat/practica-5       f52a070  feat(reportes): agregados de solicitudes y ordenes por rol y rango de fechas (RF-REP-01..05)
 feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
@@ -233,8 +233,11 @@ el correo solo si `Usuario.RecibeCorreos` es `true`.
 | Documentos | `api/documentos` | `subir`, `GET`, `{id}/descargar`, `DELETE {id}` |
 | Inventario | `api/inventario/exportar` | CSV de productos |
 | Permisos | `api/solicitudes` | ver arriba |
+| Notificaciones | `api/notificaciones` | `GET` propias (`?soloNoLeidas`), `POST {id}/leer`, `GET/PUT preferencia` |
+| Correos | `api/correos` | `GET` cola (solo Administrador, `?estado=`) |
+| Reportes | `api/reportes` | `GET solicitudes`, `GET ordenes` (`?desde=&hasta=`) |
 
-### 4.6 Estado de los huecos (actualizado tras `59bd20c`)
+### 4.6 Estado de los huecos (actualizado tras `f52a070`)
 
 Ya existen:
 
@@ -247,12 +250,33 @@ Ya existen:
 - Reintentos limitados (3), estado `Fallido`, `UltimoError` e idempotencia en `CorreoEnCola` y
   `ProcesadorCorreos` (migración `AgregarReintentosColaCorreos`).
 - `GET /api/correos` solo para Administrador (`CorreosController`).
+- `IReporteService` / `ReporteService` y `api/reportes/solicitudes` + `api/reportes/ordenes` con
+  `GroupBy`/`Count`/`Sum`, filtro por rol y rango inclusivo (`ReportesController`).
 
 Siguen pendientes:
 
-- Cualquier reporte con agregación (RF-REP).
 - Secciones **Notificaciones** y **Reportes** del README.
-- Revisión acumulada y tag `practica-5`.
+- Revisión acumulada de los seis frentes y tag `practica-5`.
+
+### 4.7 Forma de las respuestas de reportes
+
+`GET /api/reportes/solicitudes?desde=2026-01-01&hasta=2026-12-31`:
+
+```json
+{ "desde": "...", "hasta": "...", "total": 10,
+  "grupos": [ { "estado": "Pendiente", "cantidad": 4 } ] }
+```
+
+`GET /api/reportes/ordenes?desde=2026-01-01&hasta=2026-12-31`:
+
+```json
+{ "desde": "...", "hasta": "...", "totalOrdenes": 8, "montoTotalUsd": 1250.00,
+  "grupos": [ { "proveedorId": 1, "proveedor": "Proveedor Uno",
+                "estado": "Aprobada", "cantidadOrdenes": 3, "montoTotalUsd": 700.00 } ] }
+```
+
+Administrador ve todo; un Estándar solo sus solicitudes u órdenes. Un rango con `hasta < desde`
+responde `400`.
 
 ---
 
@@ -430,7 +454,7 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 | 4 | ✅ Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` (`7f67c68`) | 1-2 h |
 | 5 | ✅ Preferencia de correo (`RecibeCorreos`) + encolado condicional (`7f67c68`) | 1 h |
 | 6 | ✅ Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` (`59bd20c`) | 2-3 h |
-| 7 | Reportes Core + negocio con `GroupBy`, rol y fechas | 2-3 h |
+| 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
 | 8 | README: Notificaciones y Reportes | 1-2 h |
 | 9 | Revisión acumulada desde clon limpio | 1 h |
 | 10 | Tag `practica-5`, push, Moodle | 20 min |
