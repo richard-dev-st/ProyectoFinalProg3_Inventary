@@ -4,9 +4,9 @@
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 18/11/2026
-**Rama actual:** `main`
-**HEAD:** `51b3eb4 Merge branch 'feat/frontend-login' into main`
-**`main`:** `51b3eb4` (merge del frontend; pendiente `git push origin main`)
+**Rama actual:** `feat/practica-5` (local, sin upstream)
+**HEAD:** `7f67c68 feat(notificaciones): entidad, preferencia de correo, servicio y enganches (RF-NOT-01..07)`
+**`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
@@ -22,16 +22,17 @@
 | Bloque | Estado |
 |---|---|
 | Práctica 4 (documentos, contenedor, API externa, revisión) | ✅ Cerrada, `practica-4` en `901a47f` |
-| Frontend Blazor — login y sesión | ✅ Completo y mergeado a `main` (`51b3eb4`) |
+| Frontend Blazor — login y sesión | ✅ Completo y mergeado a `main` (`51b3eb4`, pusheado) |
+| Documentación de Práctica 5 (1.1) | ✅ `AGENTS.md` + criterios en `a90538b`, anterior a todo código |
 | Frontend — pantallas de negocio | ⬜ No iniciado |
-| **Práctica 5** | ⬜ 0 % |
+| **Práctica 5** | 🟡 En curso |
 
 Estado por punto de la Práctica 5:
 
 | Punto | Descripción | Estado |
 |---|---|---|
-| 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ⬜ 0 % |
-| 1.2 | Notificaciones RF-NOT-01..07 | ⬜ 0 % (no existe entidad `Notificacion`) |
+| 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ✅ Hecho y commiteado (`a90538b`) |
+| 1.2 | Notificaciones RF-NOT-01..07 | ✅ Entidad, servicio, controlador, preferencia y enganches (`7f67c68`) |
 | 1.3 | Cola de correos RF-NOT-08..13 | 🟡 Base existente; faltan reintentos, estado fallido e idempotencia |
 | 1.4 | Reportes con agregación RF-REP-01..05 | ⬜ 0 % |
 | 1.5 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
@@ -56,15 +57,15 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 ### 2.1 Ramas y commits
 
 ```
-main                 51b3eb4  Merge branch 'feat/frontend-login' into main
-feat/frontend-login  7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
+main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
+feat/practica-5       7f67c68  feat(notificaciones): entidad, preferencia de correo, servicio y enganches (RF-NOT-01..07)
+feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
-- `feat/frontend-login` salió de `main` y contiene **solo el frontend** (72 archivos: 34 propios
-  + estáticos de Bootstrap).
-- **Ya está mergeada a `main`** (`51b3eb4`). Falta subirla: `git push origin main`.
-- Working tree: `contexto-sesion.md` modificado sin commitear y `README.Docker.md` como `??`
-  (lo generó Visual Studio). **`README.Docker.md` no se debe versionar.**
+- `main` (`fa116f2`) ya está pusheado; incluye el merge del frontend (`51b3eb4`) y el handoff.
+- `feat/practica-5` salió de `main` en `fa116f2` y es **local** (sin upstream todavía).
+- Working tree: solo `README.Docker.md` como `??` (lo generó Visual Studio). **No se debe
+  versionar.**
 
 ### 2.2 Tags existentes
 
@@ -85,11 +86,15 @@ anterior** al primer commit del motor de notificaciones. Se evalúa en `git log`
 intención. Orden recomendado:
 
 ```
-1. ✅ merge de feat/frontend-login a main (hecho: `51b3eb4`)
-2. git switch -c feat/practica-5
-3. commit SOLO de documentación: AGENTS.md + docs/criterios-notificaciones-reportes.md
-4. primer commit de código: notificaciones
+1. ✅ merge de feat/frontend-login a main (`51b3eb4`, pusheado en `fa116f2`)
+2. ✅ rama feat/practica-5 creada desde `main`
+3. ✅ commit SOLO de documentación (`a90538b`): AGENTS.md + criterios
+4. ✅ primer commit de código (`7f67c68`): notificaciones RF-NOT-01..07
 ```
+
+> Decisión ya fijada en los criterios: evento de negocio = `enviar-aprobacion` de `OrdenCompra`;
+> máximo de intentos de la cola = **3**; endpoints `/api/notificaciones`, `/api/correos` y
+> `/api/reportes/*`.
 
 ### 2.4 Entorno local
 
@@ -243,15 +248,23 @@ DTO de respuesta: `SolicitudPermisoDto` (`Id`, `SolicitanteUsuarioId`, `Permiso`
 | Inventario | `api/inventario/exportar` | CSV de productos |
 | Permisos | `api/solicitudes` | ver arriba |
 
-### 4.6 Huecos confirmados (nada de esto existe)
+### 4.6 Estado de los huecos (actualizado tras `7f67c68`)
 
-- Entidad **`Notificacion`** y su `DbSet`.
-- Preferencia de canal de correo del usuario (RF-NOT-07). `Usuario` **no** tiene
-  `RecibeCorreos`; hay que agregarlo (columna nueva + migración) o crear una tabla aparte.
-- Servicio/controlador de notificaciones.
+Ya existen:
+
+- Entidad `Notificacion`, `DbSet` y migración `AgregarNotificacionesYPreferenciaCorreo`.
+- `Usuario.RecibeCorreos` (columna nueva, por defecto `true`).
+- `INotificacionService` / `NotificacionService` y `api/notificaciones` (`GET`, `POST {id}/leer`,
+  `GET/PUT preferencia`).
+- Enganches RF-NOT-01/02 en `SolicitudPermisoService` y RF-NOT-03 en
+  `OrdenCompraService.EnviarAprobacionAsync`.
+
+Siguen pendientes:
+
 - Endpoint de consulta de la cola de correos para Administrador (RF-NOT-11).
-- Cualquier reporte con agregación.
-- `docs/criterios-notificaciones-reportes.md` y `AGENTS.md`.
+- Reintentos limitados, estado fallido e idempotencia en `CorreoEnCola`/worker (RF-NOT-10/12).
+- Cualquier reporte con agregación (RF-REP).
+- Secciones **Notificaciones** y **Reportes** del README.
 
 ---
 
@@ -423,11 +436,11 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 
 | # | Paso | Estimación |
 |---|---|---|
-| 1 | ✅ Merge `feat/frontend-login` → `main` (hecho, `51b3eb4`); crear rama `feat/practica-5` | 10 min |
-| 2 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` + commit **solo docs** | 1-2 h |
-| 3 | Entidad `Notificacion` + migración + `NotificacionService` + controlador | 2-3 h |
-| 4 | Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` | 1-2 h |
-| 5 | Preferencia de correo (`RecibeCorreos`) + encolado condicional | 1 h |
+| 1 | ✅ Merge `feat/frontend-login` → `main` (`51b3eb4`) y rama `feat/practica-5` | 10 min |
+| 2 | ✅ `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` + commit **solo docs** (`a90538b`) | 1-2 h |
+| 3 | ✅ Entidad `Notificacion` + migración + `NotificacionService` + controlador (`7f67c68`) | 2-3 h |
+| 4 | ✅ Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` (`7f67c68`) | 1-2 h |
+| 5 | ✅ Preferencia de correo (`RecibeCorreos`) + encolado condicional (`7f67c68`) | 1 h |
 | 6 | Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` | 2-3 h |
 | 7 | Reportes Core + negocio con `GroupBy`, rol y fechas | 2-3 h |
 | 8 | README: Notificaciones y Reportes | 1-2 h |
