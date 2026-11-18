@@ -181,7 +181,19 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("FechaEnvio")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FechaUltimoIntento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Intentos")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UltimoError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Estado", "FechaCreacion");
 
                     b.ToTable("CorreosEnCola");
                 });

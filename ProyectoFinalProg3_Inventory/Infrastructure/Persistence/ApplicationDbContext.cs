@@ -66,6 +66,8 @@ namespace Infrastructure.Persistence
                 entity.Property(c => c.Destinatario).IsRequired().HasMaxLength(150);
                 entity.Property(c => c.Asunto).IsRequired().HasMaxLength(200);
                 entity.Property(c => c.Estado).IsRequired().HasMaxLength(20);
+                entity.Property(c => c.UltimoError).HasMaxLength(1000);
+                entity.HasIndex(c => new { c.Estado, c.FechaCreacion });
             });
 
             //Configuraciones del Modulo de Negocio (Inventario)
