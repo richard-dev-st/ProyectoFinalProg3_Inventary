@@ -1,3 +1,5 @@
+using Application.Interfaces;
+using Business.Inventory.Entities;
 using Core.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
@@ -14,6 +16,8 @@ namespace Application.Interfaces
         DbSet<PermisoUsuario> PermisosUsuario { get; set; }
         DbSet<Documento> Documentos { get; set; }
         DbSet<Notificacion> Notificaciones { get; set; }
+        DbSet<OrdenCompra> OrdenesCompra { get; set; }
+        DbSet<Proveedor> Proveedores { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }
