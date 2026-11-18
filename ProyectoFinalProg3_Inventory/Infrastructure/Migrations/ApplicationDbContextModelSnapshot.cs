@@ -229,6 +229,44 @@ namespace Infrastructure.Migrations
                     b.ToTable("Documentos");
                 });
 
+            modelBuilder.Entity("Core.Domain.Entities.Notificacion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Leida")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mensaje")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReferenciaId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FechaCreacion");
+
+                    b.HasIndex("UsuarioId", "Leida");
+
+                    b.ToTable("Notificaciones");
+                });
+
             modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>
                 {
                     b.Property<Guid>("Id")
@@ -364,6 +402,11 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("RecibeCorreos")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -433,6 +476,15 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("SubidoPorUsuario");
+                });
+
+            modelBuilder.Entity("Core.Domain.Entities.Notificacion", b =>
+                {
+                    b.HasOne("Core.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Core.Domain.Entities.PermisoUsuario", b =>

@@ -25,6 +25,7 @@ namespace Infrastructure.Persistence
         public DbSet<SolicitudPermiso> SolicitudesPermiso { get; set; }
         public DbSet<PermisoUsuario> PermisosUsuario { get; set; }
         public DbSet<Documento> Documentos { get; set; }
+        public DbSet<Notificacion> Notificaciones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +41,23 @@ namespace Infrastructure.Persistence
                 entity.Property(u => u.PasswordHash).IsRequired();
                 entity.Property(u => u.Rol).HasConversion<string>()
                 .HasMaxLength(20); //Almacenar el enum como string en la base de datos
+                // RF-NOT-07: los usuarios existentes conservan el canal de correo activo
+                entity.Property(u => u.RecibeCorreos).HasDefaultValue(true);
+            });
+
+            // RF-NOT-01..07: notificaciones internas por usuario
+            modelBuilder.Entity<Notificacion>(entity =>
+            {
+                entity.HasKey(n => n.Id);
+                entity.Property(n => n.Mensaje).IsRequired().HasMaxLength(1000);
+                entity.Property(n => n.Tipo).IsRequired().HasMaxLength(60);
+                entity.Property(n => n.ReferenciaId).HasMaxLength(50);
+                entity.HasIndex(n => new { n.UsuarioId, n.Leida });
+                entity.HasIndex(n => n.FechaCreacion);
+                entity.HasOne<Usuario>()
+                      .WithMany()
+                      .HasForeignKey(n => n.UsuarioId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<CorreoEnCola>(entity =>
