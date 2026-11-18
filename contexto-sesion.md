@@ -5,7 +5,8 @@
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 18/11/2026
 **Rama actual:** `feat/practica-5` (local, sin upstream)
-**HEAD:** `0da3680 docs(readme): secciones de notificaciones, cola de correos y reportes de la practica 5`
+**Rama:** `feat/practica-5` (local, sin upstream)
+**Último commit de código:** `f52a070` (reportes); **README de la Práctica 5:** `f270878`
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -58,7 +59,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 
 ```
 main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes de la practica 5
+feat/practica-5       0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes (luego `f270878`)
 feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
