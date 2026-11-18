@@ -5,7 +5,7 @@
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 18/11/2026
 **Rama actual:** `feat/practica-5` (local, sin upstream)
-**HEAD:** `f52a070 feat(reportes): agregados de solicitudes y ordenes por rol y rango de fechas (RF-REP-01..05)`
+**HEAD:** `0da3680 docs(readme): secciones de notificaciones, cola de correos y reportes de la practica 5`
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -35,7 +35,8 @@ Estado por punto de la Práctica 5:
 | 1.2 | Notificaciones RF-NOT-01..07 | ✅ Entidad, servicio, controlador, preferencia y enganches (`7f67c68`) |
 | 1.3 | Cola de correos RF-NOT-08..13 | ✅ Reintentos (máx. 3), `Fallido`, `GET /api/correos`, idempotencia (`59bd20c`) |
 | 1.4 | Reportes con agregación RF-REP-01..05 | ✅ `/api/reportes/solicitudes` y `/ordenes` con rol y fechas (`f52a070`) |
-| 1.5 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
+| 1.5 | README: secciones **Notificaciones** y **Reportes** | ✅ Escritas y commiteadas (`0da3680`) |
+| 1.6 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
 | — | Tag `practica-5` + push + Moodle | ⬜ 0 % |
 
 Verificación al cierre de esta sesión (18/11/2026):
@@ -57,7 +58,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 
 ```
 main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       f52a070  feat(reportes): agregados de solicitudes y ordenes por rol y rango de fechas (RF-REP-01..05)
+feat/practica-5       0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes de la practica 5
 feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
@@ -255,7 +256,6 @@ Ya existen:
 
 Siguen pendientes:
 
-- Secciones **Notificaciones** y **Reportes** del README.
 - Revisión acumulada de los seis frentes y tag `practica-5`.
 
 ### 4.7 Forma de las respuestas de reportes
@@ -429,14 +429,17 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 
 ## 7. Riesgos y decisiones abiertas
 
-1. **El fallback de correo devuelve `true`.** Con el `.env.example`, RF-NOT-10 no se puede
-   demostrar. Hay que documentar el fallo forzado con un SMTP no-ejemplo que no resuelva.
-2. **Reintento infinito actual** en `ProcesadorCorreosWorker`: si no se corrige, incumple
-   RF-NOT-10 y puede inundar el log.
-3. **Idempotencia**: sin un estado intermedio o bloqueo, ejecutar el procesador dos veces puede
-   duplicar envíos (RF-NOT-12).
-4. **Orden de commits**: si se escribe el código antes que los criterios, el punto 1.1 vale 0.
-5. **Secretos**: `AGENTS.md`, README y criterios no deben contener credenciales reales.
+1. ~~El fallback de correo devuelve `true`.~~ **Resuelto:** el README explica cómo forzar un fallo
+   real con `SMTP_SERVER=127.0.0.1`, `SMTP_PORT=1` y credenciales no-ejemplo.
+2. ~~Reintento infinito en `ProcesadorCorreosWorker`.~~ **Resuelto:** `ProcesadorCorreos` limita a
+   `MaximoIntentos = 3` y deja `Fallido` con `UltimoError` (`59bd20c`).
+3. ~~Idempotencia del procesador.~~ **Resuelto:** solo toma `Pendiente` con `intentos < 3` y
+   `MarcarComoEnviado()` no hace nada si ya está `Enviado`; probado en RF-NOT-12.
+4. **Orden de commits:** los criterios (`a90538b`) preceden a todo el código; no reescribir el
+   historial de la rama.
+5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
+6. **Pendiente real:** la revisión acumulada de los seis frentes desde un clon limpio y el tag
+   `practica-5`.
 6. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
    `practica-5` incluya todo.
 7. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
@@ -455,7 +458,7 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 | 5 | ✅ Preferencia de correo (`RecibeCorreos`) + encolado condicional (`7f67c68`) | 1 h |
 | 6 | ✅ Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` (`59bd20c`) | 2-3 h |
 | 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
-| 8 | README: Notificaciones y Reportes | 1-2 h |
+| 8 | ✅ README: Notificaciones, cola de correos y Reportes (`0da3680`) | 1-2 h |
 | 9 | Revisión acumulada desde clon limpio | 1 h |
 | 10 | Tag `practica-5`, push, Moodle | 20 min |
 
