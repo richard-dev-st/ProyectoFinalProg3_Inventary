@@ -906,6 +906,403 @@ Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/total-en-dop" `
 | 5. Permisos | Crear, listar, aprobar, rechazar y repetir transición | `200`; transición inválida `400`; Estándar en pendientes `403` |
 | 6. Negocio | Crear, enviar, aprobar, recibir y cancelar la recibida | `200`; cancelación de terminal `400` |
 
+## Práctica 5 - Notificaciones y reportes
+
+Esta práctica agrega tres piezas sobre lo ya existente, sin cambiar las rutas ni los contratos
+anteriores:
+
+| Módulo | Requisitos | Dónde vive |
+|---|---|---|
+| Notificaciones internas y preferencia de correo | RF-NOT-01 a RF-NOT-07 | `NotificacionService`, `api/notificaciones` |
+| Cola de correos con reintentos limitados | RF-NOT-08 a RF-NOT-13 | `CorreoEnCola`, `ProcesadorCorreos`, `api/correos` |
+| Reportes con agregación | RF-REP-01 a RF-REP-05 | `ReporteService`, `api/reportes` |
+
+Los criterios completos y verificables están en
+[`docs/criterios-notificaciones-reportes.md`](docs/criterios-notificaciones-reportes.md). Lo que
+sigue explica cómo comprobarlos con el stack levantado.
+
+> **Máximo de intentos de envío de la cola: 3.** Es el valor de
+> `ProcesadorCorreos.MaximoIntentos`; al tercer fallo el correo queda `Fallido` y no se vuelve a
+> intentar.
+
+### Preparación común
+
+1. Levanta el stack como siempre:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+2. Ten **dos Administradores activos** y **dos Estándar activos** (sección
+   [¿Cómo crear un Administrador?](#cómo-crear-un-administrador) y flujo de registro del README).
+3. Guarda los tokens:
+
+```powershell
+$base = 'http://localhost:8080'
+
+function Login($email, $password) {
+    $body = @{ email = $email; password = $password } | ConvertTo-Json
+    (Invoke-RestMethod "$base/api/auth/login" -Method Post `
+        -ContentType 'application/json' -Body $body).token
+}
+
+$adm1 = Login 'admin1@inventario.test' 'Admin1234'
+$adm2 = Login 'admin2@inventario.test' 'Admin1234'
+$std  = Login 'estandar1@inventario.test' 'Estandar1234'
+$std2 = Login 'estandar2@inventario.test' 'Estandar1234'
+```
+
+4. Todos los endpoints nuevos exigen `Authorization: Bearer <token>`; sin token responden `401`.
+
+```powershell
+function Api($method, $path, $token, $body = $null) {
+    $params = @{
+        Method      = $method
+        Uri         = "$base$path"
+        Headers     = @{ Authorization = "Bearer $token" }
+        ErrorAction = 'Stop'
+    }
+
+    if ($body) {
+        $params.ContentType = 'application/json'
+        $params.Body = ($body | ConvertTo-Json)
+    }
+
+    Invoke-RestMethod @params
+}
+```
+
+### Notificaciones (RF-NOT-01 a RF-NOT-07)
+
+#### Qué eventos generan notificación
+
+| Evento | Quién la recibe | Tipo | Asunto del correo |
+|---|---|---|---|
+| `POST /api/solicitudes` (Estándar) | Todos los Administradores **activos** | `SolicitudPermisoCreada` | Nueva solicitud de permiso |
+| `POST /api/solicitudes/{id}/aprobar` | El solicitante | `SolicitudPermisoAprobada` | Solicitud de permiso aprobada |
+| `POST /api/solicitudes/{id}/rechazar` | El solicitante, **con el motivo** | `SolicitudPermisoRechazada` | Solicitud de permiso rechazada |
+| `POST /api/ordenescompra/{id}/enviar-aprobacion` | Todos los Administradores **activos** | `OrdenEnviadaAprobacion` | Orden de compra enviada a aprobación |
+
+El canal **interno** siempre se crea. El **correo** solo se encola si el destinatario tiene
+`recibeCorreos = true` (por defecto). El correo nunca se envía dentro de la petición: queda
+`Pendiente` y lo procesa el contenedor `worker` (RF-NOT-08).
+
+#### Endpoints
+
+| Método | Ruta | Para qué |
+|---|---|---|
+| `GET` | `/api/notificaciones` | Notificaciones propias (más recientes primero) |
+| `GET` | `/api/notificaciones?soloNoLeidas=true` | Solo las no leídas |
+| `POST` | `/api/notificaciones/{id}/leer` | Marcar una propia como leída (`204`) |
+| `GET` | `/api/notificaciones/preferencia` | `{ "recibeCorreos": true }` |
+| `PUT` | `/api/notificaciones/preferencia` | Cambiar la preferencia (`204`) |
+
+#### RF-NOT-01 - Crear una solicitud notifica solo a los Administradores
+
+```powershell
+$solicitud = Api Post '/api/solicitudes' $std @{
+    permiso     = 'exportar-inventario'
+    descripcion = 'Necesito exportar el inventario para el cierre.'
+}
+
+# Cada Administrador activo ve exactamente una notificación nueva
+Api Get '/api/notificaciones?soloNoLeidas=true' $adm1
+Api Get '/api/notificaciones?soloNoLeidas=true' $adm2
+
+# El solicitante y un Administrador inactivo no reciben nada
+Api Get '/api/notificaciones?soloNoLeidas=true' $std
+```
+
+**Esperado:** `adm1` y `adm2` tienen una notificación con `tipo = "SolicitudPermisoCreada"` cuyo
+mensaje menciona el email del solicitante y el permiso; `std` no tiene ninguna. Repite la
+operación: cada Administrador acumula **2**, no 4.
+
+#### RF-NOT-02 - Aprobar y rechazar notifican al solicitante
+
+```powershell
+# Aprobar
+Api Post "/api/solicitudes/$($solicitud.id)/aprobar" $adm1
+
+# Rechazar otra con motivo
+$otra = Api Post '/api/solicitudes' $std @{
+    permiso     = 'recibir-orden'
+    descripcion = 'Para recibir compras.'
+}
+Api Post "/api/solicitudes/$($otra.id)/rechazar" $adm1 @{ motivo = 'No hay cupo en el turno' }
+
+Api Get '/api/notificaciones' $std
+```
+
+**Esperado:** dos notificaciones para `std`: una con `tipo = "SolicitudPermisoAprobada"` y otra
+con `tipo = "SolicitudPermisoRechazada"` cuyo mensaje contiene `No hay cupo en el turno`. La
+transición de estado de la solicitud no cambia respecto a la Práctica 2.
+
+#### RF-NOT-03 - Un evento del negocio notifica a los Administradores
+
+1. Crea una orden en `Borrador` con el token del Estándar (pasos de la sección
+   [Práctica 3](#cómo-provocar-cada-funcionalidad-del-módulo-de-negocio)).
+2. Envíala a aprobación:
+
+```powershell
+Api Post "/api/ordenescompra/$ordenId/enviar-aprobacion" $std
+```
+
+**Esperado:** la orden pasa a `PendienteAprobacion` y cada Administrador activo recibe una
+notificación con `tipo = "OrdenEnviadaAprobacion"` cuyo mensaje incluye el `Id` de la orden
+(`La orden de compra #<id> por <total> USD fue enviada a aprobación.`). El correo encolado lleva el
+asunto **Orden de compra enviada a aprobación**.
+
+#### RF-NOT-04 y RF-NOT-05 - Solo lo propio y marcado idempotente
+
+```powershell
+# U1 solo ve lo suyo; las intersecciones de id con U2 deben ser vacías
+$deU1 = Api Get '/api/notificaciones' $std
+$deU2 = Api Get '/api/notificaciones' $std2
+
+# Marcar una propia
+Api Post "/api/notificaciones/$($deU1[0].id)/leer" $std      # 204
+Api Post "/api/notificaciones/$($deU1[0].id)/leer" $std      # 204 otra vez, idempotente
+Api Get  "/api/notificaciones?soloNoLeidas=true" $std         # ya no aparece
+
+# Intentar marcar la de otro: 404 y no cambia nada
+try { Api Post "/api/notificaciones/$($deU2[0].id)/leer" $std }
+catch { $_.Exception.Response.StatusCode.value__ }             # 404
+Api Get '/api/notificaciones' $std2                           # sigue con leida = false
+```
+
+La respuesta de `GET /api/notificaciones` trae `id`, `mensaje`, `tipo`, `leida`, `fechaCreacion` y
+`referenciaId`; nunca las de otro usuario.
+
+#### RF-NOT-06 y RF-NOT-07 - Doble canal y preferencia
+
+```powershell
+# Desactivar el correo de admin2
+Api Put '/api/notificaciones/preferencia' $adm2 @{ recibeCorreos = $false }
+Api Get '/api/notificaciones/preferencia' $adm2        # { "recibeCorreos": false }
+
+# Evento que notifica a todos los Administradores
+Api Post '/api/solicitudes' $std @{
+    permiso     = 'exportar-inventario'
+    descripcion = 'Prueba de preferencia.'
+} | Out-Null
+
+# admin2 conserva el canal interno pero no tiene correo nuevo
+Api Get '/api/notificaciones?soloNoLeidas=true' $adm2
+Api Get '/api/correos?estado=Pendiente' $adm1 |
+    Where-Object { $_.destinatario -eq 'admin2@inventario.test' }
+```
+
+**Esperado:** `admin2` ve la notificación interna y **no** aparece ningún correo nuevo dirigido a
+su email; `admin1` (correo activo) sí tiene uno `Pendiente`. La preferencia persiste tras cerrar y
+volver a iniciar sesión, y al reactivarla (`recibeCorreos = true`) el siguiente evento vuelve a
+encolar.
+
+### Cola de correos (RF-NOT-08 a RF-NOT-13)
+
+| Método | Ruta | Quién | Para qué |
+|---|---|---|---|
+| `GET` | `/api/correos` | Administrador | Ver la cola completa |
+| `GET` | `/api/correos?estado=Pendiente` | Administrador | Filtrar por `Pendiente`, `Enviado` o `Fallido` |
+
+Cada correo devuelve `id`, `destinatario`, `asunto`, `estado`, `intentos`, `fechaCreacion`,
+`fechaEnvio`, `fechaUltimoIntento` y `ultimoError`. Un Estándar recibe `403`; sin token, `401`.
+
+#### RF-NOT-08 - El correo se encola, no se envía en la petición
+
+- La petición HTTP (`POST /api/solicitudes`) responde `200`/`201` aunque el SMTP esté caído.
+- `docker compose logs api` **no** muestra intentos SMTP.
+- `docker compose logs -f worker` sí muestra el procesamiento.
+
+#### RF-NOT-09 - El worker envía los pendientes
+
+Con el `worker` corriendo, espera un ciclo (≤ 10 s) sin repetir la operación:
+
+```powershell
+docker compose logs -f worker
+Api Get '/api/correos' $adm1
+```
+
+**Esperado:** el correo pasa a `Enviado` con `fechaEnvio` y `fechaUltimoIntento`, o a `Fallido` si
+el SMTP falla. El envío ocurre aunque la API se reinicie después de encolar.
+
+#### RF-NOT-10 - Cómo provocar el fallo y comprobar el límite de 3
+
+El `EmailService` tiene un *fallback*: si `SMTP_SERVER`, `SMTP_USER` o `SMTP_PASSWORD` conservan
+los valores de ejemplo de `.env.example`, **no** intenta enviar, escribe `[FALLBACK CORREO]` en el
+log del worker y devuelve `true`. Con el `.env` de ejemplo, por tanto, ningún correo falla.
+
+Para ver un fallo real, usa un SMTP que no responda y credenciales **que no sean** de ejemplo
+(no cambies `MSSQL_SA_PASSWORD`):
+
+```powershell
+# En .env (valores locales de prueba, nunca reales)
+# SMTP_SERVER=127.0.0.1
+# SMTP_PORT=1
+# SMTP_USER=worker@inventario.test
+# SMTP_PASSWORD=clave-local-de-prueba
+```
+
+```powershell
+docker compose up -d --build api worker
+
+# Genera un correo (cualquier evento notificable)
+Api Post '/api/solicitudes' $std @{
+    permiso     = 'exportar-inventario'
+    descripcion = 'Prueba de reintentos.'
+} | Out-Null
+
+# Espera ~30 s (tres ciclos) y consulta como Administrador
+Start-Sleep -Seconds 35
+Api Get '/api/correos?estado=Fallido' $adm1
+```
+
+**Esperado:** `intentos = 3`, `estado = "Fallido"`, `ultimoError` no vacío y
+`fechaUltimoIntento` registrada. Espera dos ciclos más: `intentos` sigue en **3** y la fecha no
+cambia; el correo **no** desaparece de la cola. Al terminar, restaura el `.env` de ejemplo y
+recrea `api` y `worker`.
+
+#### RF-NOT-11 - La cola se consulta solo como Administrador
+
+```powershell
+Api Get '/api/correos' $adm1                       # 200 con la cola
+Api Get '/api/correos?estado=Fallido' $adm1        # solo los fallidos
+
+try { Api Get '/api/correos' $std }
+catch { $_.Exception.Response.StatusCode.value__ } # 403
+
+Invoke-RestMethod "$base/api/correos"              # 401 sin token
+```
+
+#### RF-NOT-12 - Un correo enviado no se reenvía
+
+```powershell
+# Anota fechaEnvio e intentos de un correo Enviado
+$antes = Api Get '/api/correos?estado=Enviado' $adm1 | Select-Object -First 1
+$antes | Select-Object id, intentos, fechaEnvio
+
+docker compose restart worker
+Start-Sleep -Seconds 15
+
+# No debe haber un segundo registro ni cambios en intentos/fechaEnvio
+Api Get '/api/correos?estado=Enviado' $adm1 | Select-Object id, intentos, fechaEnvio
+```
+
+El envío aparece **una sola vez** en el log del worker (o una sola línea `[FALLBACK CORREO]` si se
+usa el fallback). El procesador solo toma correos `Pendiente` con `intentos < 3` y
+`MarcarComoEnviado()` es idempotente.
+
+#### RF-NOT-13 - Credenciales SMTP solo por variables de entorno
+
+- `appsettings.json` no contiene contraseñas ni claves SMTP.
+- `docker compose config` muestra `EmailSettings__*` alimentado desde `.env`.
+- Ni el código versionado ni el historial contienen la contraseña SMTP ni la clave de la API
+  externa; el pre-commit de `gitleaks` pasa sin hallazgos.
+
+### Reportes (RF-REP-01 a RF-REP-05)
+
+Ambos reportes **agregan en el motor de datos** (`GROUP BY` + `COUNT`/`SUM` de EF Core): no
+devuelven el listado de registros ni se suman en el cliente. Las fechas son ISO 8601
+(`AAAA-MM-DD`), en UTC, y `desde` y `hasta` son **inclusivos**. `hasta` anterior a `desde`
+responde `400`.
+
+| Método | Ruta | Quién ve qué |
+|---|---|---|
+| `GET` | `/api/reportes/solicitudes?desde=2026-01-01&hasta=2026-12-31` | Administrador: todo; Estándar: solo sus solicitudes |
+| `GET` | `/api/reportes/ordenes?desde=2026-01-01&hasta=2026-12-31` | Administrador: todo; Estándar: solo sus órdenes |
+
+#### RF-REP-01 - Solicitudes por estado y período
+
+```powershell
+Api Get '/api/reportes/solicitudes?desde=2026-01-01&hasta=2026-12-31' $adm1
+```
+
+```json
+{
+  "desde": "2026-01-01T00:00:00Z",
+  "hasta": "2026-12-31T00:00:00Z",
+  "total": 10,
+  "grupos": [
+    { "estado": "Aprobada", "cantidad": 4 },
+    { "estado": "Pendiente", "cantidad": 5 },
+    { "estado": "Rechazada", "cantidad": 1 }
+  ]
+}
+```
+
+**Esperado:** hay menos filas que solicitudes (10 solicitudes en 3 estados → 3 filas), la suma de
+`cantidad` es el total del rango y la respuesta **no** incluye solicitudes ni identificadores
+individuales.
+
+#### RF-REP-02 - Compras por proveedor y estado
+
+Pregunta que responde: **¿cuánto se está comprando a cada proveedor y en qué estado están esas
+órdenes dentro del período?** Permite ver en qué proveedor se concentra el gasto y cuánto está
+aprobado, pendiente o recibido.
+
+```powershell
+Api Get '/api/reportes/ordenes?desde=2026-01-01&hasta=2026-12-31' $adm1
+```
+
+```json
+{
+  "desde": "2026-01-01T00:00:00Z",
+  "hasta": "2026-12-31T00:00:00Z",
+  "totalOrdenes": 8,
+  "montoTotalUsd": 1250.00,
+  "grupos": [
+    { "proveedorId": 1, "proveedor": "Proveedor Uno", "estado": "Aprobada",
+      "cantidadOrdenes": 3, "montoTotalUsd": 700.00 },
+    { "proveedorId": 2, "proveedor": "Proveedor Dos", "estado": "Recibida",
+      "cantidadOrdenes": 5, "montoTotalUsd": 550.00 }
+  ]
+}
+```
+
+**Esperado:** una fila por combinación `(proveedor, estado)` presente en el rango; cada
+`montoTotalUsd` coincide con la suma manual de esas órdenes y la suma de grupos iguala a
+`montoTotalUsd` general.
+
+#### RF-REP-03 - Agregación real
+
+Con 12 solicitudes en 2 estados o 12 órdenes de 3 proveedores en 4 estados, el número de filas
+devueltas es menor que el de registros de origen. La agregación vive en `ReporteService`
+(`GroupBy`, `Count`, `Sum`), visible como `GROUP BY` en el SQL de EF.
+
+#### RF-REP-04 - Los reportes respetan el rol
+
+```powershell
+$reporteU1 = Api Get '/api/reportes/solicitudes' $std
+$reporteU2 = Api Get '/api/reportes/solicitudes' $std2
+
+# Crear datos para el otro Estándar no cambia los números de $std
+Api Post '/api/solicitudes' $std2 @{ permiso = 'p-x'; descripcion = 'Dato ajeno.' } | Out-Null
+Api Get '/api/reportes/solicitudes' $std   # mismos totales que antes
+```
+
+**Esperado:** el Estándar solo ve sus propios registros; no existe un parámetro `usuarioId` que
+permita consultar los de otro (se ignora: el id y el rol salen del token). El Administrador sí
+obtiene la vista global.
+
+#### RF-REP-05 - Rango de fechas
+
+```powershell
+# Dos rangos distintos sobre los mismos datos
+Api Get '/api/reportes/solicitudes?desde=2026-01-01&hasta=2026-03-31' $adm1
+Api Get '/api/reportes/solicitudes?desde=2026-10-01&hasta=2026-12-31' $adm1
+Api Get '/api/reportes/ordenes?desde=2026-01-01&hasta=2026-03-31' $adm1
+Api Get '/api/reportes/ordenes?desde=2026-10-01&hasta=2026-12-31' $adm1
+
+# Registros justo en los extremos se incluyen
+# Rango invertido: 400
+try { Api Get '/api/reportes/solicitudes?desde=2026-12-31&hasta=2026-01-01' $adm1 }
+catch { $_.Exception.Response.StatusCode.value__ }   # 400
+```
+
+**Esperado:** cada rango produce totales distintos y coherentes con las fechas; un registro con
+fecha exactamente igual a `desde` o a `hasta` se incluye; `hasta < desde` responde `400` con un
+mensaje que explica el rango inválido.
+
 ## Contenedor
 
 Requisitos: Docker Desktop con contenedores Linux.
