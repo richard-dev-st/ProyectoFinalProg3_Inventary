@@ -1057,8 +1057,8 @@ asunto **Orden de compra enviada a aprobación**.
 
 ```powershell
 # U1 solo ve lo suyo; las intersecciones de id con U2 deben ser vacías
-$deU1 = Api Get '/api/notificaciones' $std
-$deU2 = Api Get '/api/notificaciones' $std2
+$deU1 = @(Api Get '/api/notificaciones' $std)
+$deU2 = @(Api Get '/api/notificaciones' $std2)
 
 # Marcar una propia
 Api Post "/api/notificaciones/$($deU1[0].id)/leer" $std      # 204
@@ -1178,7 +1178,7 @@ Invoke-RestMethod "$base/api/correos"              # 401 sin token
 
 ```powershell
 # Anota fechaEnvio e intentos de un correo Enviado
-$antes = Api Get '/api/correos?estado=Enviado' $adm1 | Select-Object -First 1
+$antes = @(Api Get '/api/correos?estado=Enviado' $adm1)[0]
 $antes | Select-Object id, intentos, fechaEnvio
 
 docker compose restart worker
