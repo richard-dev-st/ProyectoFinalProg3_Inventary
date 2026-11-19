@@ -3,10 +3,9 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Fecha del corte:** 18/11/2026
+**Fecha del corte:** 19/11/2026
 **Rama actual:** `feat/practica-5` (local, sin upstream)
-**Rama:** `feat/practica-5` (local, sin upstream)
-**Último commit de código:** `f52a070` (reportes); **README de la Práctica 5:** `f270878`
+**Último commit de código:** `82ad402` (arreglos de la revisión acumulada); **README de la Práctica 5:** `f270878`
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -37,15 +36,15 @@ Estado por punto de la Práctica 5:
 | 1.3 | Cola de correos RF-NOT-08..13 | ✅ Reintentos (máx. 3), `Fallido`, `GET /api/correos`, idempotencia (`59bd20c`) |
 | 1.4 | Reportes con agregación RF-REP-01..05 | ✅ `/api/reportes/solicitudes` y `/ordenes` con rol y fechas (`f52a070`) |
 | 1.5 | README: secciones **Notificaciones** y **Reportes** | ✅ Escritas y commiteadas (`0da3680`) |
-| 1.6 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
-| — | Tag `practica-5` + push + Moodle | ⬜ 0 % |
+| 1.6 | Revisión acumulada de los seis frentes | ✅ Ejecutada el 19/11/2026 (178 comprobaciones, 0 fallos) |
+| — | Tag `practica-5` + push + Moodle | ⬜ Esperando tu verificación manual |
 
-Verificación al cierre de esta sesión (18/11/2026):
+Verificación al cierre de esta sesión (19/11/2026):
 
 ```
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 77/77 (12 + 47 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 79/79 (12 + 49 + 18)
 ```
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
@@ -59,8 +58,24 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 
 ```
 main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes (luego `f270878`)
+feat/practica-5       82ad402  fix(practica-5): incluye el dia completo en reportes y guarda el error real de la cola
 feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
+```
+
+> `feat/practica-5` tendrá encima los commits de `contexto-sesion.md`; el último **de código**
+> es `82ad402`.
+
+Hitos de la Práctica 5 en orden:
+
+```
+a90538b  docs(practica-5): criterios de aceptacion y contexto para agentes
+7f67c68  feat(notificaciones): RF-NOT-01..07
+59bd20c  feat(correos): cola con reintentos e idempotencia RF-NOT-08..12
+f52a070  feat(reportes): agregados RF-REP-01..05
+0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes
+f270878  docs(readme): ejemplos de PowerShell robustos
+1fefc5b  docs(contexto): estado del README y de la rama
+82ad402  fix(practica-5): bordes detectados en la revision acumulada
 ```
 
 - `main` (`fa116f2`) ya está pusheado; incluye el merge del frontend (`51b3eb4`) y el handoff.
@@ -145,7 +160,7 @@ Business.Inventory  ◄──── Core.Domain  (entidades y enums compartidos)
 | `Infrastructure` | `ApplicationDbContext`, migraciones, `PasswordService`, `JwtService`, `EmailService`, `ProcesadorCorreosWorker`, `AlmacenDocumentosLocal`, `CurrencyApiTasaCambioService` |
 | `Presentation.API` | Controladores REST, autorización por rol, mapeo de excepciones, DI, JWT |
 | `EmailWorker` | Worker independiente que vacía `CorreosEnCola`. **No lo arranca la API.** |
-| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (31), `Bussiness.inventory.Tests` (19) = **62** |
+| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (49), `Bussiness.inventory.Tests` (18) = **79** (62 heredadas + 17 de la Práctica 5) |
 
 ### 3.2 Frontend (nuevo)
 
@@ -253,11 +268,13 @@ Ya existen:
   `ProcesadorCorreos` (migración `AgregarReintentosColaCorreos`).
 - `GET /api/correos` solo para Administrador (`CorreosController`).
 - `IReporteService` / `ReporteService` y `api/reportes/solicitudes` + `api/reportes/ordenes` con
-  `GroupBy`/`Count`/`Sum`, filtro por rol y rango inclusivo (`ReportesController`).
+  `GroupBy`/`Count`/`Sum`, filtro por rol y rango inclusivo (`ReportesController`). `hasta` con
+  fecha sin hora incluye el día completo (`82ad402`).
+- `UltimoError` guarda el mensaje real de la excepción SMTP (`82ad402`).
 
-Siguen pendientes:
+Sigue pendiente:
 
-- Revisión acumulada de los seis frentes y tag `practica-5`.
+- Tag `practica-5` y push, después de tu verificación manual.
 
 ### 4.7 Forma de las respuestas de reportes
 
@@ -406,17 +423,18 @@ Cambios sobre lo existente:
 4. **Fechas**: los dos rangos deben producir resultados distintos sobre los mismos datos.
 5. **Agregación en el motor**: `GroupBy` + `Sum`/`Count` en EF, no traer todo y sumar en C#.
 
-### 6.5 Punto 1.5 — Revisión acumulada
+### 6.5 Punto 1.5 — Revisión acumulada (ejecutada el 19/11/2026)
 
-Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando del README:
+Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desechables
+`rev5.*` / `rev5r*@inventario.test`. Resultado: **178 comprobaciones, 0 fallos**. Detalle en §10.
 
-1. Registro con activación por correo (el correo sale por la cola).
-2. Inicio y cierre de sesión.
-3. Estándar rechazado en una operación de Administrador.
-4. Recuperación de contraseña.
-5. Permisos: crear, aprobar, rechazar y transiciones inválidas.
-6. Negocio: operación válida y transición prohibida.
-7. Documento que sobrevive a `docker compose down` (sin `-v`).
+1. ✅ Registro con activación por correo (el correo sale por la cola).
+2. ✅ Inicio y cierre de sesión, token revocado y usuario desactivado.
+3. ✅ Estándar rechazado (`403`) en las operaciones de Administrador.
+4. ✅ Recuperación de contraseña, código inválido y cambio de contraseña.
+5. ✅ Permisos: crear, aprobar, rechazar, autoaprobación y transiciones inválidas.
+6. ✅ Negocio: borrador, enviar, aprobar, recibir y transiciones prohibidas.
+7. ✅ Documento que sobrevive a `docker compose down` (sin `-v`).
 
 ### 6.6 README — secciones obligatorias
 
@@ -439,12 +457,15 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 4. **Orden de commits:** los criterios (`a90538b`) preceden a todo el código; no reescribir el
    historial de la rama.
 5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
-6. **Pendiente real:** la revisión acumulada de los seis frentes desde un clon limpio y el tag
-   `practica-5`.
-6. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
+6. **Pendiente real:** tag `practica-5`, push y Moodle, después de tu verificación manual. La
+   revisión acumulada ya está hecha (§10).
+7. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
    `practica-5` incluya todo.
-7. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
+8. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
    las existentes.
+9. **Reconstrucción de imágenes:** si Docker Desktop sigue con la caché rota o sin red al
+   registro, `docker builder prune -af` y volver a `docker compose up -d --build`. La revisión
+   usó imágenes delgadas solo como puente; el `Dockerfile` del repositorio es el bueno.
 
 ---
 
@@ -460,8 +481,8 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 | 6 | ✅ Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` (`59bd20c`) | 2-3 h |
 | 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
 | 8 | ✅ README: Notificaciones, cola de correos y Reportes (`0da3680`) | 1-2 h |
-| 9 | Revisión acumulada desde clon limpio | 1 h |
-| 10 | Tag `practica-5`, push, Moodle | 20 min |
+| 9 | ✅ Revisión acumulada de los seis frentes (178 comprobaciones, 0 fallos) + arreglos (`82ad402`) | 1 h |
+| 10 | ⬜ Tu verificación manual → tag `practica-5`, push, Moodle | 20 min |
 
 ---
 
@@ -519,3 +540,89 @@ git check-ignore -v .env
 | `frontend/Inventario.Web/Services/SesionActual.cs` | sesión persistente del frontend |
 | `frontend/Inventario.Web/Components/Routes.razor` | gate + `AuthorizeRouteView` |
 | `README.md` | fuente de verdad de la revisión manual |
+
+---
+
+## 10. Revisión acumulada de los seis frentes (19/11/2026)
+
+Ejecutada sobre el stack Docker real (`api` en `http://localhost:8080`, `db` y `worker`), con
+usuarios desechables creados por la propia revisión (`rev5.std1`, `rev5.std2`, `rev5.adm1`,
+`rev5.adm2`, `rev5.inactivo` y una corrida nueva `rev5r#####.*`). Contraseña de trabajo:
+`Revision123` (la de `std1` pasó a `Revision456` tras probar la recuperación, como debe ser).
+
+### 10.1 Resultado por tanda
+
+| Tanda | Frentes | Comprobaciones | Fallos |
+|---|---|---|---|
+| `review-a2.ps1` | 1 registro/activación · 2 login/logout · 3 rol y usuario desactivado · 4 recuperación | 39 | 0 |
+| `review-b.ps1` | 5 permisos · 6 órdenes de compra | 32 | 0 |
+| `review-c.ps1` | RF-NOT-01..07 y RF-NOT-11/12 (notificaciones y cola) | 44 | 0 |
+| `review-d.ps1` | RF-REP-01..05 y RF-NOT-10 (fallo forzado del SMTP) | 44 | 0 |
+| `review-e.ps1` | Documentos y persistencia tras `docker compose down` (sin `-v`) | 19 | 0 |
+| **Total** | | **178** | **0** |
+
+Los guiones viven fuera del repositorio (`%TEMP%\opencode\review-*.ps1`) y se apoyan en
+`review-common.ps1` (`Call`, `Check`, `CheckTrue`, `Sql`, `Login`, `Resumen`).
+
+### 10.2 Qué quedó verificado
+
+- **Registro y activación:** el correo de activación se encola; el token activa una sola vez
+  (segundo intento `400`); una cuenta sin activar no entra (`400`); la contraseña incorrecta
+  también responde `400` (patrón del proyecto, no `401`).
+- **Sesión:** `me` identifica al usuario; `logout` revoca solo ese token; cerrar una sesión no
+  invalida las demás del mismo usuario; un usuario desactivado pierde la sesión abierta y no
+  puede volver a entrar.
+- **Roles:** un Estándar recibe `403` en `/api/admin/usuarios`, `/api/correos` y en las rutas de
+  Administrador; sin token, `401`.
+- **Recuperación:** código inválido `400`, código válido `200`, token anterior `401` (con 3 s de
+  margen), contraseña anterior rechazada, código no reutilizable.
+- **Permisos:** la solicitud nace `Pendiente`; solo el Administrador lista pendientes; aprobar
+  aplica el permiso (el `exportar` pasa de `403` a `200`) y guarda resolución y fecha; aprobar
+  dos veces `400`; rechazar sin motivo `400`; el solicitante no aprueba lo propio `400`.
+- **Negocio:** borrador con total calculado (`100.00`), `enviar-aprobacion` → `2`, `aprobar` →
+  `3`, `recibir` → `4`; cancelar o reenviar una orden `Recibida` responde `400`; `total-en-dop`
+  responde de forma controlada con la clave de ejemplo.
+- **Notificaciones:** crear solicitud notifica exactamente a los Administradores activos y no al
+  solicitante ni a un Administrador inactivo; aprobar/rechazar notifica al solicitante con el
+  motivo; `enviar-aprobacion` notifica a los Administradores; listados aislados por usuario;
+  marcar propia `204` e idempotente; marcar ajena `404` y no cambia nada; `?soloNoLeidas`
+  funciona.
+- **Cola:** un correo por destinatario y evento; `PUT preferencia=false` deja de encolar correo
+  pero conserva la notificación interna, y persiste tras un nuevo login; `GET /api/correos` solo
+  Administrador; el worker marca `Enviado` con `fechaEnvio`, `fechaUltimoIntento` e `intentos`;
+  reiniciar el worker no reenvía ni duplica.
+- **Fallo forzado (RF-NOT-10):** con `SMTP_SERVER=127.0.0.1`, `SMTP_PORT=1` y credenciales no
+  de ejemplo, el correo llega a `Fallido` con **3 intentos**, `UltimoError` con el mensaje real
+  (`Failure sending mail.`) y `fechaUltimoIntento`; después no se reintenta ni desaparece.
+- **Reportes:** totales y grupos coinciden con `COUNT`/`SUM` de SQL; hay menos filas que
+  registros (agregación real); el Estándar solo ve lo suyo y no puede espiar con `usuarioId`;
+  el Administrador ve el global; `desde`/`hasta` son inclusivos, dos rangos difieren, el rango
+  invertido responde `400` y `hasta=AAAA-MM-DD` incluye el día completo.
+- **Documentos:** subida, listado propio, descarga con contenido idéntico, `403` para otro
+  usuario, archivo vacío `400`, id inexistente `404`; el documento **sobrevive** a
+  `docker compose down` seguido de `up -d` y se puede descargar igual.
+
+### 10.3 Defectos encontrados y corregidos en `82ad402`
+
+1. **RF-REP-05 — `hasta` cortaba a medianoche.** `hasta=2026-12-31` dejaba fuera los registros
+   de ese día. Ahora una fecha sin hora incluye el día completo; una marca con hora respeta el
+   instante. Con prueba `RF_REP_05_HastaFecha_IncluyeTodoElDia`.
+2. **RF-NOT-10 — `UltimoError` era genérico.** Guardaba «El servicio de correo no pudo enviar el
+   mensaje.» en vez del mensaje del SMTP. `IEmailService` expone `UltimoError` y
+   `ProcesadorCorreos` lo persiste, con respaldo al texto genérico. Con prueba
+   `RF_NOT_10_ServicioDevuelveFalse_GuardaMensajeDelError`.
+
+No se encontró ningún defecto abierto en los seis frentes.
+
+### 10.4 Notas de la corrida
+
+- El «token sigue válido tras restablecer» que apareció al principio era un artefacto del guion:
+  emitía el token y restablecía en el mismo segundo, dentro del margen anti-desfase de 2 s de
+  `OnTokenValidated`. Con 3–4 s de espera responde `401`, como exige el criterio.
+- La caché de Docker Desktop se corrompió (`failed to compute cache key`) y luego el registro
+  dejó de entregar `mcr.microsoft.com/dotnet/sdk:10.0` por timeouts. Para no bloquear la
+  revisión se publicó en local y se armaron imágenes delgadas sobre `aspnet:10.0` (que sí estaba
+  en el store). **El repositorio no cambió por esto**: `Dockerfile`, `Dockerfile.worker` y
+  `docker-compose.yml` siguen iguales.
+- Los registros históricos de `CorreosEnCola` anteriores a la migración de reintentos no tienen
+  `FechaUltimoIntento`; la revisión solo exige esos campos a los correos nuevos.
