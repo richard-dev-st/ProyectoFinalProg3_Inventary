@@ -1203,7 +1203,8 @@ usa el fallback). El procesador solo toma correos `Pendiente` con `intentos < 3`
 
 Ambos reportes **agregan en el motor de datos** (`GROUP BY` + `COUNT`/`SUM` de EF Core): no
 devuelven el listado de registros ni se suman en el cliente. Las fechas son ISO 8601
-(`AAAA-MM-DD`), en UTC, y `desde` y `hasta` son **inclusivos**. `hasta` anterior a `desde`
+(`AAAA-MM-DD`), en UTC, y `desde` y `hasta` son **inclusivos**: si envías solo la fecha, se
+incluye el día completo; si envías una hora, se respeta ese instante. `hasta` anterior a `desde`
 responde `400`.
 
 | Método | Ruta | Quién ve qué |

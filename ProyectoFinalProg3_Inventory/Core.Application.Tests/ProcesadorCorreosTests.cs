@@ -90,6 +90,24 @@ public class ProcesadorCorreosTests
         Assert.Contains("SMTP no disponible", correo.UltimoError);
     }
 
+    // RF-NOT-10: si el servicio devuelve false, se guarda el mensaje del error del SMTP.
+    [Fact]
+    public async Task RF_NOT_10_ServicioDevuelveFalse_GuardaMensajeDelError()
+    {
+        using var context = CreateContext();
+        var correo = await CrearCorreoPendiente(context);
+        var email = new EmailFalso
+        {
+            Resultado = false,
+            UltimoError = "No se pudo conectar con el servidor SMTP."
+        };
+
+        await CrearProcesador(context, email).ProcesarPendientesAsync();
+
+        Assert.Equal(1, correo.Intentos);
+        Assert.Contains("servidor SMTP", correo.UltimoError);
+    }
+
     // RF-NOT-12: ejecutar el procesador dos veces no reenvía ni duplica.
     [Fact]
     public async Task RF_NOT_12_ProcesarDosVeces_NoReenvia()
@@ -114,6 +132,7 @@ public class ProcesadorCorreosTests
     {
         public bool Resultado { get; init; } = true;
         public Exception? Error { get; init; }
+        public string? UltimoError { get; set; }
         public int Llamadas { get; private set; }
 
         public Task<bool> EnviarCorreoAsync(string destinatario, string asunto, string cuerpoHtml)

@@ -36,7 +36,17 @@ namespace Application.Services
 
             if (hasta.HasValue)
             {
-                consulta = consulta.Where(s => s.CreadoEn <= hasta.Value);
+                // RF-REP-05: las fechas llegan como AAAA-MM-DD (medianoche). Si el valor no
+                // trae hora, se incluye el día completo; si trae hora, se respeta el instante.
+                if (hasta.Value.TimeOfDay == TimeSpan.Zero)
+                {
+                    var limiteExclusivo = hasta.Value.AddDays(1);
+                    consulta = consulta.Where(s => s.CreadoEn < limiteExclusivo);
+                }
+                else
+                {
+                    consulta = consulta.Where(s => s.CreadoEn <= hasta.Value);
+                }
             }
 
             // RF-REP-03: la agregación se hace en el motor de datos.
@@ -86,7 +96,16 @@ namespace Application.Services
 
             if (hasta.HasValue)
             {
-                consulta = consulta.Where(o => o.FechaCreacion <= hasta.Value);
+                // RF-REP-05: mismo criterio que en solicitudes: AAAA-MM-DD incluye el día completo.
+                if (hasta.Value.TimeOfDay == TimeSpan.Zero)
+                {
+                    var limiteExclusivo = hasta.Value.AddDays(1);
+                    consulta = consulta.Where(o => o.FechaCreacion < limiteExclusivo);
+                }
+                else
+                {
+                    consulta = consulta.Where(o => o.FechaCreacion <= hasta.Value);
+                }
             }
 
             // RF-REP-03: GROUP BY + COUNT/SUM en el motor de datos.

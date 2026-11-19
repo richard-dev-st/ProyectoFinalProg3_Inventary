@@ -75,7 +75,8 @@ namespace Infrastructure.Services
                     else
                     {
                         correo.RegistrarFallo(
-                            "El servicio de correo no pudo enviar el mensaje.",
+                            _emailService.UltimoError
+                                ?? "El servicio de correo no pudo enviar el mensaje.",
                             MaximoIntentos);
                         _logger.LogWarning(
                             "Fallo al enviar el correo a {Destinatario} (intento {Intento}/{Maximo}).",

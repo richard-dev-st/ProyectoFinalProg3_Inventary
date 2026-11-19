@@ -181,6 +181,45 @@ public class ReporteServiceTests
         Assert.Equal(2, reporte.Total);
     }
 
+    // RF-REP-05: `hasta=AAAA-MM-DD` incluye todo ese día, no solo la medianoche.
+    [Fact]
+    public async Task RF_REP_05_HastaFecha_IncluyeTodoElDia()
+    {
+        using var context = CreateContext();
+        var usuario = CrearUsuario("dia@test.com");
+        var proveedor = new Proveedor { Nombre = "Proveedor Día" };
+        context.Usuarios.Add(usuario);
+        context.Proveedores.Add(proveedor);
+        await context.SaveChangesAsync();
+
+        var madrugada = new SolicitudPermiso(usuario.Id, "p1", "d1");
+        var noche = new SolicitudPermiso(usuario.Id, "p2", "d2");
+        var siguienteDia = new SolicitudPermiso(usuario.Id, "p3", "d3");
+        context.SolicitudesPermiso.AddRange(madrugada, noche, siguienteDia);
+
+        var ordenTemprano = NuevaOrden(proveedor.Id, 10m, EstadoOrden.Aprobada, new DateTime(2026, 12, 31, 0, 0, 0));
+        var ordenTarde = NuevaOrden(proveedor.Id, 20m, EstadoOrden.Aprobada, new DateTime(2026, 12, 31, 23, 59, 0));
+        var ordenSiguiente = NuevaOrden(proveedor.Id, 99m, EstadoOrden.Aprobada, new DateTime(2027, 1, 1));
+        context.OrdenesCompra.AddRange(ordenTemprano, ordenTarde, ordenSiguiente);
+        await context.SaveChangesAsync();
+
+        FijarFecha(context, madrugada, new DateTime(2026, 12, 31, 0, 0, 0));
+        FijarFecha(context, noche, new DateTime(2026, 12, 31, 23, 59, 0));
+        FijarFecha(context, siguienteDia, new DateTime(2027, 1, 1));
+        await context.SaveChangesAsync();
+
+        var servicio = new ReporteService(context);
+
+        var solicitudes = await servicio.ObtenerSolicitudesAsync(
+            usuario.Id, esAdministrador: true, new DateTime(2026, 12, 1), new DateTime(2026, 12, 31));
+        var ordenes = await servicio.ObtenerOrdenesAsync(
+            usuario.Id, esAdministrador: true, new DateTime(2026, 12, 1), new DateTime(2026, 12, 31));
+
+        Assert.Equal(2, solicitudes.Total);
+        Assert.Equal(2, ordenes.TotalOrdenes);
+        Assert.Equal(30m, ordenes.MontoTotalUsd);
+    }
+
     [Fact]
     public async Task RF_REP_05_RangoInvertido_LanzaInvalidOperation()
     {

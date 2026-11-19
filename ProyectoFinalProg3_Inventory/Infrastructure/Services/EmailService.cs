@@ -26,6 +26,8 @@ namespace Infrastructure.Services
             _logger = logger;
         }
 
+        public string? UltimoError { get; private set; }
+
         private static bool EsValorDeEjemplo(string? valor)
         {
             if (string.IsNullOrWhiteSpace(valor))
@@ -38,6 +40,7 @@ namespace Infrastructure.Services
 
         public async Task<bool> EnviarCorreoAsync(string destinatario, string asunto, string cuerpoHtml)
         {
+            UltimoError = null;
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
             var senderEmail = _configuration["EmailSettings:SenderEmail"];
             var senderPassword = _configuration["EmailSettings:SenderPassword"];
@@ -79,6 +82,7 @@ namespace Infrastructure.Services
             }
             catch (Exception ex)
             {
+                UltimoError = ex.Message;
                 _logger.LogError(ex, "Error al intentar enviar el correo a {Destinatario}", destinatario);
                 return false;
             }
