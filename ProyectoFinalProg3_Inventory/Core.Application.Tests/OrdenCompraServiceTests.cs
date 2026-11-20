@@ -58,7 +58,8 @@ public class OrdenCompraServiceTests
         var service = new OrdenCompraService(
             new RepoFalso(null),
             new TasaFalsa(59m),
-            context);
+            context,
+            new NotificacionService(context));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.ObtenerTotalEnDopAsync(1));
@@ -74,7 +75,8 @@ public class OrdenCompraServiceTests
         var service = new OrdenCompraService(
             new RepoFalso(orden),
             new TasaFalsa(59.427m),
-            context);
+            context,
+            new NotificacionService(context));
 
         var resultado = await service.ObtenerTotalEnDopAsync(7);
 
@@ -97,7 +99,8 @@ public class OrdenCompraServiceTests
         var service = new OrdenCompraService(
             new RepoFalso(orden),
             new TasaFalsa(0m, error),
-            context);
+            context,
+            new NotificacionService(context));
 
         var ex = await Assert.ThrowsAsync<ServicioExternoException>(
             () => service.ObtenerTotalEnDopAsync(7));

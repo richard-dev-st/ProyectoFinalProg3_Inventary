@@ -80,8 +80,9 @@ namespace Bussiness.inventory.Tests
 
             // Componentes reales de ambos módulos
             var ordenRepository = new OrdenCompraRepository(context);
-            var ordenService = new OrdenCompraService(ordenRepository, new TasaCambioFalsa(), context);
-            var solicitudService = new SolicitudPermisoService(context);
+            var notificaciones = new NotificacionService(context);
+            var ordenService = new OrdenCompraService(ordenRepository, new TasaCambioFalsa(), context, notificaciones);
+            var solicitudService = new SolicitudPermisoService(context, notificaciones);
 
             // Act + Assert (cara 1): sin el permiso aprobado la operación se rechaza
             await Assert.ThrowsAsync<UnauthorizedAccessException>(

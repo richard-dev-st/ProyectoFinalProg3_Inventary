@@ -22,6 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ProcesadorCorreos>();
 builder.Services.AddHostedService<ProcesadorCorreosWorker>();
 
 await builder.Build().RunAsync();
