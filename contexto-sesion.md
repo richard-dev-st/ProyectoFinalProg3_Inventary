@@ -4,8 +4,9 @@
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
 **Fecha del corte:** 19/11/2026
-**Rama actual:** `feat/practica-5` (local, sin upstream)
+**Rama actual:** `feat/practica-5` (con upstream en `origin`, pusheada)
 **Último commit de código:** `82ad402` (arreglos de la revisión acumulada); **README de la Práctica 5:** `f270878`
+**Tag `practica-5`:** `ddefd7f`, creado y pusheado el 20/11/2026
 **`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
@@ -37,7 +38,7 @@ Estado por punto de la Práctica 5:
 | 1.4 | Reportes con agregación RF-REP-01..05 | ✅ `/api/reportes/solicitudes` y `/ordenes` con rol y fechas (`f52a070`) |
 | 1.5 | README: secciones **Notificaciones** y **Reportes** | ✅ Escritas y commiteadas (`0da3680`) |
 | 1.6 | Revisión acumulada de los seis frentes | ✅ Ejecutada el 19/11/2026 (178 comprobaciones, 0 fallos) |
-| — | Tag `practica-5` + push + Moodle | ⬜ Esperando tu verificación manual |
+| — | Tag `practica-5` + push | ✅ `practica-5` → `ddefd7f`, rama y tag pusheados el 20/11/2026 |
 
 Verificación al cierre de esta sesión (19/11/2026):
 
@@ -79,7 +80,9 @@ f270878  docs(readme): ejemplos de PowerShell robustos
 ```
 
 - `main` (`fa116f2`) ya está pusheado; incluye el merge del frontend (`51b3eb4`) y el handoff.
-- `feat/practica-5` salió de `main` en `fa116f2` y es **local** (sin upstream todavía).
+- `feat/practica-5` salió de `main` en `fa116f2` y está pusheada con upstream (`origin/feat/practica-5`).
+- El tag `practica-5` apunta a `ddefd7f` y ya está en `origin`. Es inmutable: los commits de
+  documentación posteriores (como este) van solo a la rama.
 - Working tree: solo `README.Docker.md` como `??` (lo generó Visual Studio). **No se debe
   versionar.**
 
@@ -91,9 +94,10 @@ practica-1
 practica-2, practica-2-defecto-1..6
 practica-3, practica-3-defecto-1..4
 practica-4
+practica-5
 ```
 
-`practica-5` aún no existe.
+`practica-5` es anotado, apunta a `ddefd7f` y está en `origin`.
 
 ### 2.3 Regla de oro de esta práctica
 
@@ -272,9 +276,7 @@ Ya existen:
   fecha sin hora incluye el día completo (`82ad402`).
 - `UltimoError` guarda el mensaje real de la excepción SMTP (`82ad402`).
 
-Sigue pendiente:
-
-- Tag `practica-5` y push, después de tu verificación manual.
+No queda nada pendiente de código: el tag `practica-5` (`ddefd7f`) está creado y pusheado.
 
 ### 4.7 Forma de las respuestas de reportes
 
@@ -457,8 +459,8 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 4. **Orden de commits:** los criterios (`a90538b`) preceden a todo el código; no reescribir el
    historial de la rama.
 5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
-6. **Pendiente real:** tag `practica-5`, push y Moodle, después de tu verificación manual. La
-   revisión acumulada ya está hecha (§10).
+6. **Entrega:** tag `practica-5` creado y pusheado (`ddefd7f`). Queda subir el proyecto a Moodle.
+   La revisión acumulada está en §10.
 7. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
    `practica-5` incluya todo.
 8. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
@@ -482,7 +484,7 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 | 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
 | 8 | ✅ README: Notificaciones, cola de correos y Reportes (`0da3680`) | 1-2 h |
 | 9 | ✅ Revisión acumulada de los seis frentes (178 comprobaciones, 0 fallos) + arreglos (`82ad402`) | 1 h |
-| 10 | ⬜ Tu verificación manual → tag `practica-5`, push, Moodle | 20 min |
+| 10 | ✅ Tag `practica-5` (`ddefd7f`), rama y tag pusheados; queda subirlo a Moodle | 20 min |
 
 ---
 
