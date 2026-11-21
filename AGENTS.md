@@ -4,7 +4,8 @@ Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no*
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
 > **Estado actual (21/11/2026):** `main` en `3746eb5` (PR #24 de roles/administración mergeado;
-> antes PR #23 de registro/activación y #22 de Práctica 5). Baseline de pruebas: **86/86**.
+> antes PR #23 de registro/activación y #22 de Práctica 5, **entregada al docente el 20/11/2026**).
+> Baseline de pruebas: **86/86**.
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; el resto es
 > el corte histórico de la Práctica 5).
 

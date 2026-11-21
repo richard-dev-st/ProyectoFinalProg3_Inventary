@@ -346,10 +346,14 @@ El módulo de negocio gestiona el ciclo de vida de las órdenes de compra dentro
 
 Recorrido completo de Control de acceso y Gestión de permisos sobre el proyecto arrancado desde este tag. Si no hay SMTP configurado, los tokens/códigos se leen de la base de datos (indicado en cada frente) y el resto del flujo es idéntico. **En el contenedor no se publica el puerto de SQL Server: usa el log del worker tal como se explica en el punto 1.5.**
 
+> Las contraseñas aparecen como marcadores `<password>` y `<password-nueva>`. Sustitúyelos por
+> claves de tu elección que cumplan la política (≥8 caracteres, letras y números) antes de
+> ejecutar los comandos.
+
 #### Frente 1 — Registro con activación por correo
 1. `POST /api/Auth/registrar` con:
    ```json
-   { "email": "nuevo@test.com", "password": "Password123", "baseUrl": "http://localhost:5176" }
+   { "email": "nuevo@test.com", "password": "<password>", "baseUrl": "http://localhost:5176" }
    ```
    **Esperado:** `200` con `"exito": true`. El usuario queda `Activo = false` y el correo se encola en `CorreosEnCola`.
 2. Intenta iniciar sesión antes de activar → **`400`** (`La cuenta no está activa...`).
@@ -383,7 +387,7 @@ Recorrido completo de Control de acceso y Gestión de permisos sobre el proyecto
    ```
 3. `POST /api/Auth/restablecer-password` con:
    ```json
-   { "email": "nuevo@test.com", "codigo": "123456", "nuevaPassword": "NuevaPassword123" }
+   { "email": "nuevo@test.com", "codigo": "<codigo>", "nuevaPassword": "<password-nueva>" }
    ```
    **Esperado:** `200`. Con un código inválido o expirado → **`400`**.
 4. Inicia sesión con la contraseña nueva → **`200`**; con la anterior → **`400`**.
@@ -515,8 +519,10 @@ function Login($email, $password) {
     (Invoke-RestMethod "$base/api/Auth/Login" -Method Post -ContentType 'application/json' -Body $body).token
 }
 
-$dueno = Login 'dueno@test.com' 'Password123'
-$otro  = Login 'otro@test.com'  'Password123'
+$pwd = '<password>'   # la elegida al registrar estos usuarios
+
+$dueno = Login 'dueno@test.com' $pwd
+$otro  = Login 'otro@test.com'  $pwd
 
 # Subir
 $doc = Invoke-RestMethod "$base/api/documentos/subir" -Method Post `
@@ -667,8 +673,11 @@ Cada línea incluye el destinatario, el asunto y el cuerpo con el enlace de acti
 
 ### Usuarios de revisión
 
-1. **Estándar:** regístralo en el frente 1 con `revision.estandar@test.com` / `Revision123`.
-2. **Administrador:** registra `revision.admin@test.com` / `Admin1234`, actívalo igual que el Estándar y promuévelo dentro del contenedor:
+> Sustituye los marcadores por contraseñas de tu elección (≥8 caracteres, letras y números).
+> No se registran credenciales reales en este documento.
+
+1. **Estándar:** regístralo en el frente 1 con `revision.estandar@test.com` / `<password>`.
+2. **Administrador:** registra `revision.admin@test.com` / `<password-admin>`, actívalo igual que el Estándar y promuévelo dentro del contenedor:
 
 ```powershell
 $pw = ((Get-Content .env | Where-Object { $_ -match '^MSSQL_SA_PASSWORD=' }) -split '=',2)[1].Trim()
@@ -684,14 +693,19 @@ docker compose exec -T db /opt/mssql-tools18/bin/sqlcmd `
 ```powershell
 $base = 'http://localhost:8080'
 
+# Contraseñas elegidas al registrar a cada usuario
+$pwdStd   = '<password>'
+$pwdAdmin = '<password-admin>'
+$pwdNueva = '<password-nueva>'   # la que usarás en el frente 4
+
 function Login($email, $password) {
     $body = @{ email = $email; password = $password } | ConvertTo-Json
     (Invoke-RestMethod "$base/api/Auth/Login" -Method Post `
         -ContentType 'application/json' -Body $body).token
 }
 
-$std = Login 'revision.estandar@test.com' 'Revision123'
-$adm = Login 'revision.admin@test.com' 'Admin1234'
+$std = Login 'revision.estandar@test.com' $pwdStd
+$adm = Login 'revision.admin@test.com' $pwdAdmin
 ```
 
 ### Frente 1 - Registro con activación por correo
@@ -701,7 +715,7 @@ $adm = Login 'revision.admin@test.com' 'Admin1234'
 ```powershell
 Invoke-RestMethod "$base/api/Auth/registrar" -Method Post -ContentType 'application/json' -Body (@{
     email    = 'revision.estandar@test.com'
-    password = 'Revision123'
+    password = $pwdStd
     baseUrl  = $base
 } | ConvertTo-Json)
 ```
@@ -731,7 +745,7 @@ Invoke-RestMethod "$base/api/Auth/activar?token=TOKEN_COPIADO"
 ### Frente 2 - Inicio y cierre de sesión
 
 ```powershell
-$login = @{ email = 'revision.estandar@test.com'; password = 'Revision123' } | ConvertTo-Json
+$login = @{ email = 'revision.estandar@test.com'; password = $pwdStd } | ConvertTo-Json
 $token = (Invoke-RestMethod "$base/api/Auth/Login" -Method Post `
     -ContentType 'application/json' -Body $login).token
 
@@ -780,23 +794,23 @@ Invoke-RestMethod "$base/api/Auth/solicitar-recuperacion" -Method Post -ContentT
 docker compose logs worker --since 5m | Select-String "FALLBACK CORREO" | Select-String "revision.estandar"
 ```
 
-El cuerpo contiene `<strong>123456</strong>`. El código vale 15 minutos.
+El cuerpo contiene el código de 6 dígitos (`<codigo>`). El código vale 15 minutos.
 
 3. Restablece la contraseña:
 
 ```powershell
 Invoke-RestMethod "$base/api/Auth/restablecer-password" -Method Post -ContentType 'application/json' -Body (@{
     email         = 'revision.estandar@test.com'
-    codigo        = '123456'
-    nuevaPassword = 'Revision456'
+    codigo        = '<codigo>'
+    nuevaPassword = $pwdNueva
 } | ConvertTo-Json)
 ```
 
 **Esperado:** `200`. Con un código inválido o expirado: `400`.
 
-4. Inicia sesión con `Revision456` (`200`) y con `Revision123` (`400`).
+4. Inicia sesión con la contraseña nueva (`<password-nueva>`, `200`) y con la anterior (`<password>`, `400`).
 
-> Después de este frente, la contraseña del Estándar es `Revision456`. Si necesitas un token nuevo para los frentes 5 y 6, usa esa contraseña.
+> Después de este frente, la contraseña del Estándar es la nueva que elegiste (`<password-nueva>`). Si necesitas un token nuevo para los frentes 5 y 6, usa esa contraseña.
 
 ### Frente 5 - Gestión de permisos: crear, aprobar, rechazar y transiciones inválidas
 
@@ -954,6 +968,9 @@ Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/total-en-dop" `
 
 ## Práctica 5 - Notificaciones y reportes
 
+> **Estado: entregada al docente el 20/11/2026** (tag `practica-5`, commit `ddefd7f`). Esta
+> sección se conserva como guía de verificación; el avance posterior quedó en `main`.
+
 Esta práctica agrega tres piezas sobre lo ya existente, sin cambiar las rutas ni los contratos
 anteriores:
 
@@ -982,7 +999,8 @@ docker compose up --build
 
 2. Ten **dos Administradores activos** y **dos Estándar activos** (sección
    [¿Cómo crear un Administrador?](#cómo-crear-un-administrador) y flujo de registro del README).
-3. Guarda los tokens:
+3. Guarda los tokens. Sustituye los marcadores `<password>` y `<password-admin>` por las claves
+   que elegiste al crear los usuarios (no se guardan credenciales reales en este documento):
 
 ```powershell
 $base = 'http://localhost:8080'
@@ -993,10 +1011,13 @@ function Login($email, $password) {
         -ContentType 'application/json' -Body $body).token
 }
 
-$adm1 = Login 'admin1@inventario.test' 'Admin1234'
-$adm2 = Login 'admin2@inventario.test' 'Admin1234'
-$std  = Login 'estandar1@inventario.test' 'Estandar1234'
-$std2 = Login 'estandar2@inventario.test' 'Estandar1234'
+$pwdAdmin = '<password-admin>'   # la elegida para los dos Administradores
+$pwdStd   = '<password>'         # la elegida para los dos Estándar
+
+$adm1 = Login 'admin1@inventario.test' $pwdAdmin
+$adm2 = Login 'admin2@inventario.test' $pwdAdmin
+$std  = Login 'estandar1@inventario.test' $pwdStd
+$std2 = Login 'estandar2@inventario.test' $pwdStd
 ```
 
 4. Todos los endpoints nuevos exigen `Authorization: Bearer <token>`; sin token responden `401`.

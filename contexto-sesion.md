@@ -22,7 +22,8 @@
 
 | Bloque | Estado |
 |---|---|
-| Práctica 4 (`practica-4`) y Práctica 5 (`practica-5`) | ✅ Cerradas, etiquetadas y pusheadas |
+| Práctica 4 (`practica-4`) | ✅ Cerrada, etiquetada y pusheada |
+| Práctica 5 (`practica-5`) | ✅ Cerrada, etiquetada, pusheada y **entregada al docente el 20/11/2026** |
 | Backend (auth, permisos, órdenes, documentos, notificaciones, reportes) | ✅ Implementado |
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
@@ -79,7 +80,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 | Documentación de Práctica 5 (1.1) | ✅ `AGENTS.md` + criterios en `a90538b`, anterior a todo código |
 | Frontend — registro/activación | ✅ Mergeado a `main` (PR #23, `4df728f`) |
 | Frontend — roles y administración | ✅ Mergeado a `main` (PR #24, `3746eb5`) |
-| **Práctica 5** | ✅ Cerrada y etiquetada (`practica-5`); detalle histórico abajo |
+| **Práctica 5** | ✅ Cerrada, etiquetada (`practica-5`) y entregada al docente el 20/11/2026; detalle histórico abajo |
 
 Estado por punto de la Práctica 5:
 
@@ -522,7 +523,8 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 4. **Orden de commits:** los criterios (`a90538b`) preceden a todo el código; no reescribir el
    historial de la rama.
 5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
-6. **Entrega:** tag `practica-5` creado y pusheado (`ddefd7f`). Queda subir el proyecto a Moodle.
+6. **Entrega:** tag `practica-5` creado y pusheado (`ddefd7f`). **Entregada al docente el
+   20/11/2026.** No queda nada por subir.
    La revisión acumulada está en §10.
 7. **Frontend**: no se tocó **en la Práctica 5** (cerrada y etiquetada). Los PR #23 y #24 sí
    trabajaron el frontend después, ya con `main`; la restricción no aplica a tareas nuevas sin
@@ -548,7 +550,7 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 | 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
 | 8 | ✅ README: Notificaciones, cola de correos y Reportes (`0da3680`) | 1-2 h |
 | 9 | ✅ Revisión acumulada de los seis frentes (178 comprobaciones, 0 fallos) + arreglos (`82ad402`) | 1 h |
-| 10 | ✅ Tag `practica-5` (`ddefd7f`), rama y tag pusheados; queda subirlo a Moodle | 20 min |
+| 10 | ✅ Tag `practica-5` (`ddefd7f`), rama y tag pusheados; entregada al docente el 20/11/2026 | 20 min |
 
 ---
 
