@@ -314,8 +314,9 @@ probar los extremos exactos y el rango invertido.
 - **CT-01 — Sesión obligatoria:** los seis endpoints nuevos responden `401` sin token (RD-06).
 - **CT-02 — Autorización por rol:** `/api/correos` es solo para Administrador (`403` para
   Estándar); los reportes nunca entregan datos de otros usuarios a un Estándar (RF-REP-04).
-- **CT-03 — No romper lo anterior:** la suite existente (62 pruebas) sigue en verde y los seis
-  frentes de la revisión acumulada siguen funcionando.
+- **CT-03 — No romper lo anterior:** la suite existente (62 pruebas en el corte de la Práctica 5;
+  **86 en `main` al 21/11/2026**) sigue en verde y los seis frentes de la revisión acumulada
+  siguen funcionando.
 - **CT-04 — Pruebas nuevas:** cada regla nueva (RF-NOT y RF-REP) tiene al menos una prueba
   automatizada que falla si la regla se rompe.
 - **CT-05 — Secretos:** ningún valor de `.env` aparece en archivos versionados ni en el historial

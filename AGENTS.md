@@ -3,6 +3,11 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
+> **Estado actual (21/11/2026):** `main` en `3746eb5` (PR #24 de roles/administración mergeado;
+> antes PR #23 de registro/activación y #22 de Práctica 5). Baseline de pruebas: **86/86**.
+> Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; el resto es
+> el corte histórico de la Práctica 5).
+
 ---
 
 ## 1. Propósito del proyecto
@@ -12,12 +17,13 @@ Cubre, por hitos:
 
 | Módulo | Requisitos | Estado |
 |---|---|---|
-| Autenticación y sesión (registro, activación, login/logout, recuperación) | RF-CA | Implementado |
+| Autenticación y sesión (registro, activación, login/logout; recuperación solo backend) | RF-CA | Backend implementado; UI de recuperación pendiente |
 | Gestión de permisos de usuario | RF-GP | Implementado |
+| Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
 | Órdenes de compra con máquina de estados | RF-NEG | Implementado |
 | Manejador de documentos | RF-DOC | Implementado |
-| **Notificaciones y cola de correos** | RF-NOT | En desarrollo (Práctica 5) |
-| **Reportes con agregación** | RF-REP | En desarrollo (Práctica 5) |
+| Notificaciones y cola de correos | RF-NOT | Implementado (Práctica 5, tag `practica-5`) |
+| Reportes con agregación | RF-REP | Implementado (Práctica 5, tag `practica-5`) |
 
 ## 2. Lenguaje, framework y estructura
 
@@ -36,7 +42,7 @@ ProyectoFinalProg3_Inventory/
 ├── Presentation.API/       Controladores REST, DI, autorización, Swagger
 ├── EmailWorker/            Proceso independiente que vacía la cola de correos
 └── *Tests/                 Core.Domain.Tests, Core.Application.Tests, Bussiness.inventory.Tests
-frontend/Inventario.Web/    Blazor Server (login y sesión ya funcionando)
+frontend/Inventario.Web/    Blazor Server (login, registro/activación, roles y sesión)
 docs/                       Documentación y criterios de aceptación
 ```
 
@@ -70,7 +76,7 @@ dotnet run --project frontend/Inventario.Web --launch-profile http
 # Backend completo
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
-# Suite de pruebas (línea base: 62 pruebas en verde)
+# Suite de pruebas (línea base: 86 pruebas en verde)
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
 # Un grupo de pruebas
@@ -127,11 +133,13 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 4. **No romper lo existente:** la máquina de estados de `OrdenCompra`, las reglas de
    `DocumentoService`, los flujos de `AuthService` y las rutas/contratos actuales no se modifican
    salvo que la tarea lo pida explícitamente. Solo se agrega funcionalidad.
-5. **La suite debe seguir en verde:** las 62 pruebas actuales no pueden romperse; las nuevas se
+5. **La suite debe seguir en verde:** las 86 pruebas actuales no pueden romperse; las nuevas se
    agregan aparte.
 6. **No ejecutar** `docker compose down -v` ni comandos que borren volúmenes, datos o historial.
    Tampoco `git reset --hard`, `git push --force` ni reescrituras de historia.
-7. **Frontend:** no se toca en la Práctica 5. Si una tarea lo requiere, debe pedirlo el usuario.
+7. **Frontend:** la prohibición de tocarlo era exclusiva de la Práctica 5 (cerrada y etiquetada).
+   Hoy el frontend incluye registro/activación y administración de usuarios; cualquier cambio
+   nuevo debe pedirlo el usuario.
 8. **Shell:** PowerShell en Windows. No usar `&&`, `||`, `tail` ni `grep`; usar `;`,
    `Select-String`, `Select-Object`, `Out-Host`.
 9. **Alcance:** si un requisito es ambiguo, preguntar antes de inventar comportamiento.
@@ -139,8 +147,8 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 
 ## 6. Flujo de trabajo esperado
 
-1. Leer `contexto-sesion.md` (estado real del avance) y `docs/criterios-notificaciones-reportes.md`
-   (criterios de aceptación vigentes).
+1. Leer `contexto-sesion.md` §0 (estado vigente; el resto es el corte de Práctica 5) y
+   `docs/criterios-notificaciones-reportes.md` (criterios de aceptación vigentes).
 2. Verificar que el build y las pruebas estén en verde **antes** de cambiar código.
 3. Implementar en incrementos pequeños, con su prueba y su entrada en el README.
 4. Ejecutar build + suite completa al terminar cada incremento.

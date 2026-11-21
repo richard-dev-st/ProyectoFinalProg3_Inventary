@@ -1,20 +1,72 @@
-# Contexto de sesión — Práctica 5 (notificaciones, cola de correos y reportes)
+# Contexto de sesión — Handoff activo (actualizado 21/11/2026)
 
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Fecha del corte:** 19/11/2026
-**Rama actual:** `feat/practica-5` (con upstream en `origin`, pusheada)
-**Último commit de código:** `82ad402` (arreglos de la revisión acumulada); **README de la Práctica 5:** `f270878`
-**Tag `practica-5`:** `ddefd7f`, creado y pusheado el 20/11/2026
-**`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
+**Rama actual:** `main`, alineada con `origin/main` en `3746eb5` (merge del PR #24)
+**Estado vigente:** ver **§0**. Las secciones §1–§10 son el corte histórico de la Práctica 5
+(19–20/11/2026); donde digan otra cosa (79/62 pruebas, frontend «no iniciado», etc.), prevalece §0.
+**Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
 
-> Este documento sustituye al handoff de la Práctica 4. La Práctica 4 está **cerrada y
-> etiquetada** (`practica-4`); su estado se resume en §4 porque la revisión acumulada de la
-> Práctica 5 vuelve a evaluar los mismos seis frentes.
+> Este documento es el handoff que se usa al cambiar de agente. **Si algo cambia, actualízalo en el
+> mismo commit.** La Práctica 4 y la Práctica 5 están cerradas y etiquetadas; sus detalles se
+> conservan como referencia histórica en §4 y §10.
+
+---
+
+## 0. Estado vigente — leer primero
+
+| Bloque | Estado |
+|---|---|
+| Práctica 4 (`practica-4`) y Práctica 5 (`practica-5`) | ✅ Cerradas, etiquetadas y pusheadas |
+| Backend (auth, permisos, órdenes, documentos, notificaciones, reportes) | ✅ Implementado |
+| Frontend — login y sesión persistente | ✅ Implementado |
+| Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
+| Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
+| UI de recuperación de contraseña | ⬜ Pendiente (el backend ya existe) |
+| Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
+| Pruebas de `AdminUsuarioService` / endpoints de admin | ⬜ Pendientes (cobertura solo indirecta) |
+
+### Verificación actual
+
+```powershell
+dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
+dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 86/86 (12 + 56 + 18)
+```
+
+### Rutas del frontend que ya existen
+
+`/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/admin/usuarios`,
+`/acceso-denegado`, `/` (Home con email/rol y logout). El menú muestra «Iniciar sesión» y
+«Registrarse» sin autenticar, y «Usuarios» solo con `<AuthorizeView Roles="Administrador">`.
+
+### Servicios del frontend
+
+`AuthService` (login, `me`, logout, registro, activación, reenvío), `AdminUsuariosServices`
+(listado, cambio de rol y estado), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
+**por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
+
+### Trampas ya resueltas que no hay que repetir
+
+- El enum `RolUsuario` de la API admin se serializa como **número** (1/2); en login y `/me` el rol
+  es **string**. No mezclar ambos.
+- Las mutaciones de admin devuelven `204` sin cuerpo: no hacer `ReadFromJsonAsync`.
+- Un Estándar recibe `403` con cuerpo vacío; un token inactivo/revocado, `401` sin cuerpo.
+- Cambiar el rol en BD exige **cerrar sesión y volver a entrar** para regenerar el claim.
+- No hay administrador sembrado: promover un usuario activo con
+  `UPDATE Usuarios SET Rol = 'Administrador', Activo = 1 WHERE Email = '…';` (en `InventarioBP4`).
+- `README.Docker.md` está sin versionar: no agregarlo.
+
+### Cómo retomar
+
+1. Leer §0 y el README (secciones de registro/activación y roles/administración).
+2. Verificar build + `dotnet test` antes de tocar código.
+3. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia este handoff.
 
 ---
 
@@ -25,8 +77,9 @@
 | Práctica 4 (documentos, contenedor, API externa, revisión) | ✅ Cerrada, `practica-4` en `901a47f` |
 | Frontend Blazor — login y sesión | ✅ Completo y mergeado a `main` (`51b3eb4`, pusheado) |
 | Documentación de Práctica 5 (1.1) | ✅ `AGENTS.md` + criterios en `a90538b`, anterior a todo código |
-| Frontend — pantallas de negocio | ⬜ No iniciado |
-| **Práctica 5** | 🟡 En curso |
+| Frontend — registro/activación | ✅ Mergeado a `main` (PR #23, `4df728f`) |
+| Frontend — roles y administración | ✅ Mergeado a `main` (PR #24, `3746eb5`) |
+| **Práctica 5** | ✅ Cerrada y etiquetada (`practica-5`); detalle histórico abajo |
 
 Estado por punto de la Práctica 5:
 
@@ -40,13 +93,13 @@ Estado por punto de la Práctica 5:
 | 1.6 | Revisión acumulada de los seis frentes | ✅ Ejecutada el 19/11/2026 (178 comprobaciones, 0 fallos) |
 | — | Tag `practica-5` + push | ✅ `practica-5` → `ddefd7f`, rama y tag pusheados el 20/11/2026 |
 
-Verificación al cierre de esta sesión (19/11/2026):
+Verificación histórica al cierre de la Práctica 5 (19/11/2026):
 
 ```
-dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK
-dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 79/79 (12 + 49 + 18)
+dotnet test → 79/79 (12 + 49 + 18)
 ```
+
+**Verificación vigente (21/11/2026): 86/86 (12 + 56 + 18).** Ver §0.
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
 > CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
@@ -58,9 +111,10 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 ### 2.1 Ramas y commits
 
 ```
-main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
-feat/practica-5       82ad402  fix(practica-5): incluye el dia completo en reportes y guarda el error real de la cola
-feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
+main (y origin/main)  3746eb5  Merge pull request #24 from .../feat/frontend-roles-administracion-usuarios
+feat/frontend-roles-administracion-usuarios  abe77c9 + c203c91 (merge de origin/main)
+origen del PR #23     26b3e64  registro, activacion y reenvio de enlace
+hitos historicos      fa116f2, 82ad402, 7eaee64 (detalle abajo)
 ```
 
 > `feat/practica-5` tendrá encima los commits de `contexto-sesion.md`; el último **de código**
@@ -79,8 +133,9 @@ f270878  docs(readme): ejemplos de PowerShell robustos
 82ad402  fix(practica-5): bordes detectados en la revision acumulada
 ```
 
-- `main` (`fa116f2`) ya está pusheado; incluye el merge del frontend (`51b3eb4`) y el handoff.
-- `feat/practica-5` salió de `main` en `fa116f2` y está pusheada con upstream (`origin/feat/practica-5`).
+- `main` está en `3746eb5` e incluye los PR #22, #23 y #24 además del merge del frontend (`51b3eb4`).
+- `feat/practica-5` salió de `fa116f2` y quedó pusheada; su contenido ya está en `main` vía PR #22.
+- `feat/frontend-registro-activacion` y `feat/frontend-roles-administracion-usuarios` ya están mergeadas.
 - El tag `practica-5` apunta a `ddefd7f` y ya está en `origin`. Es inmutable: los commits de
   documentación posteriores (como este) van solo a la rama.
 - Working tree: solo `README.Docker.md` como `??` (lo generó Visual Studio). **No se debe
@@ -164,26 +219,29 @@ Business.Inventory  ◄──── Core.Domain  (entidades y enums compartidos)
 | `Infrastructure` | `ApplicationDbContext`, migraciones, `PasswordService`, `JwtService`, `EmailService`, `ProcesadorCorreosWorker`, `AlmacenDocumentosLocal`, `CurrencyApiTasaCambioService` |
 | `Presentation.API` | Controladores REST, autorización por rol, mapeo de excepciones, DI, JWT |
 | `EmailWorker` | Worker independiente que vacía `CorreosEnCola`. **No lo arranca la API.** |
-| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (49), `Bussiness.inventory.Tests` (18) = **79** (62 heredadas + 17 de la Práctica 5) |
+| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (56), `Bussiness.inventory.Tests` (18) = **86** (62 heredadas + 17 de Práctica 5 + 7 de registro/activación) |
 
-### 3.2 Frontend (nuevo)
+### 3.2 Frontend (estado vigente)
 
 ```
 frontend/Inventario.Web
 ├── Components/
 │   ├── App.razor                 ← render mode global InteractiveServer, prerender: false
-│   ├── Routes.razor              ← gate de sesión + AuthorizeRouteView
+│   ├── Routes.razor              ← gate de sesión + AuthorizeRouteView + <AccesoDenegado />
 │   ├── Layout/
 │   │   ├── MainLayout.razor      ← sidebar + @Body
-│   │   ├── NavMenu.razor         ← solo Home (Counter/Weather eliminados)
+│   │   ├── NavMenu.razor         ← Home, Iniciar sesión, Registrarse, Usuarios (Admin)
 │   │   └── RedirectToLogin.razor ← redirige con returnUrl
 │   └── Pages/
-│       ├── Login.razor           ← formulario + validación + returnUrl
-│       ├── Home.razor            ← [Authorize], muestra email/rol, logout
+│       ├── Login.razor / Home.razor
+│       ├── Registrar.razor / Activar.razor / ReenviarActivacion.razor
+│       ├── AdminUsuarios.razor   ← [Authorize(Roles = "Administrador")]
+│       ├── AccesoDenegado.razor
 │       └── Error.razor / NotFound.razor
-├── Models/                       ← LoginRequest, LoginResponse, UsuarioSesion
+├── Models/                       ← sesión, registro, reenvío, RolUsuario, UsuarioAdmin, requests admin
 ├── Services/
-│   ├── AuthService.cs            ← login / me / logout contra la API
+│   ├── AuthService.cs            ← login / me / logout / registro / activación / reenvío
+│   ├── AdminUsuariosServices.cs  ← listado, cambio de rol y estado
 │   ├── SesionActual.cs           ← estado + ProtectedSessionStorage
 │   └── SesionAuthStateProvider.cs← traduce la sesión a ClaimsPrincipal
 ├── Program.cs                    ← DI, HttpClient tipado, autorización
@@ -247,7 +305,7 @@ el correo solo si `Usuario.RecibeCorreos` es `true`.
 
 | Módulo | Ruta base | Operaciones |
 |---|---|---|
-| Auth | `api/auth` | `Login`, `me`, `logout`, `registrar`, `activar`, recuperación |
+| Auth | `api/auth` | `Login`, `me`, `logout`, `registrar`, `activar`, `reenviar-activacion`, recuperación |
 | Admin usuarios | `api/admin/usuarios` | listado y gestión (solo Administrador) |
 | Solicitudes | `api/solicitudes` | `POST`, `GET pendientes`, `GET mias`, `POST {id}/aprobar`, `POST {id}/rechazar`, `GET /api/mis-permisos` |
 | Órdenes | `api/ordenescompra` | `crear-borrador`, `{id}/enviar-aprobacion`, `{id}/aprobar`, `{id}/recibir`, `{id}/cancelar`, `{id}/total-en-dop` |
@@ -276,7 +334,7 @@ Ya existen:
   fecha sin hora incluye el día completo (`82ad402`).
 - `UltimoError` guarda el mensaje real de la excepción SMTP (`82ad402`).
 
-No queda nada pendiente de código: el tag `practica-5` (`ddefd7f`) está creado y pusheado.
+No queda nada pendiente de código **de la Práctica 5**: el tag `practica-5` (`ddefd7f`) está creado y pusheado. Las tareas posteriores están en §0.
 
 ### 4.7 Forma de las respuestas de reportes
 
@@ -328,9 +386,13 @@ Logout
   `ClaimTypes.Name` (email) y `ClaimTypes.Role` (rol), `authenticationType = "SesionInventario"`.
 - `Program.cs`: `AddScoped<AuthenticationStateProvider, SesionAuthStateProvider>()`,
   `AddCascadingAuthenticationState()`, `AddAuthorizationCore()`.
-- `Routes.razor` envuelve el `<Router>` en un gate (`cargada`) y usa
-  **`AuthorizeRouteView`** con `<NotAuthorized><RedirectToLogin /></NotAuthorized>`.
+- `Routes.razor` envuelve el `<Router>` en un gate (`cargada`) y usa **`AuthorizeRouteView`**.
+  El `<NotAuthorized>` distingue dos casos: si el usuario **no está autenticado** usa
+  `<RedirectToLogin />`, y si está autenticado pero no tiene el rol usa `<AccesoDenegado />`.
 - `RedirectToLogin` navega a `/login?returnUrl=<ruta>`.
+- `AdminUsuarios.razor` lleva `[Authorize(Roles = "Administrador")]`; el menú usa
+  `<AuthorizeView Roles="Administrador">` para mostrar «Usuarios». El Bearer se añade por petición
+  (no en un `DelegatingHandler`, porque recibiría otra instancia de `SesionActual`).
 - `Home.razor` usa `@attribute [Authorize]`.
 
 ### 5.3 Trampas ya resueltas (no repetirlas)
@@ -348,12 +410,13 @@ Logout
 4. **El gate va antes del `Router`**, no en `MainLayout`, para que la identidad esté lista
    cuando `AuthorizeRouteView` decide.
 
-### 5.4 Pendiente en el frontend
+### 5.4 Pendiente en el frontend (estado vigente)
 
-- Pantallas de negocio (ninguna existe).
-- `D.1`/`D.2`: `[Authorize(Roles = "Administrador")]` y `<AuthorizeView Roles="Administrador">`
-  cuando exista la primera pantalla de administración.
-- Registro, activación y recuperación de contraseña.
+- ✅ `D.1`/`D.2`: ya hay `[Authorize(Roles = "Administrador")]` en `/admin/usuarios` y
+  `<AuthorizeView Roles="Administrador">` en el menú (PR #24).
+- ✅ Registro, activación y reenvío de enlace (PR #23).
+- ⬜ Recuperación de contraseña: solo existe el backend; no hay UI.
+- ⬜ Pantallas de negocio (órdenes, documentos, etc.): no hay ninguna todavía.
 
 ---
 
@@ -370,7 +433,7 @@ Logout
 | Cómo correr | `docker compose up -d`; frontend con `dotnet run --project frontend/Inventario.Web --launch-profile http` |
 | Cómo probar | `dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` |
 | Convenciones | servicios en `Core.Application/Services`, controladores finos, DTOs, reglas de negocio en el dominio, pruebas con EF InMemory, nombres `RF_XX_N` |
-| Restricciones | **no** leer `.env` ni escribir credenciales; **no** modificar migraciones ya aplicadas (solo añadir); **no** cambiar la máquina de estados de `OrdenCompra` ni las reglas de `DocumentoService`; **no** romper los 62 tests; **no** ejecutar `docker compose down -v`; responder en español; PowerShell sin `&&` |
+| Restricciones | **no** leer `.env` ni escribir credenciales; **no** modificar migraciones ya aplicadas (solo añadir); **no** cambiar la máquina de estados de `OrdenCompra` ni las reglas de `DocumentoService`; **no** romper la línea base de tests (62 entonces, **86 desde el 21/11/2026**); **no** ejecutar `docker compose down -v`; responder en español; PowerShell sin `&&` |
 
 **`docs/criterios-notificaciones-reportes.md`** — cada criterio comprobable, en formato
 dado/cuando/entonces, citando `RF-NOT-xx` / `RF-REP-xx`. Debe cubrir las dos funcionalidades y
@@ -461,8 +524,9 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
 6. **Entrega:** tag `practica-5` creado y pusheado (`ddefd7f`). Queda subir el proyecto a Moodle.
    La revisión acumulada está en §10.
-7. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
-   `practica-5` incluya todo.
+7. **Frontend**: no se tocó **en la Práctica 5** (cerrada y etiquetada). Los PR #23 y #24 sí
+   trabajaron el frontend después, ya con `main`; la restricción no aplica a tareas nuevas sin
+   autorización explícita del usuario.
 8. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
    las existentes.
 9. **Reconstrucción de imágenes:** si Docker Desktop sigue con la caché rota o sin red al
@@ -496,7 +560,7 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 # Build backend
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
-# Suite completa (62 pruebas)
+# Suite completa (86 pruebas; 62 en el corte de la Práctica 5)
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
 # Solo un grupo
@@ -540,7 +604,10 @@ git check-ignore -v .env
 | `Business.Inventory/Entities/OrdenCompra.cs` | evento de negocio RF-NOT-03 |
 | `Presentation.API/Program.cs` | DI, autorización, migración automática |
 | `frontend/Inventario.Web/Services/SesionActual.cs` | sesión persistente del frontend |
-| `frontend/Inventario.Web/Components/Routes.razor` | gate + `AuthorizeRouteView` |
+| `frontend/Inventario.Web/Services/AdminUsuariosServices.cs` | listado/cambio de rol y estado (Bearer por petición) |
+| `frontend/Inventario.Web/Components/Routes.razor` | gate + `AuthorizeRouteView` + `AccesoDenegado` |
+| `frontend/Inventario.Web/Components/Pages/AdminUsuarios.razor` | pantalla `/admin/usuarios` |
+| `frontend/Inventario.Web/Components/Layout/NavMenu.razor` | menú combinado (login, registro, usuarios) |
 | `README.md` | fuente de verdad de la revisión manual |
 
 ---
@@ -549,8 +616,9 @@ git check-ignore -v .env
 
 Ejecutada sobre el stack Docker real (`api` en `http://localhost:8080`, `db` y `worker`), con
 usuarios desechables creados por la propia revisión (`rev5.std1`, `rev5.std2`, `rev5.adm1`,
-`rev5.adm2`, `rev5.inactivo` y una corrida nueva `rev5r#####.*`). Contraseña de trabajo:
-`Revision123` (la de `std1` pasó a `Revision456` tras probar la recuperación, como debe ser).
+`rev5.adm2`, `rev5.inactivo` y una corrida nueva `rev5r#####.*`). Las contraseñas de esas
+cuentas desechables se usaron solo durante la revisión y **no se registran aquí**; la de `std1`
+cambió al probar la recuperación, como debe ser.
 
 ### 10.1 Resultado por tanda
 
