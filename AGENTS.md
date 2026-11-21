@@ -3,10 +3,9 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (21/11/2026):** trabajo en la rama
-> `feat/frontend-contrasenas-recuperacion-cambio`; `main` en `7dad508` (PR #24 de
-> roles/administración mergeado; antes PR #23 de registro/activación y #22 de Práctica 5,
-> **entregada al docente el 20/11/2026**).
+> **Estado actual (21/11/2026):** `main` en `e557148` (PR #25 de contraseñas mergeado; antes
+> PR #24 de roles/administración, #23 de registro/activación y #22 de Práctica 5, **entregada al
+> docente el 20/11/2026**).
 > Baseline de pruebas: **92/92** (12 + 62 + 18).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; el resto es
 > el corte histórico de la Práctica 5).
@@ -20,7 +19,7 @@ Cubre, por hitos:
 
 | Módulo | Requisitos | Estado |
 |---|---|---|
-| Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (rama de contraseñas) |
+| Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
 | Gestión de permisos de usuario | RF-GP | Implementado |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
 | Órdenes de compra con máquina de estados | RF-NEG | Implementado |

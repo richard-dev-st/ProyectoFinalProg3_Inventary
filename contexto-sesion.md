@@ -3,12 +3,13 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama actual:** `feat/frontend-contrasenas-recuperacion-cambio`; `main`/`origin/main` en `7dad508`
-(dos commits de documentación posterior al PR #24)
+**Rama de trabajo cerrada:** `feat/frontend-contrasenas-recuperacion-cambio` (`d5e26f9`);
+`main`/`origin/main` en `e557148` (merge del PR #25)
 **Estado vigente:** ver **§0**. Las secciones §1–§10 son el corte histórico de la Práctica 5
-(19–20/11/2026); donde digan otra cosa (79/62 pruebas, frontend «no iniciado», etc.), prevalece §0.
+(19–20/11/2026); donde digan otra cosa (79/62/86 pruebas, `main` en `3746eb5`, frontend «no
+iniciado», etc.), prevalece §0.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
@@ -29,7 +30,7 @@
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
-| Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y pusheado en `feat/frontend-contrasenas-recuperacion-cambio`; PR #25 pendiente de apertura (el navegador no tiene sesión de GitHub) |
+| Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ⬜ Pendientes (cobertura solo indirecta) |
@@ -108,7 +109,7 @@ Verificación histórica al cierre de la Práctica 5 (19/11/2026):
 dotnet test → 79/79 (12 + 49 + 18)
 ```
 
-**Verificación vigente (21/11/2026): 86/86 (12 + 56 + 18).** Ver §0.
+**Verificación vigente (21/11/2026): 92/92 (12 + 62 + 18).** Ver §0.
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
 > CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
@@ -142,7 +143,8 @@ f270878  docs(readme): ejemplos de PowerShell robustos
 82ad402  fix(practica-5): bordes detectados en la revision acumulada
 ```
 
-- `main` está en `3746eb5` e incluye los PR #22, #23 y #24 además del merge del frontend (`51b3eb4`).
+- En el corte de la Práctica 5, `main` estaba en `3746eb5` e incluía los PR #22, #23 y #24
+  además del merge del frontend (`51b3eb4`). El estado actual está en §0.
 - `feat/practica-5` salió de `fa116f2` y quedó pusheada; su contenido ya está en `main` vía PR #22.
 - `feat/frontend-registro-activacion` y `feat/frontend-roles-administracion-usuarios` ya están mergeadas.
 - El tag `practica-5` apunta a `ddefd7f` y ya está en `origin`. Es inmutable: los commits de
@@ -570,7 +572,7 @@ Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desec
 # Build backend
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
-# Suite completa (86 pruebas; 62 en el corte de la Práctica 5)
+# Suite completa (92 pruebas; 62 en el corte de la Práctica 5)
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
 # Solo un grupo
