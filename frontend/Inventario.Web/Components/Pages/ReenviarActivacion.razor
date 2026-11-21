@@ -1,0 +1,40 @@
+@page "/reenviar-activacion"
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject AuthService Auth
+
+<PageTitle>Reenviar enlace de activación</PageTitle>
+<h1>Reenviar enlace de activación</h1>
+
+<EditForm Model="modelo" OnValidSubmit="Reenviar">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Correo electrónico</label>
+        <InputText class="form-control" @bind-Value="modelo.Email" />
+        <ValidationMessage For="() => modelo.Email" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Reenviar enlace</button>
+</EditForm>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-info mt-3">
+        <p>@mensaje</p>
+        <a href="/login" class="alert-link">Volver al inicio de sesión</a>
+    </div>
+}
+
+<p class="mt-3"><a href="/login">Volver</a></p>
+
+@code {
+    private ReenviarActivacionRequest modelo = new();
+    private string? mensaje;
+
+    private async Task Reenviar()
+    {
+        // RF-CA-17: el mensaje es idéntico exista o no el correo.
+        mensaje = await Auth.ReenviarActivacionAsync(modelo.Email);
+    }
+}

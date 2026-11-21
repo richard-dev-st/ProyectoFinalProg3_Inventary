@@ -68,6 +68,7 @@ Ningún valor real debe guardarse en el repositorio; se inyectan por variables d
 | `ApiExterna__ApiKey` | Clave de currencyapi.com | Para `GET /api/OrdenesCompra/{id}/total-en-dop` |
 | `ApiExterna__BaseUrl` | URL base de currencyapi | Opcional (por defecto `https://api.currencyapi.com/v3`) |
 | `ApiExterna__TimeoutSeconds` | Timeout de la API externa en segundos | Opcional (por defecto `10`) |
+| `Frontend__BaseUrl` | URL pública del frontend en los enlaces de activación | Opcional (por defecto `http://localhost:5299`; en Docker se usa `FRONTEND_BASE_URL`) |
 
 ## Instrucciones de ejecución
 
@@ -100,6 +101,27 @@ UPDATE Usuarios SET Rol = 'Administrador' WHERE Email = 'tucorreo@gmail.com';
 ```
 
 Luego vuelve a iniciar sesión para obtener un token con el rol incluido.
+
+## Frontend — registro y activación (RF-CA-01, 02, 14, 15, 16, 17)
+
+El proyecto Blazor (`frontend/Inventario.Web`) expone tres páginas públicas:
+
+| Ruta | Acción |
+|---|---|
+| `/registrar` | Valida email y política de contraseña (≥8 caracteres, letras y números) y llama a `POST /api/auth/registrar`. |
+| `/activar?token=…` | Consume el token con `GET /api/auth/activar`. El enlace del correo apunta aquí. |
+| `/reenviar-activacion` | Pide otro enlace con `POST /api/auth/reenviar-activacion`; muestra siempre el mismo mensaje. |
+
+El correo sale por la cola `CorreosEnCola` y el worker lo escribe en el log con `[FALLBACK CORREO]` cuando no hay SMTP real. El enlace se arma con `Frontend:BaseUrl` (variable `Frontend__BaseUrl`, o `FRONTEND_BASE_URL` en Docker); si se deja vacío, se conserva el enlace anterior a `GET /api/auth/activar`.
+
+Recorrido manual:
+
+1. Arranca la API y el worker (`docker compose up -d`) y el frontend (`dotnet run --project frontend/Inventario.Web --launch-profile http`).
+2. En `http://localhost:5299/registrar`, crea una cuenta con una clave como `Clave1234`. Repite el mismo correo para comprobar el rechazo (RF-CA-01); una clave sin números se rechaza en el formulario (RF-CA-14).
+3. Antes de activar, intenta entrar: la API responde que la cuenta no está activa (RF-CA-15).
+4. Copia el valor de `token=` del enlace que aparece en `docker compose logs worker` y abre `http://localhost:5299/activar?token=…`. Después entra con la misma clave (RF-CA-16).
+5. Vuelve a abrir el enlace: debe mostrar el error de token ya usado o vencido (RF-CA-16).
+6. En `/reenviar-activacion`, prueba con un correo existente y con otro inexistente: el mensaje es el mismo en ambos casos (RF-CA-17) y el enlace anterior deja de funcionar.
 
 ## Criterios implementados y cómo verificarlos
 

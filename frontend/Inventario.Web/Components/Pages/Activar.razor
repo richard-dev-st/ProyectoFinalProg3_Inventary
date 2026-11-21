@@ -1,0 +1,54 @@
+@page "/activar"
+@using Inventario.Web.Services
+@inject AuthService Auth
+
+<PageTitle>Activación de cuenta</PageTitle>
+<h1>Activación de cuenta</h1>
+
+@if (cargando)
+{
+    <p>Activando tu cuenta…</p>
+}
+else if (error is null)
+{
+    <div class="alert alert-success">
+        <p>@mensaje</p>
+        <a href="/login" class="alert-link">Iniciar sesión</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">
+        <p>@error</p>
+        <a href="/reenviar-activacion" class="alert-link">Pedir un nuevo enlace</a>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "token")]
+    public string? Token { get; set; }
+
+    private bool cargando = true;
+    private bool procesado;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (procesado) return;
+        procesado = true;
+
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            error = "El enlace de activación no es válido.";
+            cargando = false;
+            return;
+        }
+
+        // RF-CA-16: el token es de un solo uso; un segundo intento devuelve error.
+        var (ok, resultado) = await Auth.ActivarAsync(Token);
+        mensaje = resultado;
+        if (!ok) error = resultado;
+        cargando = false;
+    }
+}
