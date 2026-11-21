@@ -101,6 +101,30 @@ UPDATE Usuarios SET Rol = 'Administrador' WHERE Email = 'tucorreo@gmail.com';
 
 Luego vuelve a iniciar sesión para obtener un token con el rol incluido.
 
+## Frontend — roles y administración de usuarios (RF-CA-04, 05, 06, 08, 20, 21)
+
+El frontend Blazor añade una página privada para Administrador:
+
+| Ruta | Acción |
+|---|---|
+| `/admin/usuarios` | Lista usuarios con rol y estado; permite cambiar el rol y desactivar/reactivar. |
+| `/acceso-denegado` | Se muestra al usuario autenticado que no tiene el rol Administrador. |
+
+El enlace «Usuarios» del menú solo aparece con `<AuthorizeView Roles="Administrador">` y la página lleva `[Authorize(Roles = "Administrador")]`, por lo que un Estándar es rechazado tanto en la interfaz como en la API (403). El servicio `AdminUsuariosService` envía el JWT `Bearer` en cada petición a `GET /api/admin/usuarios`, `PUT /api/admin/usuarios/{id}/rol` y `PUT /api/admin/usuarios/{id}/estado`, interpreta el `204` sin cuerpo y muestra el `{ mensaje }` devuelto en errores. Un `401` cierra la sesión local. El listado solo muestra correo, rol y estado: nunca incluye hashes ni tokens.
+
+Recorrido manual:
+
+1. Promueve una cuenta activa a Administrador en la BD desde Docker Desktop → **Containers → `…-db-1` → Exec**:
+   ```bash
+   /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -d InventarioBP4 -C -Q "UPDATE Usuarios SET Rol = 'Administrador', Activo = 1 WHERE Email = 'tu@correo.com';"
+   ```
+   Después **cierra sesión y vuelve a entrar** para regenerar el claim del rol.
+2. Como Administrador, abre `http://localhost:5299/admin/usuarios`: verás el listado con rol y estado (RF-CA-04, RF-CA-21).
+3. Cambia el rol de otro usuario y confirma que la tabla se actualiza (RF-CA-08).
+4. Comprueba que tu propia fila no tiene el botón «Desactivar»; si se fuerza la petición, la API responde 400 (RF-CA-20).
+5. Desactiva a otro usuario: su sesión abierta deja de ser válida en la siguiente llamada a `/api/auth/me` y no puede volver a entrar. Reactívalo para comprobar el camino inverso (RF-CA-20).
+6. Con un usuario Estándar, oculta el enlace «Usuarios»; si escribe la URL a mano debe ver «Acceso denegado» y la API devolver 403 (RF-CA-06/RD-06).
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |

@@ -1,0 +1,119 @@
+@page "/admin/usuarios"
+@attribute [Authorize(Roles = "Administrador")]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject AdminUsuariosServices Admin
+@inject AuthService Auth
+@inject SesionActual Sesion
+
+<PageTitle>Administrar usuarios</PageTitle>
+<h1>Administrar usuarios</h1>
+
+@if (cargando)
+{
+    <p>Cargando…</p>
+}
+else if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    <table class="table table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var usuario in usuarios)
+            {
+                <tr>
+                    <td>@usuario.Email</td>
+                    <td>
+                        <select class="form-select form-select-sm" @bind="rolesSeleccionados[usuario.Id]">
+                            <option value="@RolUsuario.Estandar">Estándar</option>
+                            <option value="@RolUsuario.Administrador">Administrador</option>
+                        </select>
+                    </td>
+                    <td>@(usuario.Activo ? "Activo" : "Inactivo")</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => GuardarRol(usuario)">
+                            Guardar rol
+                        </button>
+                        @if (!EsPropio(usuario))
+                        {
+                            <button class="btn btn-sm @(usuario.Activo ? "btn-warning" : "btn-success")"
+                                    @onclick="() => CambiarEstado(usuario)">
+                                @(usuario.Activo ? "Desactivar" : "Reactivar")
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success mt-3">@mensaje</div>
+}
+
+@code {
+    private List<UsuarioAdmin> usuarios = new();
+    private Dictionary<Guid, RolUsuario> rolesSeleccionados = new();
+    private bool cargando = true;
+    private string? error;
+    private string? mensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // RF-CA-20: si el admin fue desactivado, /me devuelve 401 y cierra la sesión.
+        var actual = await Auth.ObtenerUsuarioActualAsync();
+        if (actual is null) return;
+
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        error = null;
+        mensaje = null;
+
+        var (ok, lista, msg) = await Admin.ObtenerUsuariosAsync();
+        if (!ok)
+        {
+            error = msg;
+        }
+        else
+        {
+            usuarios = lista;
+            rolesSeleccionados = usuarios.ToDictionary(u => u.Id, u => u.Rol);
+        }
+        cargando = false;
+    }
+
+    private bool EsPropio(UsuarioAdmin usuario) =>
+        string.Equals(usuario.Email, Sesion.Email, StringComparison.OrdinalIgnoreCase);
+
+    private async Task GuardarRol(UsuarioAdmin usuario)
+    {
+        var (ok, msg) = await Admin.CambiarRolAsync(usuario.Id, rolesSeleccionados[usuario.Id]);
+        mensaje = ok ? "Rol actualizado." : null;
+        error = ok ? null : msg;
+        if (ok) await CargarAsync();
+    }
+
+    private async Task CambiarEstado(UsuarioAdmin usuario)
+    {
+        var (ok, msg) = await Admin.CambiarEstadoAsync(usuario.Id, !usuario.Activo);
+        mensaje = ok ? (usuario.Activo ? "Usuario desactivado." : "Usuario reactivado.") : null;
+        error = ok ? null : msg;
+        if (ok) await CargarAsync();
+    }
+}
