@@ -77,13 +77,15 @@ namespace Application.Services
                 throw new InvalidOperationException("Orden de compra no encontrada");
             }
             orden.EnviarAAprobacion();
-            await _repository.SaveChangesAsync();
 
             // RF-NOT-03: evento del módulo de negocio; avisa a los Administradores activos.
-            await _notificaciones.NotificarAdministradoresAsync(
+            // Hallazgo 2: la notificación se prepara y se guarda junto con la transición.
+            await _notificaciones.PrepararAdministradoresAsync(
                 $"La orden de compra #{orden.Id} por {orden.Total:0.00} USD fue enviada a aprobación.",
                 NotificacionService.TipoOrdenEnviadaAprobacion,
                 orden.Id.ToString());
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task<TotalEnDopDto> ObtenerTotalEnDopAsync(int ordenId, CancellationToken ct = default)
