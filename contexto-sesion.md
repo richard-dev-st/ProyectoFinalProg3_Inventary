@@ -3,10 +3,11 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Fecha del corte:** 18/11/2026
-**Rama actual:** `main`
-**HEAD:** `51b3eb4 Merge branch 'feat/frontend-login' into main`
-**`main`:** `51b3eb4` (merge del frontend; pendiente `git push origin main`)
+**Fecha del corte:** 19/11/2026
+**Rama actual:** `feat/practica-5` (con upstream en `origin`, pusheada)
+**Último commit de código:** `82ad402` (arreglos de la revisión acumulada); **README de la Práctica 5:** `f270878`
+**Tag `practica-5`:** `ddefd7f`, creado y pusheado el 20/11/2026
+**`main`:** `fa116f2 docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend` (pusheado)
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
@@ -22,32 +23,33 @@
 | Bloque | Estado |
 |---|---|
 | Práctica 4 (documentos, contenedor, API externa, revisión) | ✅ Cerrada, `practica-4` en `901a47f` |
-| Frontend Blazor — login y sesión | ✅ Completo y mergeado a `main` (`51b3eb4`) |
+| Frontend Blazor — login y sesión | ✅ Completo y mergeado a `main` (`51b3eb4`, pusheado) |
+| Documentación de Práctica 5 (1.1) | ✅ `AGENTS.md` + criterios en `a90538b`, anterior a todo código |
 | Frontend — pantallas de negocio | ⬜ No iniciado |
-| **Práctica 5** | ⬜ 0 % |
+| **Práctica 5** | 🟡 En curso |
 
 Estado por punto de la Práctica 5:
 
 | Punto | Descripción | Estado |
 |---|---|---|
-| 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ⬜ 0 % |
-| 1.2 | Notificaciones RF-NOT-01..07 | ⬜ 0 % (no existe entidad `Notificacion`) |
-| 1.3 | Cola de correos RF-NOT-08..13 | 🟡 Base existente; faltan reintentos, estado fallido e idempotencia |
-| 1.4 | Reportes con agregación RF-REP-01..05 | ⬜ 0 % |
-| 1.5 | Revisión acumulada de los seis frentes | 🟡 Funcionaban en Práctica 4; hay que repetirla |
-| — | Tag `practica-5` + push + Moodle | ⬜ 0 % |
+| 1.1 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` | ✅ Hecho y commiteado (`a90538b`) |
+| 1.2 | Notificaciones RF-NOT-01..07 | ✅ Entidad, servicio, controlador, preferencia y enganches (`7f67c68`) |
+| 1.3 | Cola de correos RF-NOT-08..13 | ✅ Reintentos (máx. 3), `Fallido`, `GET /api/correos`, idempotencia (`59bd20c`) |
+| 1.4 | Reportes con agregación RF-REP-01..05 | ✅ `/api/reportes/solicitudes` y `/ordenes` con rol y fechas (`f52a070`) |
+| 1.5 | README: secciones **Notificaciones** y **Reportes** | ✅ Escritas y commiteadas (`0da3680`) |
+| 1.6 | Revisión acumulada de los seis frentes | ✅ Ejecutada el 19/11/2026 (178 comprobaciones, 0 fallos) |
+| — | Tag `practica-5` + push | ✅ `practica-5` → `ddefd7f`, rama y tag pusheados el 20/11/2026 |
 
-Verificación al cierre de esta sesión (18/11/2026):
+Verificación al cierre de esta sesión (19/11/2026):
 
 ```
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 62/62
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 79/79 (12 + 49 + 18)
 ```
 
-> El build del backend mantiene warnings heredados (CS8618 en `CorreoEnCola` y `Usuario`,
-> CS0472 en `OrdenCompra`, CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`).
-> No bloquean; la Práctica 5 seguramente obligará a tocar `CorreoEnCola` y conviene limpiarlos ahí.
+> El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
+> CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
 
 ---
 
@@ -56,15 +58,33 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 ### 2.1 Ramas y commits
 
 ```
-main                 51b3eb4  Merge branch 'feat/frontend-login' into main
-feat/frontend-login  7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
+main                  fa116f2  docs(contexto): actualiza el handoff para la practica 5 y el merge del frontend
+feat/practica-5       82ad402  fix(practica-5): incluye el dia completo en reportes y guarda el error real de la cola
+feat/frontend-login   7eaee64  feat(frontend-login): login, sesion persistente y proteccion de rutas
 ```
 
-- `feat/frontend-login` salió de `main` y contiene **solo el frontend** (72 archivos: 34 propios
-  + estáticos de Bootstrap).
-- **Ya está mergeada a `main`** (`51b3eb4`). Falta subirla: `git push origin main`.
-- Working tree: `contexto-sesion.md` modificado sin commitear y `README.Docker.md` como `??`
-  (lo generó Visual Studio). **`README.Docker.md` no se debe versionar.**
+> `feat/practica-5` tendrá encima los commits de `contexto-sesion.md`; el último **de código**
+> es `82ad402`.
+
+Hitos de la Práctica 5 en orden:
+
+```
+a90538b  docs(practica-5): criterios de aceptacion y contexto para agentes
+7f67c68  feat(notificaciones): RF-NOT-01..07
+59bd20c  feat(correos): cola con reintentos e idempotencia RF-NOT-08..12
+f52a070  feat(reportes): agregados RF-REP-01..05
+0da3680  docs(readme): secciones de notificaciones, cola de correos y reportes
+f270878  docs(readme): ejemplos de PowerShell robustos
+1fefc5b  docs(contexto): estado del README y de la rama
+82ad402  fix(practica-5): bordes detectados en la revision acumulada
+```
+
+- `main` (`fa116f2`) ya está pusheado; incluye el merge del frontend (`51b3eb4`) y el handoff.
+- `feat/practica-5` salió de `main` en `fa116f2` y está pusheada con upstream (`origin/feat/practica-5`).
+- El tag `practica-5` apunta a `ddefd7f` y ya está en `origin`. Es inmutable: los commits de
+  documentación posteriores (como este) van solo a la rama.
+- Working tree: solo `README.Docker.md` como `??` (lo generó Visual Studio). **No se debe
+  versionar.**
 
 ### 2.2 Tags existentes
 
@@ -74,9 +94,10 @@ practica-1
 practica-2, practica-2-defecto-1..6
 practica-3, practica-3-defecto-1..4
 practica-4
+practica-5
 ```
 
-`practica-5` aún no existe.
+`practica-5` es anotado, apunta a `ddefd7f` y está en `origin`.
 
 ### 2.3 Regla de oro de esta práctica
 
@@ -85,11 +106,15 @@ anterior** al primer commit del motor de notificaciones. Se evalúa en `git log`
 intención. Orden recomendado:
 
 ```
-1. ✅ merge de feat/frontend-login a main (hecho: `51b3eb4`)
-2. git switch -c feat/practica-5
-3. commit SOLO de documentación: AGENTS.md + docs/criterios-notificaciones-reportes.md
-4. primer commit de código: notificaciones
+1. ✅ merge de feat/frontend-login a main (`51b3eb4`, pusheado en `fa116f2`)
+2. ✅ rama feat/practica-5 creada desde `main`
+3. ✅ commit SOLO de documentación (`a90538b`): AGENTS.md + criterios
+4. ✅ primer commit de código (`7f67c68`): notificaciones RF-NOT-01..07
 ```
+
+> Decisión ya fijada en los criterios: evento de negocio = `enviar-aprobacion` de `OrdenCompra`;
+> máximo de intentos de la cola = **3**; endpoints `/api/notificaciones`, `/api/correos` y
+> `/api/reportes/*`.
 
 ### 2.4 Entorno local
 
@@ -139,7 +164,7 @@ Business.Inventory  ◄──── Core.Domain  (entidades y enums compartidos)
 | `Infrastructure` | `ApplicationDbContext`, migraciones, `PasswordService`, `JwtService`, `EmailService`, `ProcesadorCorreosWorker`, `AlmacenDocumentosLocal`, `CurrencyApiTasaCambioService` |
 | `Presentation.API` | Controladores REST, autorización por rol, mapeo de excepciones, DI, JWT |
 | `EmailWorker` | Worker independiente que vacía `CorreosEnCola`. **No lo arranca la API.** |
-| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (31), `Bussiness.inventory.Tests` (19) = **62** |
+| Tests | `Core.Domain.Tests` (12), `Core.Application.Tests` (49), `Bussiness.inventory.Tests` (18) = **79** (62 heredadas + 17 de la Práctica 5) |
 
 ### 3.2 Frontend (nuevo)
 
@@ -169,42 +194,35 @@ frontend/Inventario.Web
 
 ## 4. Lo que ya existe y sirve para la Práctica 5
 
-### 4.1 Entidad `CorreoEnCola` (existe, incompleta)
+### 4.1 Entidad `CorreoEnCola` (completada en `59bd20c`)
 
-`Core.Domain/Entities/CorreoEnCola.cs`:
+`Core.Domain/Entities/CorreoEnCola.cs` ya tiene:
 
 ```csharp
-public Guid Id { get; private set; }
-public string Destinatario { get; private set; }
-public string Asunto { get; private set; }
-public string Cuerpo { get; private set; }
 public string Estado { get; private set; }   // Pendiente | Enviado | Fallido
-public DateTime FechaCreacion { get; private set; }
-public DateTime? FechaEnvio { get; private set; }
+public int Intentos { get; private set; }
+public string? UltimoError { get; private set; }
+public DateTime? FechaUltimoIntento { get; private set; }
 
-public void MarcarComoEnviado() { Estado = "Enviado"; FechaEnvio = DateTime.UtcNow; }
+public void RegistrarIntento();
+public void MarcarComoEnviado();              // idempotente (RF-NOT-12)
+public void RegistrarFallo(string error, int maximoIntentos); // pasa a Fallido al agotar
+public bool PuedeProcesarse(int maximoIntentos);
 ```
 
-**Falta para RF-NOT-10 y RF-NOT-11:**
+Migración asociada: `AgregarReintentosColaCorreos`.
 
-- `int Intentos`
-- `string? UltimoError`
-- `DateTime? FechaUltimoIntento`
-- Un método `MarcarComoFallido(string error)` y otro `RegistrarIntentoFallido(...)`.
-- `MarcarComoEnviado()` debe ser idempotente (si ya está `Enviado`, no hacer nada) para RF-NOT-12.
+### 4.2 Procesamiento de la cola (corregido en `59bd20c`)
 
-### 4.2 `ProcesadorCorreosWorker` (existe, con defectos para esta práctica)
+- `Infrastructure/Services/ProcesadorCorreos.cs`: lógica probada sin host. Toma hasta 10
+  `Pendiente` con `Intentos < 3`, registra el intento **antes** de enviar, guarda tras cada
+  correo, reintenta hasta 3 y deja `Fallido` con `UltimoError` (`MaximoIntentos = 3`).
+- `ProcesadorCorreosWorker` solo lo invoca cada 10 s y maneja la cancelación.
+- `GET /api/correos` (`CorreosController`, solo Administrador) expone estado, intentos, fechas y
+  último error (RF-NOT-11).
+- Un correo `Enviado` o `Fallido` no vuelve a seleccionarse (RF-NOT-12).
 
-`Infrastructure/Services/ProcesadorCorreosWorker.cs`:
-
-- Corre cada **10 s**, toma **10** `Pendiente` por `FechaCreacion`.
-- Si `EnviarCorreoAsync` devuelve `true` → `MarcarComoEnviado()`.
-- Si devuelve `false` → **solo loguea**. El correo sigue `Pendiente` → **reintento infinito**.
-- No bloquea el lote antes de enviar → dos instancias podrían enviar el mismo correo.
-
-**Incumple hoy:** RF-NOT-10 (reintentos limitados y estado fallido) y RF-NOT-12 (no duplicar).
-
-### 4.3 `EmailService` (existe, con fallback de revisión)
+### 4.3 `EmailService` (sin cambios, con fallback de revisión)
 
 `Infrastructure/Services/EmailService.cs`:
 
@@ -218,18 +236,12 @@ usar un `SMTP_SERVER` que **no** sea valor de ejemplo y que no resuelva (p. ej.
 `smtp.invalido.local`), con credenciales no-ejemplo, para que `SmtpClient` lance y
 `EnviarCorreoAsync` devuelva `false`.
 
-### 4.4 Puntos de enganche para RF-NOT-01 y RF-NOT-02
+### 4.4 Enganches de notificaciones (implementados en `7f67c68`)
 
-`Core.Application/Services/SolicitudPermisoService.cs`:
-
-| Método | Qué hace hoy | Enganche |
-|---|---|---|
-| `CrearAsync(usuarioId, permiso, descripcion)` | crea `SolicitudPermiso` en `Pendiente` | notificar a **todos los Administradores activos** (RF-NOT-01) |
-| `AprobarAsync(solicitudId, adminId)` | `s.Aprobar(...)` + inserta `PermisoUsuario` | notificar al **solicitante**: aprobada (RF-NOT-02) |
-| `RechazarAsync(solicitudId, adminId, motivo)` | `s.Rechazar(..., motivo, ...)` | notificar al **solicitante**: rechazada **con motivo** (RF-NOT-02) |
-
-DTO de respuesta: `SolicitudPermisoDto` (`Id`, `SolicitanteUsuarioId`, `Permiso`,
-`Descripcion`, `Estado`, `CreadoEn`, `ResueltoPorUsuarioId`, `FechaResolucion`, `MotivoRechazo`).
+`SolicitudPermisoService` ya notifica: al crear (Administradores activos), al aprobar y al
+rechazar (solicitante, con motivo). `OrdenCompraService.EnviarAprobacionAsync` notifica a los
+Administradores (evento RF-NOT-03). `NotificacionService` crea la notificación interna y encola
+el correo solo si `Usuario.RecibeCorreos` es `true`.
 
 ### 4.5 Inventario de endpoints actuales
 
@@ -242,16 +254,49 @@ DTO de respuesta: `SolicitudPermisoDto` (`Id`, `SolicitanteUsuarioId`, `Permiso`
 | Documentos | `api/documentos` | `subir`, `GET`, `{id}/descargar`, `DELETE {id}` |
 | Inventario | `api/inventario/exportar` | CSV de productos |
 | Permisos | `api/solicitudes` | ver arriba |
+| Notificaciones | `api/notificaciones` | `GET` propias (`?soloNoLeidas`), `POST {id}/leer`, `GET/PUT preferencia` |
+| Correos | `api/correos` | `GET` cola (solo Administrador, `?estado=`) |
+| Reportes | `api/reportes` | `GET solicitudes`, `GET ordenes` (`?desde=&hasta=`) |
 
-### 4.6 Huecos confirmados (nada de esto existe)
+### 4.6 Estado de los huecos (actualizado tras `f52a070`)
 
-- Entidad **`Notificacion`** y su `DbSet`.
-- Preferencia de canal de correo del usuario (RF-NOT-07). `Usuario` **no** tiene
-  `RecibeCorreos`; hay que agregarlo (columna nueva + migración) o crear una tabla aparte.
-- Servicio/controlador de notificaciones.
-- Endpoint de consulta de la cola de correos para Administrador (RF-NOT-11).
-- Cualquier reporte con agregación.
-- `docs/criterios-notificaciones-reportes.md` y `AGENTS.md`.
+Ya existen:
+
+- Entidad `Notificacion`, `DbSet` y migración `AgregarNotificacionesYPreferenciaCorreo`.
+- `Usuario.RecibeCorreos` (columna nueva, por defecto `true`).
+- `INotificacionService` / `NotificacionService` y `api/notificaciones` (`GET`, `POST {id}/leer`,
+  `GET/PUT preferencia`).
+- Enganches RF-NOT-01/02 en `SolicitudPermisoService` y RF-NOT-03 en
+  `OrdenCompraService.EnviarAprobacionAsync`.
+- Reintentos limitados (3), estado `Fallido`, `UltimoError` e idempotencia en `CorreoEnCola` y
+  `ProcesadorCorreos` (migración `AgregarReintentosColaCorreos`).
+- `GET /api/correos` solo para Administrador (`CorreosController`).
+- `IReporteService` / `ReporteService` y `api/reportes/solicitudes` + `api/reportes/ordenes` con
+  `GroupBy`/`Count`/`Sum`, filtro por rol y rango inclusivo (`ReportesController`). `hasta` con
+  fecha sin hora incluye el día completo (`82ad402`).
+- `UltimoError` guarda el mensaje real de la excepción SMTP (`82ad402`).
+
+No queda nada pendiente de código: el tag `practica-5` (`ddefd7f`) está creado y pusheado.
+
+### 4.7 Forma de las respuestas de reportes
+
+`GET /api/reportes/solicitudes?desde=2026-01-01&hasta=2026-12-31`:
+
+```json
+{ "desde": "...", "hasta": "...", "total": 10,
+  "grupos": [ { "estado": "Pendiente", "cantidad": 4 } ] }
+```
+
+`GET /api/reportes/ordenes?desde=2026-01-01&hasta=2026-12-31`:
+
+```json
+{ "desde": "...", "hasta": "...", "totalOrdenes": 8, "montoTotalUsd": 1250.00,
+  "grupos": [ { "proveedorId": 1, "proveedor": "Proveedor Uno",
+                "estado": "Aprobada", "cantidadOrdenes": 3, "montoTotalUsd": 700.00 } ] }
+```
+
+Administrador ve todo; un Estándar solo sus solicitudes u órdenes. Un rango con `hasta < desde`
+responde `400`.
 
 ---
 
@@ -380,17 +425,18 @@ Cambios sobre lo existente:
 4. **Fechas**: los dos rangos deben producir resultados distintos sobre los mismos datos.
 5. **Agregación en el motor**: `GroupBy` + `Sum`/`Count` en EF, no traer todo y sumar en C#.
 
-### 6.5 Punto 1.5 — Revisión acumulada
+### 6.5 Punto 1.5 — Revisión acumulada (ejecutada el 19/11/2026)
 
-Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando del README:
+Repetida sobre el stack Docker real (`api` + `db` + `worker`) con usuarios desechables
+`rev5.*` / `rev5r*@inventario.test`. Resultado: **178 comprobaciones, 0 fallos**. Detalle en §10.
 
-1. Registro con activación por correo (el correo sale por la cola).
-2. Inicio y cierre de sesión.
-3. Estándar rechazado en una operación de Administrador.
-4. Recuperación de contraseña.
-5. Permisos: crear, aprobar, rechazar y transiciones inválidas.
-6. Negocio: operación válida y transición prohibida.
-7. Documento que sobrevive a `docker compose down` (sin `-v`).
+1. ✅ Registro con activación por correo (el correo sale por la cola).
+2. ✅ Inicio y cierre de sesión, token revocado y usuario desactivado.
+3. ✅ Estándar rechazado (`403`) en las operaciones de Administrador.
+4. ✅ Recuperación de contraseña, código inválido y cambio de contraseña.
+5. ✅ Permisos: crear, aprobar, rechazar, autoaprobación y transiciones inválidas.
+6. ✅ Negocio: borrador, enviar, aprobar, recibir y transiciones prohibidas.
+7. ✅ Documento que sobrevive a `docker compose down` (sin `-v`).
 
 ### 6.6 README — secciones obligatorias
 
@@ -404,18 +450,24 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 
 ## 7. Riesgos y decisiones abiertas
 
-1. **El fallback de correo devuelve `true`.** Con el `.env.example`, RF-NOT-10 no se puede
-   demostrar. Hay que documentar el fallo forzado con un SMTP no-ejemplo que no resuelva.
-2. **Reintento infinito actual** en `ProcesadorCorreosWorker`: si no se corrige, incumple
-   RF-NOT-10 y puede inundar el log.
-3. **Idempotencia**: sin un estado intermedio o bloqueo, ejecutar el procesador dos veces puede
-   duplicar envíos (RF-NOT-12).
-4. **Orden de commits**: si se escribe el código antes que los criterios, el punto 1.1 vale 0.
-5. **Secretos**: `AGENTS.md`, README y criterios no deben contener credenciales reales.
-6. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
+1. ~~El fallback de correo devuelve `true`.~~ **Resuelto:** el README explica cómo forzar un fallo
+   real con `SMTP_SERVER=127.0.0.1`, `SMTP_PORT=1` y credenciales no-ejemplo.
+2. ~~Reintento infinito en `ProcesadorCorreosWorker`.~~ **Resuelto:** `ProcesadorCorreos` limita a
+   `MaximoIntentos = 3` y deja `Fallido` con `UltimoError` (`59bd20c`).
+3. ~~Idempotencia del procesador.~~ **Resuelto:** solo toma `Pendiente` con `intentos < 3` y
+   `MarcarComoEnviado()` no hace nada si ya está `Enviado`; probado en RF-NOT-12.
+4. **Orden de commits:** los criterios (`a90538b`) preceden a todo el código; no reescribir el
+   historial de la rama.
+5. **Secretos:** `AGENTS.md`, README y criterios no deben contener credenciales reales.
+6. **Entrega:** tag `practica-5` creado y pusheado (`ddefd7f`). Queda subir el proyecto a Moodle.
+   La revisión acumulada está en §10.
+7. **Frontend**: no se toca en esta práctica; si se mergea, hacerlo **antes** del tag para que
    `practica-5` incluya todo.
-7. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
+8. **Migraciones**: `CorreoEnCola` y `Usuario` cambian; crear migraciones nuevas, nunca editar
    las existentes.
+9. **Reconstrucción de imágenes:** si Docker Desktop sigue con la caché rota o sin red al
+   registro, `docker builder prune -af` y volver a `docker compose up -d --build`. La revisión
+   usó imágenes delgadas solo como puente; el `Dockerfile` del repositorio es el bueno.
 
 ---
 
@@ -423,16 +475,16 @@ Repetir desde un clon limpio, con `.env.example` copiado a `.env` y el comando d
 
 | # | Paso | Estimación |
 |---|---|---|
-| 1 | ✅ Merge `feat/frontend-login` → `main` (hecho, `51b3eb4`); crear rama `feat/practica-5` | 10 min |
-| 2 | `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` + commit **solo docs** | 1-2 h |
-| 3 | Entidad `Notificacion` + migración + `NotificacionService` + controlador | 2-3 h |
-| 4 | Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` | 1-2 h |
-| 5 | Preferencia de correo (`RecibeCorreos`) + encolado condicional | 1 h |
-| 6 | Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` | 2-3 h |
-| 7 | Reportes Core + negocio con `GroupBy`, rol y fechas | 2-3 h |
-| 8 | README: Notificaciones y Reportes | 1-2 h |
-| 9 | Revisión acumulada desde clon limpio | 1 h |
-| 10 | Tag `practica-5`, push, Moodle | 20 min |
+| 1 | ✅ Merge `feat/frontend-login` → `main` (`51b3eb4`) y rama `feat/practica-5` | 10 min |
+| 2 | ✅ `AGENTS.md` + `docs/criterios-notificaciones-reportes.md` + commit **solo docs** (`a90538b`) | 1-2 h |
+| 3 | ✅ Entidad `Notificacion` + migración + `NotificacionService` + controlador (`7f67c68`) | 2-3 h |
+| 4 | ✅ Enganches en `SolicitudPermisoService` + evento de `OrdenCompra` (`7f67c68`) | 1-2 h |
+| 5 | ✅ Preferencia de correo (`RecibeCorreos`) + encolado condicional (`7f67c68`) | 1 h |
+| 6 | ✅ Cola: `Intentos`, `UltimoError`, estado `Fallido`, idempotencia, `GET /api/correos` (`59bd20c`) | 2-3 h |
+| 7 | ✅ Reportes Core + negocio con `GroupBy`, rol y fechas (`f52a070`) | 2-3 h |
+| 8 | ✅ README: Notificaciones, cola de correos y Reportes (`0da3680`) | 1-2 h |
+| 9 | ✅ Revisión acumulada de los seis frentes (178 comprobaciones, 0 fallos) + arreglos (`82ad402`) | 1 h |
+| 10 | ✅ Tag `practica-5` (`ddefd7f`), rama y tag pusheados; queda subirlo a Moodle | 20 min |
 
 ---
 
@@ -490,3 +542,89 @@ git check-ignore -v .env
 | `frontend/Inventario.Web/Services/SesionActual.cs` | sesión persistente del frontend |
 | `frontend/Inventario.Web/Components/Routes.razor` | gate + `AuthorizeRouteView` |
 | `README.md` | fuente de verdad de la revisión manual |
+
+---
+
+## 10. Revisión acumulada de los seis frentes (19/11/2026)
+
+Ejecutada sobre el stack Docker real (`api` en `http://localhost:8080`, `db` y `worker`), con
+usuarios desechables creados por la propia revisión (`rev5.std1`, `rev5.std2`, `rev5.adm1`,
+`rev5.adm2`, `rev5.inactivo` y una corrida nueva `rev5r#####.*`). Contraseña de trabajo:
+`Revision123` (la de `std1` pasó a `Revision456` tras probar la recuperación, como debe ser).
+
+### 10.1 Resultado por tanda
+
+| Tanda | Frentes | Comprobaciones | Fallos |
+|---|---|---|---|
+| `review-a2.ps1` | 1 registro/activación · 2 login/logout · 3 rol y usuario desactivado · 4 recuperación | 39 | 0 |
+| `review-b.ps1` | 5 permisos · 6 órdenes de compra | 32 | 0 |
+| `review-c.ps1` | RF-NOT-01..07 y RF-NOT-11/12 (notificaciones y cola) | 44 | 0 |
+| `review-d.ps1` | RF-REP-01..05 y RF-NOT-10 (fallo forzado del SMTP) | 44 | 0 |
+| `review-e.ps1` | Documentos y persistencia tras `docker compose down` (sin `-v`) | 19 | 0 |
+| **Total** | | **178** | **0** |
+
+Los guiones viven fuera del repositorio (`%TEMP%\opencode\review-*.ps1`) y se apoyan en
+`review-common.ps1` (`Call`, `Check`, `CheckTrue`, `Sql`, `Login`, `Resumen`).
+
+### 10.2 Qué quedó verificado
+
+- **Registro y activación:** el correo de activación se encola; el token activa una sola vez
+  (segundo intento `400`); una cuenta sin activar no entra (`400`); la contraseña incorrecta
+  también responde `400` (patrón del proyecto, no `401`).
+- **Sesión:** `me` identifica al usuario; `logout` revoca solo ese token; cerrar una sesión no
+  invalida las demás del mismo usuario; un usuario desactivado pierde la sesión abierta y no
+  puede volver a entrar.
+- **Roles:** un Estándar recibe `403` en `/api/admin/usuarios`, `/api/correos` y en las rutas de
+  Administrador; sin token, `401`.
+- **Recuperación:** código inválido `400`, código válido `200`, token anterior `401` (con 3 s de
+  margen), contraseña anterior rechazada, código no reutilizable.
+- **Permisos:** la solicitud nace `Pendiente`; solo el Administrador lista pendientes; aprobar
+  aplica el permiso (el `exportar` pasa de `403` a `200`) y guarda resolución y fecha; aprobar
+  dos veces `400`; rechazar sin motivo `400`; el solicitante no aprueba lo propio `400`.
+- **Negocio:** borrador con total calculado (`100.00`), `enviar-aprobacion` → `2`, `aprobar` →
+  `3`, `recibir` → `4`; cancelar o reenviar una orden `Recibida` responde `400`; `total-en-dop`
+  responde de forma controlada con la clave de ejemplo.
+- **Notificaciones:** crear solicitud notifica exactamente a los Administradores activos y no al
+  solicitante ni a un Administrador inactivo; aprobar/rechazar notifica al solicitante con el
+  motivo; `enviar-aprobacion` notifica a los Administradores; listados aislados por usuario;
+  marcar propia `204` e idempotente; marcar ajena `404` y no cambia nada; `?soloNoLeidas`
+  funciona.
+- **Cola:** un correo por destinatario y evento; `PUT preferencia=false` deja de encolar correo
+  pero conserva la notificación interna, y persiste tras un nuevo login; `GET /api/correos` solo
+  Administrador; el worker marca `Enviado` con `fechaEnvio`, `fechaUltimoIntento` e `intentos`;
+  reiniciar el worker no reenvía ni duplica.
+- **Fallo forzado (RF-NOT-10):** con `SMTP_SERVER=127.0.0.1`, `SMTP_PORT=1` y credenciales no
+  de ejemplo, el correo llega a `Fallido` con **3 intentos**, `UltimoError` con el mensaje real
+  (`Failure sending mail.`) y `fechaUltimoIntento`; después no se reintenta ni desaparece.
+- **Reportes:** totales y grupos coinciden con `COUNT`/`SUM` de SQL; hay menos filas que
+  registros (agregación real); el Estándar solo ve lo suyo y no puede espiar con `usuarioId`;
+  el Administrador ve el global; `desde`/`hasta` son inclusivos, dos rangos difieren, el rango
+  invertido responde `400` y `hasta=AAAA-MM-DD` incluye el día completo.
+- **Documentos:** subida, listado propio, descarga con contenido idéntico, `403` para otro
+  usuario, archivo vacío `400`, id inexistente `404`; el documento **sobrevive** a
+  `docker compose down` seguido de `up -d` y se puede descargar igual.
+
+### 10.3 Defectos encontrados y corregidos en `82ad402`
+
+1. **RF-REP-05 — `hasta` cortaba a medianoche.** `hasta=2026-12-31` dejaba fuera los registros
+   de ese día. Ahora una fecha sin hora incluye el día completo; una marca con hora respeta el
+   instante. Con prueba `RF_REP_05_HastaFecha_IncluyeTodoElDia`.
+2. **RF-NOT-10 — `UltimoError` era genérico.** Guardaba «El servicio de correo no pudo enviar el
+   mensaje.» en vez del mensaje del SMTP. `IEmailService` expone `UltimoError` y
+   `ProcesadorCorreos` lo persiste, con respaldo al texto genérico. Con prueba
+   `RF_NOT_10_ServicioDevuelveFalse_GuardaMensajeDelError`.
+
+No se encontró ningún defecto abierto en los seis frentes.
+
+### 10.4 Notas de la corrida
+
+- El «token sigue válido tras restablecer» que apareció al principio era un artefacto del guion:
+  emitía el token y restablecía en el mismo segundo, dentro del margen anti-desfase de 2 s de
+  `OnTokenValidated`. Con 3–4 s de espera responde `401`, como exige el criterio.
+- La caché de Docker Desktop se corrompió (`failed to compute cache key`) y luego el registro
+  dejó de entregar `mcr.microsoft.com/dotnet/sdk:10.0` por timeouts. Para no bloquear la
+  revisión se publicó en local y se armaron imágenes delgadas sobre `aspnet:10.0` (que sí estaba
+  en el store). **El repositorio no cambió por esto**: `Dockerfile`, `Dockerfile.worker` y
+  `docker-compose.yml` siguen iguales.
+- Los registros históricos de `CorreosEnCola` anteriores a la migración de reintentos no tienen
+  `FechaUltimoIntento`; la revisión solo exige esos campos a los correos nuevos.

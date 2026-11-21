@@ -136,12 +136,20 @@ builder.Services.AddScoped<IAuthorizationHandler, PermisoAuthorizationHandler>()
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+// RF-CA-15: URL pública del frontend para los enlaces de activación (override con Frontend__BaseUrl).
+var frontendSettings = builder.Configuration.GetSection(FrontendSettings.SectionName).Get<FrontendSettings>() ?? new FrontendSettings();
+builder.Services.AddSingleton(frontendSettings);
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
 builder.Services.AddScoped<ISolicitudPermisoService, SolicitudPermisoService>();
+builder.Services.AddScoped<INotificacionService, NotificacionService>();
+builder.Services.AddScoped<ICorreoColaService, CorreoColaService>();
+builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
 builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();

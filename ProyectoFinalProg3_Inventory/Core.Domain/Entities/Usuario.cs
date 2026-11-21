@@ -20,6 +20,9 @@ namespace Core.Domain.Entities
         //Bloqueo de cuenta
         public DateTime? BloqueadoHasta { get; private set; }
 
+        // RF-NOT-07: preferencia del canal de correo (el canal interno no se puede desactivar)
+        public bool RecibeCorreos { get; private set; } = true;
+
         //Gestionar el codigo de recuperacion de contraseña
         public string? CodigoRecuperacion { get; private set; }
         public DateTime? CodigoRecuperacionExpiracion { get; private set; }
@@ -124,6 +127,12 @@ namespace Core.Domain.Entities
         public void Reactivar()
         {
             Activo = true;
+        }
+
+        /// <summary>RF-NOT-07: el usuario decide si recibe la copia por correo.</summary>
+        public void CambiarPreferenciaCorreo(bool recibeCorreos)
+        {
+            RecibeCorreos = recibeCorreos;
         }
 
         //Generar codigo de 6 digitos para recuperacion de contraseña

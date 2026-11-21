@@ -11,10 +11,12 @@ namespace Application.Services
     public class SolicitudPermisoService : ISolicitudPermisoService
     {
         private readonly IApplicationDbContext _context;
+        private readonly INotificacionService _notificaciones;
 
-        public SolicitudPermisoService(IApplicationDbContext context)
+        public SolicitudPermisoService(IApplicationDbContext context, INotificacionService notificaciones)
         {
             _context = context;
+            _notificaciones = notificaciones;
         }
 
         public async Task<SolicitudPermiso?> AprobarAsync(Guid solicitudId, Guid usuarioId)
@@ -33,6 +35,14 @@ namespace Application.Services
             _context.PermisosUsuario.Add(new PermisoUsuario(s.SolicitanteUsuarioId, s.Permiso, s.Id, fecha));
 
             await _context.SaveChangesAsync();
+
+            // RF-NOT-02: el solicitante sabe que fue aprobada.
+            await _notificaciones.CrearAsync(
+                s.SolicitanteUsuarioId,
+                $"Tu solicitud de permiso '{s.Permiso}' fue aprobada.",
+                NotificacionService.TipoSolicitudAprobada,
+                s.Id.ToString());
+
             return s;
         }
 
@@ -53,7 +63,13 @@ namespace Application.Services
             _context.SolicitudesPermiso.Add(solicitud);
 
             await _context.SaveChangesAsync();
-            
+
+            // RF-NOT-01: todos los Administradores activos, nadie más.
+            await _notificaciones.NotificarAdministradoresAsync(
+                $"{usuario.Email} creó la solicitud de permiso '{permiso}'.",
+                NotificacionService.TipoSolicitudCreada,
+                solicitud.Id.ToString());
+
             return solicitud;
         }
 
@@ -101,6 +117,14 @@ namespace Application.Services
 
             solicitud.Rechazar(usuarioId, motivo, DateTime.UtcNow);
             await _context.SaveChangesAsync();
+
+            // RF-NOT-02: el solicitante sabe que fue rechazada y por qué.
+            await _notificaciones.CrearAsync(
+                solicitud.SolicitanteUsuarioId,
+                $"Tu solicitud de permiso '{solicitud.Permiso}' fue rechazada. Motivo: {motivo}.",
+                NotificacionService.TipoSolicitudRechazada,
+                solicitud.Id.ToString());
+
             return solicitud;
         }
     }

@@ -18,13 +18,29 @@ namespace Application.Services
         private readonly IPasswordService _passwordService;
         private readonly IJwtService _jwtService;
         private readonly JwtSettings _jwtSettings;
+        private readonly FrontendSettings _frontend;
 
-        public AuthService(IApplicationDbContext context, IPasswordService passwordService, IJwtService jwtService, JwtSettings jwtSettings)
+        public AuthService(
+            IApplicationDbContext context,
+            IPasswordService passwordService,
+            IJwtService jwtService,
+            JwtSettings jwtSettings,
+            FrontendSettings frontendSettings)
         {
             _context = context;
             _passwordService = passwordService;
             _jwtService = jwtService;
             _jwtSettings = jwtSettings;
+            _frontend = frontendSettings;
+        }
+
+        // RF-CA-15 / RF-CA-17: con el frontend configurado el enlace abre su página /activar;
+        // sin configuración se conserva el enlace anterior a la API.
+        private string EnlaceActivacion(string baseUrlDePeticion, string token)
+        {
+            return string.IsNullOrWhiteSpace(_frontend.BaseUrl)
+                ? $"{baseUrlDePeticion.TrimEnd('/')}/api/auth/activar?token={token}"
+                : $"{_frontend.BaseUrl.TrimEnd('/')}/activar?token={token}";
         }
 
         public async Task<AuthResponseDto> ActivarCuentaAsync(string token)
@@ -183,8 +199,8 @@ namespace Application.Services
                 //Generamos un nuevo token de activación y lo asignamos al usuario
                 usuario.GenerarTokenActivacion();
 
-                string enlaceActivacion = $"{baseUrl}/api/auth/activar?token={usuario.TokenActivacion}";
-                string cuerpoCorreo = $"<p>Hola,</p><p>Has solicitado un nuevo enlace de activación:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a>";
+                string enlaceActivacion = EnlaceActivacion(baseUrl, usuario.TokenActivacion!);
+                string cuerpoCorreo = $"<p>Hola,</p><p>Has solicitado un nuevo enlace de activación:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a></p>";
 
                 _context.CorreosEnCola.Add(new CorreoEnCola(usuario.Email, "Nuevo enlace de activación", cuerpoCorreo));
 
@@ -215,8 +231,8 @@ namespace Application.Services
 
             _context.Usuarios.Add(nuevoUsuario);
 
-            string enlaceActivacion = $"{request.BaseUrl}/api/auth/activar?token={nuevoUsuario.TokenActivacion}";
-            string cuerpoCorreo = $"<p>Hola,</p><p>Para activar tu cuenta, haz clic en el siguiente enlace:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a>";
+            string enlaceActivacion = EnlaceActivacion(request.BaseUrl, nuevoUsuario.TokenActivacion!);
+            string cuerpoCorreo = $"<p>Hola,</p><p>Para activar tu cuenta, haz clic en el siguiente enlace:</p><p><a href='{enlaceActivacion}'>Activar Cuenta</a></p>";
 
             var correo = new CorreoEnCola(nuevoUsuario.Email, "Confirmación de cuenta", cuerpoCorreo);
             _context.CorreosEnCola.Add(correo);

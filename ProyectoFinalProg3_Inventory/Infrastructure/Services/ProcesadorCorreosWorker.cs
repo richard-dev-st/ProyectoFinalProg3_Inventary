@@ -1,6 +1,3 @@
-using Application.Interfaces;
-using Core.Application.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,51 +23,33 @@ namespace Infrastructure.Services
             {
                 try
                 {
-                    // Lógica para procesar la cola de correos
+                    using var scope = _serviceProvider.CreateScope();
+                    var procesador = scope.ServiceProvider.GetRequiredService<ProcesadorCorreos>();
 
-                    using (var scope = _serviceProvider.CreateScope())
+                    var procesados = await procesador.ProcesarPendientesAsync(stoppingToken);
+
+                    if (procesados > 0)
                     {
-                        var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                        var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
-
-                        var correosPendientes = await context.CorreosEnCola
-                            .Where(c => c.Estado == "Pendiente")
-                            .OrderBy(c => c.FechaCreacion)
-                            .Take(10)
-                            .ToListAsync(stoppingToken);
-
-                        if (correosPendientes.Any())
-                        {
-                            foreach (var correo in correosPendientes)
-                            {
-                                bool enviado = await emailService.EnviarCorreoAsync(
-                                    correo.Destinatario,
-                                    correo.Asunto,
-                                    correo.Cuerpo
-                                    );
-
-                                if (enviado)
-                                {
-                                    correo.MarcarComoEnviado();
-                                    _logger.LogInformation("Correo enviado exitosamente a {Destinatario}", correo.Destinatario);
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("No se puedo enviar el correo a {Destinatario}. Verifique los logs de EmailService.", correo.Destinatario);
-                                }
-                            }
-
-                            await context.SaveChangesAsync(stoppingToken);
-                        }
+                        _logger.LogInformation("Se procesaron {Cantidad} correo(s) de la cola.", procesados);
                     }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ocurrió un error al procesar la cola de correos.");
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Espera 10 segundos antes de la siguiente iteración
-
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
         }
     }

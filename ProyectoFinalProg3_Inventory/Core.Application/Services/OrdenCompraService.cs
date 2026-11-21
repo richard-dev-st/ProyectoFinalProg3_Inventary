@@ -13,14 +13,17 @@ namespace Application.Services
         private readonly IOrdenCompraRepository _repository;
         private readonly ITasaCambioService _service;
         private readonly IApplicationDbContext _context;
+        private readonly INotificacionService _notificaciones;
 
         public OrdenCompraService(IOrdenCompraRepository repository,
             ITasaCambioService service,
-            IApplicationDbContext context)
+            IApplicationDbContext context,
+            INotificacionService notificaciones)
         {
             _repository = repository;
             _service = service;
             _context = context;
+            _notificaciones = notificaciones;
         }
 
         public async Task AprobarAsync(int id)
@@ -75,6 +78,12 @@ namespace Application.Services
             }
             orden.EnviarAAprobacion();
             await _repository.SaveChangesAsync();
+
+            // RF-NOT-03: evento del módulo de negocio; avisa a los Administradores activos.
+            await _notificaciones.NotificarAdministradoresAsync(
+                $"La orden de compra #{orden.Id} por {orden.Total:0.00} USD fue enviada a aprobación.",
+                NotificacionService.TipoOrdenEnviadaAprobacion,
+                orden.Id.ToString());
         }
 
         public async Task<TotalEnDopDto> ObtenerTotalEnDopAsync(int ordenId, CancellationToken ct = default)

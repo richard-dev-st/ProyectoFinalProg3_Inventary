@@ -27,7 +27,7 @@ public class SolicitudPermisoServiceTests
         var usuario = new Usuario("carlos@dominio.com", "afafasdfefdsfdsf");
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
-        var service = new SolicitudPermisoService(context);
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
 
         //Act
         var resultado = await service.CrearAsync(usuario.Id, "exportar-inventario", "Necesito permiso para salir temprano.");
@@ -48,7 +48,7 @@ public class SolicitudPermisoServiceTests
         var usuario2 = new Usuario("maria@dominio.com", "ghjghjghjghj");
         context.Usuarios.AddRange(usuario1, usuario2);
         await context.SaveChangesAsync();
-        var service = new SolicitudPermisoService(context);
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
         context.SolicitudesPermiso.Add(new SolicitudPermiso(usuario1.Id, "exportar-inventario", "Necesito permiso para salir temprano."));
         context.SolicitudesPermiso.Add(new SolicitudPermiso(usuario2.Id, "importar-inventario", "Necesito permiso para entrar tarde."));
         await context.SaveChangesAsync();
@@ -70,7 +70,7 @@ public class SolicitudPermisoServiceTests
         var adminId = Guid.NewGuid();
         context.Usuarios.Add(usuario1);
         await context.SaveChangesAsync();
-        var service = new SolicitudPermisoService(context);
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
         context.SolicitudesPermiso.Add(new SolicitudPermiso(usuario1.Id, "exportar-inventario", "Necesito permiso para salir temprano."));
         var rechazada = new SolicitudPermiso(usuario1.Id, "importar-inventario", "Necesito permiso para entrar tarde.");
         rechazada.Rechazar(adminId, "No cumple", DateTime.UtcNow);
@@ -96,7 +96,7 @@ public class SolicitudPermisoServiceTests
         var solicitud = new SolicitudPermiso(solicitante.Id, "exportar-inventario", "Necesito permiso para salir temprano.");
         context.SolicitudesPermiso.Add(solicitud);
         await context.SaveChangesAsync();
-        var servicio = new SolicitudPermisoService(context);
+        var servicio = new SolicitudPermisoService(context, new NotificacionService(context));
 
         //Act
         var resultado = await servicio.AprobarAsync(solicitud.Id, adminId);
@@ -120,7 +120,7 @@ public class SolicitudPermisoServiceTests
         var solicitud = new SolicitudPermiso(solicitante.Id, "exportar-inventario", "Necesito permiso para salir temprano.");
         context.SolicitudesPermiso.Add(solicitud);
         await context.SaveChangesAsync();
-        var servicio = new SolicitudPermisoService(context);
+        var servicio = new SolicitudPermisoService(context, new NotificacionService(context));
 
         //Act
         var motivo = "No cumple con los requisitos.";
@@ -144,7 +144,7 @@ public class SolicitudPermisoServiceTests
         var solicitud = new SolicitudPermiso(solicitante.Id, "exportar-inventario", "Necesito permiso para salir temprano.");
         context.SolicitudesPermiso.Add(solicitud);
         await context.SaveChangesAsync();
-        var servicio = new SolicitudPermisoService(context);
+        var servicio = new SolicitudPermisoService(context, new NotificacionService(context));
 
         //Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.RechazarAsync(solicitud.Id, adminId, ""));
@@ -163,7 +163,7 @@ public class SolicitudPermisoServiceTests
         var solicitud = new SolicitudPermiso(solicitante.Id, "exportar-inventario", "Necesito permiso para salir temprano.");
         context.SolicitudesPermiso.Add(solicitud);
         await context.SaveChangesAsync();
-        var servicio = new SolicitudPermisoService(context);
+        var servicio = new SolicitudPermisoService(context, new NotificacionService(context));
 
         //Act
         var resultado = await servicio.AprobarAsync(solicitud.Id, adminId);
