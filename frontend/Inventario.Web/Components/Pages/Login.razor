@@ -6,6 +6,15 @@
 
 <h1>Iniciar sesión</h1>
 
+@if (Clave is not null)
+{
+    <div class="alert alert-info">
+        @(Clave == "actualizada"
+            ? "Contraseña actualizada. Entra con la nueva contraseña."
+            : "Contraseña restablecida. Entra con la nueva contraseña.")
+    </div>
+}
+
 <EditForm Model="modelo" OnValidSubmit="Entrar">
     <DataAnnotationsValidator />
 
@@ -31,6 +40,7 @@
 
 <p class="mt-3">
     <a href="/registrar">Crear cuenta</a> ·
+    <a href="/recuperar-password">¿Olvidaste tu contraseña?</a> ·
     <a href="/reenviar-activacion">¿No recibiste el correo de activación?</a>
 </p>
 
@@ -40,6 +50,9 @@
 
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "clave")]
+    public string? Clave { get; set; }
 
     private async Task Entrar()
     {

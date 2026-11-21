@@ -52,6 +52,13 @@ namespace Inventario.Web.Services
             new CambiarEstadoRequest { Activo = activo },
             "No se pudo cambiar el estado del usuario.");
 
+        // RF-CA-13: la ruta vive en AuthController y exige el rol Administrador.
+        public Task<(bool Ok, string Mensaje)> ForzarRestablecimientoAsync(Guid id) => EnviarAsync(
+            HttpMethod.Post,
+            $"api/auth/{id}/forzar-restablecimiento",
+            new { },
+            "No se pudo forzar el restablecimiento.");
+
         private async Task<(bool Ok, string Mensaje)> EnviarAsync(HttpMethod metodo, string url, object body, string mensajePorDefecto)
         {
             using var request = new HttpRequestMessage(metodo, url)

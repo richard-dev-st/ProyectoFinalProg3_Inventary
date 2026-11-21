@@ -40,6 +40,23 @@ public class AuthServiceTests
     private static RegistroRequestDto Registro(string email, string password)
         => new(email, password, "http://localhost:8080");
 
+    private static async Task<Usuario> CrearUsuarioActivoAsync(
+        ApplicationDbContext contexto, string email, string password = "Clave1234")
+    {
+        var servicio = CrearServicio(contexto);
+        await servicio.RegistrarAsync(Registro(email, password));
+        var usuario = await contexto.Usuarios.SingleAsync(u => u.Email == email);
+        await servicio.ActivarCuentaAsync(usuario.TokenActivacion!);
+        return usuario;
+    }
+
+    private static bool ClaveValida(Usuario usuario, string clave) =>
+        new PasswordService().VerifyPassword(clave, usuario.PasswordHash);
+
+    private static void EstablecerPropiedadPrivada(Usuario usuario, string nombre, object? valor) =>
+        typeof(Usuario).GetProperty(nombre)!.GetSetMethod(nonPublic: true)!
+            .Invoke(usuario, new object?[] { valor });
+
     [Fact]
     public async Task RF_CA_01_RegistrarConCorreoDuplicado_RechazaElSegundoRegistro()
     {
@@ -161,5 +178,136 @@ public class AuthServiceTests
         Assert.Equal(2, contexto.CorreosEnCola.Count());
         Assert.Contains($"http://localhost:5299/activar?token={usuario.TokenActivacion}", contexto.CorreosEnCola.Last().Cuerpo);
         Assert.False((await servicio.ActivarCuentaAsync(tokenAnterior)).Exito);
+    }
+
+    [Fact]
+    public async Task RF_CA_09_RecuperarPassword_NoEncolaCorreoParaUnDesconocido()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        await CrearUsuarioActivoAsync(contexto, "recuperacion@test.com");
+
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = "recuperacion@test.com" });
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = "noexiste@test.com" });
+
+        // RF-CA-09: el controlador responde siempre lo mismo; el servicio solo actúa
+        // cuando el correo existe y está activo. El otro correo es el de activación.
+        var recuperaciones = contexto.CorreosEnCola.Where(c => c.Asunto.Contains("recuperación")).ToList();
+        Assert.Single(recuperaciones);
+        Assert.Contains("recuperacion@test.com", recuperaciones[0].Destinatario);
+    }
+
+    [Fact]
+    public async Task RF_CA_10_RestablecerConCodigoUsado_NoCambiaLaClave()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "codigo@test.com");
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = usuario.Email });
+        var codigo = usuario.CodigoRecuperacion!;
+        var hashInicial = usuario.PasswordHash;
+
+        await servicio.RestablecerPasswordAsync(new RestablecerPasswordDto
+        {
+            Email = usuario.Email, Codigo = codigo, NuevaPassword = "Nueva1234"
+        });
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            servicio.RestablecerPasswordAsync(new RestablecerPasswordDto
+            {
+                Email = usuario.Email, Codigo = codigo, NuevaPassword = "Otra12345"
+            }));
+
+        Assert.NotEqual(hashInicial, usuario.PasswordHash);
+        Assert.True(ClaveValida(usuario, "Nueva1234"));
+        Assert.Null(usuario.CodigoRecuperacion);
+    }
+
+    [Fact]
+    public async Task RF_CA_10_RestablecerConCodigoVencido_NoCambiaLaClave()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "vencido@test.com");
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = usuario.Email });
+        var hashInicial = usuario.PasswordHash;
+        EstablecerPropiedadPrivada(usuario, "CodigoRecuperacionExpiracion", DateTime.UtcNow.AddMinutes(-1));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            servicio.RestablecerPasswordAsync(new RestablecerPasswordDto
+            {
+                Email = usuario.Email, Codigo = usuario.CodigoRecuperacion!, NuevaPassword = "Nueva1234"
+            }));
+
+        Assert.Equal(hashInicial, usuario.PasswordHash);
+    }
+
+    [Fact]
+    public async Task RF_CA_11_RestablecerConCodigoValido_GuardaHashYActualizaFechaDeCambio()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "hash@test.com");
+        var fechaInicial = usuario.FechaUltimoCambioPassword;
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = usuario.Email });
+
+        await servicio.RestablecerPasswordAsync(new RestablecerPasswordDto
+        {
+            Email = usuario.Email, Codigo = usuario.CodigoRecuperacion!, NuevaPassword = "Nueva1234"
+        });
+
+        Assert.NotEqual("Nueva1234", usuario.PasswordHash);
+        Assert.True(ClaveValida(usuario, "Nueva1234"));
+        Assert.False(ClaveValida(usuario, "Clave1234"));
+        // RF-CA-12: OnTokenValidated compara esta fecha con la emisión del JWT.
+        Assert.NotEqual(fechaInicial, usuario.FechaUltimoCambioPassword);
+    }
+
+    [Fact]
+    public async Task RF_CA_13_ForzarRestablecimiento_RevocaClaveYGeneraCodigo()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "forzado@test.com");
+        var fechaInicial = usuario.FechaUltimoCambioPassword;
+
+        await servicio.ForzarRestablecimientoPasswordAsync(usuario.Id);
+
+        Assert.False(ClaveValida(usuario, "Clave1234"));
+        Assert.NotEqual(fechaInicial, usuario.FechaUltimoCambioPassword);
+        Assert.NotNull(usuario.CodigoRecuperacion);
+        var restablecimientos = contexto.CorreosEnCola
+            .Where(c => c.Asunto.Contains("Restablecimiento")).ToList();
+        Assert.Single(restablecimientos);
+        Assert.Contains(usuario.CodigoRecuperacion!, restablecimientos[0].Cuerpo);
+    }
+
+    [Fact]
+    public async Task RF_CA_22_CambiarPassword_VerificaLaClaveActualYActualizaLaFecha()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "cambio@test.com");
+        var fechaInicial = usuario.FechaUltimoCambioPassword;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            servicio.CambiarPasswordAsync(usuario.Id, new CambiarPasswordDto
+            {
+                PasswordActual = "Incorrecta1", NuevaPassword = "Nueva1234"
+            }));
+        Assert.True(ClaveValida(usuario, "Clave1234"));
+
+        await servicio.CambiarPasswordAsync(usuario.Id, new CambiarPasswordDto
+        {
+            PasswordActual = "Clave1234", NuevaPassword = "Nueva1234"
+        });
+
+        Assert.True(ClaveValida(usuario, "Nueva1234"));
+        Assert.False(ClaveValida(usuario, "Clave1234"));
+        Assert.NotEqual(fechaInicial, usuario.FechaUltimoCambioPassword);
     }
 }

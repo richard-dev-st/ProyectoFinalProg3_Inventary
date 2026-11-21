@@ -3,7 +3,8 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama actual:** `main`, alineada con `origin/main` en `3746eb5` (merge del PR #24)
+**Rama actual:** `feat/frontend-contrasenas-recuperacion-cambio`; `main`/`origin/main` en `7dad508`
+(dos commits de documentación posterior al PR #24)
 **Estado vigente:** ver **§0**. Las secciones §1–§10 son el corte histórico de la Práctica 5
 (19–20/11/2026); donde digan otra cosa (79/62 pruebas, frontend «no iniciado», etc.), prevalece §0.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
@@ -28,7 +29,8 @@
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
-| UI de recuperación de contraseña | ⬜ Pendiente (el backend ya existe) |
+| Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y pusheado en `feat/frontend-contrasenas-recuperacion-cambio`; PR #25 pendiente de apertura (el navegador no tiene sesión de GitHub) |
+| Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ⬜ Pendientes (cobertura solo indirecta) |
 
@@ -37,19 +39,21 @@
 ```powershell
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 86/86 (12 + 56 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 92/92 (12 + 62 + 18)
 ```
 
 ### Rutas del frontend que ya existen
 
-`/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/admin/usuarios`,
-`/acceso-denegado`, `/` (Home con email/rol y logout). El menú muestra «Iniciar sesión» y
-«Registrarse» sin autenticar, y «Usuarios» solo con `<AuthorizeView Roles="Administrador">`.
+`/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
+`/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/acceso-denegado`, `/`
+(Home con email/rol y logout). El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar;
+con sesión, «Cambiar contraseña» y «Usuarios» solo con `<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
-`AuthService` (login, `me`, logout, registro, activación, reenvío), `AdminUsuariosServices`
-(listado, cambio de rol y estado), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
+`AuthService` (login, `me`, logout, registro, activación, reenvío, recuperación,
+restablecimiento y cambio de clave), `AdminUsuariosServices` (listado, cambio de rol y estado,
+forzado de restablecimiento), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
 **por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
@@ -59,13 +63,17 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 - Las mutaciones de admin devuelven `204` sin cuerpo: no hacer `ReadFromJsonAsync`.
 - Un Estándar recibe `403` con cuerpo vacío; un token inactivo/revocado, `401` sin cuerpo.
 - Cambiar el rol en BD exige **cerrar sesión y volver a entrar** para regenerar el claim.
+- Tras cambiar/restablecer la clave, `FechaUltimoCambioPassword` invalida el JWT actual: el
+  frontend cierra la sesión local y **no** llama a `logout` con ese token.
+- `solicitar-recuperacion` siempre responde `200`; el frontend muestra un texto genérico fijo.
+  `cambiar-password` responde `404` con `{ mensaje }` cuando la clave actual es incorrecta.
 - No hay administrador sembrado: promover un usuario activo con
   `UPDATE Usuarios SET Rol = 'Administrador', Activo = 1 WHERE Email = '…';` (en `InventarioBP4`).
 - `README.Docker.md` está sin versionar: no agregarlo.
 
 ### Cómo retomar
 
-1. Leer §0 y el README (secciones de registro/activación y roles/administración).
+1. Leer §0 y el README (secciones de registro/activación, roles/administración y contraseñas).
 2. Verificar build + `dotnet test` antes de tocar código.
 3. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia este handoff.
 
