@@ -29,7 +29,7 @@
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
-| Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado en la rama de contraseñas (sin PR) |
+| Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y pusheado en `feat/frontend-contrasenas-recuperacion-cambio`; PR #25 pendiente de apertura (el navegador no tiene sesión de GitHub) |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ⬜ Pendientes (cobertura solo indirecta) |
