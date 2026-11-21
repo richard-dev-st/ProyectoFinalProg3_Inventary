@@ -35,9 +35,22 @@ namespace Core.Domain.Entities
                 throw new InvalidOperationException("El permiso solicitado es obligatorio.");
             }
 
+            // Hallazgo 3: no se puede guardar un valor que no cabe en la columna.
+            permiso = permiso.Trim();
+            if (permiso.Length > 100)
+            {
+                throw new InvalidOperationException("El permiso no puede superar los 100 caracteres.");
+            }
+
+            descripcion ??= string.Empty;
+            if (descripcion.Length > 500)
+            {
+                throw new InvalidOperationException("La descripción no puede superar los 500 caracteres.");
+            }
+
             Id = Guid.NewGuid();
             SolicitanteUsuarioId = solicitanteUsuarioId;
-            Permiso = permiso.Trim();
+            Permiso = permiso;
             Descripcion = descripcion;
             CreadoEn = DateTime.UtcNow;
         }
@@ -61,6 +74,11 @@ namespace Core.Domain.Entities
             if (string.IsNullOrWhiteSpace(motivo))
             {
                 throw new InvalidOperationException("El motivo de rechazo es obligatorio.");
+            }
+            // Hallazgo 3: el motivo se guarda en nvarchar(500).
+            if (motivo.Length > 500)
+            {
+                throw new InvalidOperationException("El motivo de rechazo no puede superar los 500 caracteres.");
             }
             if(SolicitanteUsuarioId == resueltoPorUsuarioId)
             {
