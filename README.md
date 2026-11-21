@@ -147,20 +147,43 @@ Recorrido manual:
 5. Vuelve a abrir el enlace: debe mostrar el error de token ya usado o vencido (RF-CA-16).
 6. En `/reenviar-activacion`, prueba con un correo existente y con otro inexistente: el mensaje es el mismo en ambos casos (RF-CA-17) y el enlace anterior deja de funcionar.
 
+## Frontend — contraseñas: recuperación, cambio y restablecimiento (RF-CA-09/10/11/12/13/22)
+
+El frontend añade tres páginas:
+
+| Ruta | Acción |
+|---|---|
+| `/recuperar-password` | Pide el correo y llama a `POST /api/auth/solicitar-recuperacion`. Muestra siempre el mismo mensaje, exista o no el correo (RF-CA-09). |
+| `/restablecer-password` | Recibe correo, código de 6 dígitos y nueva clave; llama a `POST /api/auth/restablecer-password` (RF-CA-10/11). |
+| `/cambiar-password` | Privada. Pide la clave actual y la nueva; llama a `POST /api/auth/cambiar-password` con el JWT (RF-CA-22). |
+
+El enlace «¿Olvidaste tu contraseña?» está en `/login`; «Cambiar contraseña» está en el menú y en `/` para usuarios con sesión. En `/admin/usuarios` cada fila ajena tiene «Forzar restablecimiento» (RF-CA-13); la fila propia no lo tiene para no invalidar la sesión del administrador, igual que el botón «Desactivar».
+
+Tras un cambio o restablecimiento correcto, `AuthService` cierra la sesión local **sin** llamar a `logout` con un token que ya quedó invalidado por `FechaUltimoCambioPassword` (RF-CA-12). El código de recuperación viaja por `CorreosEnCola` y se lee en `docker compose logs worker` con `[FALLBACK CORREO]` cuando no hay SMTP.
+
+Recorrido manual:
+
+1. Desde `/login`, pulsa «¿Olvidaste tu contraseña?», escribe un correo registrado y otro inexistente: el mensaje es idéntico (RF-CA-09).
+2. Copia el código de 6 dígitos del log del worker, abre el enlace «Tengo el código» y define una clave con letras y números (RF-CA-10/11).
+3. Reutiliza el mismo código en otra cuenta o refresca y vuelve a enviarlo: la API rechaza el código usado y la clave no cambia (RF-CA-10).
+4. Entra con la nueva clave desde una ventana donde antes había una sesión abierta: la sesión antigua ya no sirve (RF-CA-12).
+5. Con sesión, abre `/cambiar-password`: una clave actual incorrecta se rechaza; la correcta actualiza el hash, cierra la sesión y obliga a entrar de nuevo (RF-CA-22).
+6. Como Administrador, en `/admin/usuarios` pulsa «Forzar restablecimiento» sobre otro usuario: su clave anterior deja de servir, recibe un código por la cola y tu propia sesión sigue activa (RF-CA-13).
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
 |---|---|---|
 | RF-CA-03 | `POST /api/Auth/Login` con usuario inexistente | Mensaje genérico, no revela si el correo existe |
 | RF-CA-05/08 | `GET/PUT /api/admin/usuarios`, `PUT .../{id}/rol` con token Administrador | 200; con rol Estandar → 403 |
-| RF-CA-09 | `POST /api/Auth/solicitar-recuperacion` | Respuesta genérica exista o no el correo |
-| RF-CA-10/11/12 | `POST /api/Auth/restablecer-password` con código | Cambia la contraseña; invalida sesiones previas |
-| RF-CA-13 | `POST /api/Auth/{id}/forzar-restablecimiento` (Administrador) | 200; sin rol Administrador → 401/403 |
-| RF-CA-14 | `POST /api/Auth/registrar` con clave débil | 400 (política de contraseña) |
+| RF-CA-09 | `/recuperar-password` → `POST /api/Auth/solicitar-recuperacion` | Respuesta genérica exista o no el correo |
+| RF-CA-10/11/12 | `/restablecer-password` → `POST /api/Auth/restablecer-password` con código | Cambia la contraseña; invalida sesiones previas |
+| RF-CA-13 | `/admin/usuarios` → `POST /api/Auth/{id}/forzar-restablecimiento` | 200; sin rol Administrador → 401/403; la fila propia no tiene el botón |
+| RF-CA-14 | `/registrar`, `/cambiar-password`, `/restablecer-password` | La política se valida en el formulario y en la API |
 | RF-CA-18 | `POST /api/Auth/logout` y reusar el token | El token revocado es rechazado |
 | RF-CA-19 | 5 logins fallidos seguidos | Bloqueo 15 min |
 | RF-CA-20 | `PUT /api/admin/usuarios/{id}/estado` desactivar | Sesión abierta deja de ser válida; no se puede autodesactivar |
-| RF-CA-22 | `POST /api/Auth/cambiar-password` con sesión | Cambia la clave y expira el token actual |
+| RF-CA-22 | `/cambiar-password` → `POST /api/Auth/cambiar-password` con sesión | Cambia la clave y expira el token actual |
 | RF-NEG-03/04/05 | Transiciones en `OrdenCompra` | Prohibidas lanzan error; `Recibida`/`Cancelada` son terminales |
 | RD-04 | `Business.Inventory/Entities/OrdenCompra.cs` | Transiciones declaradas en un solo lugar |
 | RD-06 | `[Authorize(Roles = "Administrador")]` en acciones destructivas | 403 sin el rol |
