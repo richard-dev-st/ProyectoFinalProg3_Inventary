@@ -8,6 +8,9 @@ namespace Inventario.Web.Services
 {
     public class AuthService
     {
+        private const string MensajeReenvio =
+            "Si el correo está registrado y no ha sido activado, se ha enviado un nuevo enlace de activación.";
+
         private readonly HttpClient _httpClient;
         private readonly SesionActual _sesionActual;
 
@@ -17,21 +20,47 @@ namespace Inventario.Web.Services
             _sesionActual = sesionActual;
         }
 
+        public async Task<(bool Ok, string Mensaje)> RegistrarAsync(RegistroRequest request, string baseUrl)
+        {
+            // RF-CA-15: la API exige este campo aunque después usa su URL configurada.
+            request.BaseUrl = baseUrl;
+            var response = await _httpClient.PostAsJsonAsync("api/auth/registrar", request);
+            return await LeerRespuestaApiAsync(response, "No se pudo completar el registro.");
+        }
+
+        public async Task<(bool Ok, string Mensaje)> ActivarAsync(string token)
+        {
+            var response = await _httpClient.GetAsync($"api/auth/activar?token={Uri.EscapeDataString(token)}");
+            return await LeerRespuestaApiAsync(response, "No se pudo activar la cuenta.");
+        }
+
+        public async Task<string> ReenviarActivacionAsync(string email)
+        {
+            try
+            {
+                await _httpClient.PostAsync(
+                    $"api/auth/reenviar-activacion?email={Uri.EscapeDataString(email)}",
+                    content: null);
+            }
+            catch (HttpRequestException)
+            {
+                // RF-CA-17: ni un fallo de red debe revelar si el correo existe.
+            }
+
+            return MensajeReenvio;
+        }
+
         public async Task<(bool Ok, string Error)> LoginAsync(LoginRequest request)
         {
-            //Implementamos la logica
             var response = await _httpClient.PostAsJsonAsync("api/auth/login", request);
-            //Si la respuesta da error, retornamos false
             if (!response.IsSuccessStatusCode)
             {
                 return (false, await LeerErrorAsync(response));
             }
-            //Si responde 200, leemos el token
-            //Este bloque hace que el contenido de la respuesta se lea como un objeto de tipo LoginResponse
+
             var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
             if (loginResponse is null) return (false, "Respuesta inesperada del servidor");
 
-            //Guarda en memoria y en session storage los datos de la sesión actual
             await _sesionActual.IniciarAsync(loginResponse.Token, loginResponse.Email, loginResponse.Rol, loginResponse.Expiracion);
             return (true, string.Empty);
         }
@@ -42,11 +71,9 @@ namespace Inventario.Web.Services
             {
                 return null;
             }
-            //Hacemos la solicitud para obtener los datos del usuario actual
-            using var request = new HttpRequestMessage(HttpMethod.Get, "api/auth/me");
 
-            //Agregamos el token al encabezado de autorización
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _sesionActual.Token);
+            using var request = new HttpRequestMessage(HttpMethod.Get, "api/auth/me");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _sesionActual.Token);
 
             var response = await _httpClient.SendAsync(request);
 
@@ -56,13 +83,11 @@ namespace Inventario.Web.Services
                 return null;
             }
 
-            //Si la respuesta da error, retornamos null
             if (!response.IsSuccessStatusCode)
             {
                 return null;
             }
 
-            //Si responde 200, leemos los datos del usuario actual
             return await response.Content.ReadFromJsonAsync<UsuarioSesion>();
         }
 
@@ -80,25 +105,45 @@ namespace Inventario.Web.Services
 
         private static async Task<string> LeerErrorAsync(HttpResponseMessage response)
         {
+            var (_, mensaje) = await LeerRespuestaApiAsync(response, "No se pudo iniciar sesión.");
+            return mensaje;
+        }
+
+        private static async Task<(bool Ok, string Mensaje)> LeerRespuestaApiAsync(
+            HttpResponseMessage response,
+            string mensajePorDefecto)
+        {
             try
             {
                 var json = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(json);
+                var raiz = doc.RootElement;
 
-                foreach (var clave in new[] {"detail", "message", "mensaje", "title", "error" })
+                // RF-CA-01/14/15/16: la API responde { exito, mensaje } también en los errores.
+                if (raiz.TryGetProperty("exito", out var exito)
+                    && exito.ValueKind is JsonValueKind.True or JsonValueKind.False
+                    && raiz.TryGetProperty("mensaje", out var mensaje)
+                    && mensaje.ValueKind == JsonValueKind.String)
                 {
-                    if(doc.RootElement.TryGetProperty(clave, out var valor) && valor.ValueKind == JsonValueKind.String)
+                    return (response.IsSuccessStatusCode && exito.GetBoolean(), mensaje.GetString()!);
+                }
+
+                foreach (var clave in new[] { "detail", "message", "mensaje", "title", "error" })
+                {
+                    if (raiz.TryGetProperty(clave, out var valor) && valor.ValueKind == JsonValueKind.String)
                     {
-                        return valor.GetString()!;
+                        return (response.IsSuccessStatusCode, valor.GetString()!);
                     }
                 }
             }
-            catch
+            catch (JsonException)
             {
-                return $"Error inesperado: {response.StatusCode}";
+                // Cuerpo no JSON: se usa el mensaje por defecto.
             }
 
-            return "No se pudo iniciar sesión.";
+            return (false, response.IsSuccessStatusCode
+                ? mensajePorDefecto
+                : $"Error inesperado: {(int)response.StatusCode}");
         }
     }
 }

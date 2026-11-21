@@ -27,6 +27,7 @@ services:
       JwtSettings__Issuer: ProyectoFinalProg3_Inventory
       JwtSettings__Audience: ProyectoFinalProg3_Inventory
       Documentos__RutaBase: /app/uploads
+      Frontend__BaseUrl: ${FRONTEND_BASE_URL:-http://localhost:5299}
       EmailSettings__SmtpServer: ${SMTP_SERVER}
       EmailSettings__SmtpPort: ${SMTP_PORT}
       EmailSettings__SenderEmail: ${SMTP_USER}
