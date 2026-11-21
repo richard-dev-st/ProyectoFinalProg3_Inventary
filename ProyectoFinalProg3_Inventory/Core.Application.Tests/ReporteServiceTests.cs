@@ -250,6 +250,30 @@ public class ReporteServiceTests
         Assert.Equal(30m, ordenes.MontoTotalUsd);
     }
 
+    // Auditoría (caso no cubierto): un rango sin registros devuelve ceros, no error.
+    [Fact]
+    public async Task RF_REP_05_RangoSinDatos_DevuelveCero()
+    {
+        using var context = CreateContext();
+        var usuario = CrearUsuario("sin-datos@test.com");
+        context.Usuarios.Add(usuario);
+        context.Proveedores.Add(new Proveedor { Nombre = "Proveedor Sin Datos" });
+        await context.SaveChangesAsync();
+
+        var servicio = new ReporteService(context);
+        var desde = new DateTime(2030, 1, 1);
+        var hasta = new DateTime(2030, 12, 31);
+
+        var solicitudes = await servicio.ObtenerSolicitudesAsync(usuario.Id, esAdministrador: true, desde, hasta);
+        var ordenes = await servicio.ObtenerOrdenesAsync(usuario.Id, esAdministrador: true, desde, hasta);
+
+        Assert.Equal(0, solicitudes.Total);
+        Assert.Empty(solicitudes.Grupos);
+        Assert.Equal(0, ordenes.TotalOrdenes);
+        Assert.Equal(0m, ordenes.MontoTotalUsd);
+        Assert.Empty(ordenes.Grupos);
+    }
+
     [Fact]
     public async Task RF_REP_05_RangoInvertido_LanzaInvalidOperation()
     {

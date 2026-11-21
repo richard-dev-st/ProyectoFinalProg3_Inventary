@@ -39,6 +39,23 @@ public class SolicitudPermisoServiceTests
         Assert.Single(context.SolicitudesPermiso);
     }
 
+    // Auditoría (caso no cubierto): una entrada vacía se rechaza antes de persistir.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RF_GP_01_PermisoVacio_SeRechaza(string permisoVacio)
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("vacio@dominio.com", "afafasdfefdsfdsf");
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearAsync(usuario.Id, permisoVacio, "Descripción válida."));
+        Assert.Empty(context.SolicitudesPermiso);
+    }
+
     // Hallazgo 3: el permiso no puede superar el tamaño de la columna (nvarchar(100)).
     [Fact]
     public async Task RF_GP_01_PermisoFueraDeRango_SeRechaza()

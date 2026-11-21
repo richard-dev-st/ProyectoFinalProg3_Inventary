@@ -37,6 +37,28 @@ public class NotificacionServiceTests
         return usuario;
     }
 
+    // Auditoría (caso no cubierto): sin ningún Administrador activo la solicitud se
+    // guarda igual y no se crea ninguna notificación ni correo.
+    [Fact]
+    public async Task RF_NOT_01_SinAdministradoresActivos_GuardaSolicitudSinNotificar()
+    {
+        using var context = CreateContext();
+        var adminInactivo = CrearUsuario("admin-inactivo@test.com", RolUsuario.Administrador, activo: false);
+        var estandar = CrearUsuario("estandar-sin-admin@test.com");
+        context.Usuarios.AddRange(adminInactivo, estandar);
+        await context.SaveChangesAsync();
+
+        var notificaciones = new NotificacionService(context);
+        var solicitudes = new SolicitudPermisoService(context, notificaciones);
+
+        var solicitud = await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Sin administradores.");
+
+        Assert.Equal(1, await context.SolicitudesPermiso.CountAsync());
+        Assert.Equal(0, await context.Notificaciones.CountAsync());
+        Assert.Equal(0, await context.CorreosEnCola.CountAsync());
+        Assert.Equal(Core.Domain.Entities.Enums.EstadoSolicitudPermiso.Pendiente, solicitud.Estado);
+    }
+
     // RF-NOT-01: solo los Administradores activos reciben la notificación.
     [Fact]
     public async Task RF_NOT_01_CrearSolicitud_NotificaSoloAdministradoresActivos()
