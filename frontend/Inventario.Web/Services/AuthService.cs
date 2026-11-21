@@ -11,6 +11,10 @@ namespace Inventario.Web.Services
         private const string MensajeReenvio =
             "Si el correo está registrado y no ha sido activado, se ha enviado un nuevo enlace de activación.";
 
+        // RF-CA-09: texto fijo para no revelar si el correo está registrado.
+        private const string MensajeRecuperacion =
+            "Si el correo está registrado y activo, se ha enviado un código de recuperación.";
+
         private readonly HttpClient _httpClient;
         private readonly SesionActual _sesionActual;
 
@@ -48,6 +52,38 @@ namespace Inventario.Web.Services
             }
 
             return MensajeReenvio;
+        }
+
+        public async Task<string> SolicitarRecuperacionAsync(string email)
+        {
+            try
+            {
+                await _httpClient.PostAsJsonAsync(
+                    "api/auth/solicitar-recuperacion",
+                    new SolicitarRecuperacionRequest { Email = email });
+            }
+            catch (HttpRequestException)
+            {
+                // RF-CA-09: un fallo de red tampoco debe revelar si el correo existe.
+            }
+
+            return MensajeRecuperacion;
+        }
+
+        public async Task<(bool Ok, string Mensaje)> RestablecerPasswordAsync(RestablecerPasswordRequest request)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/auth/restablecer-password", request);
+            var (ok, mensaje) = await LeerRespuestaApiAsync(
+                response, "No se pudo restablecer la contraseña.");
+
+            if (ok)
+            {
+                // RF-CA-12: las sesiones anteriores dejan de ser válidas.
+                if (_sesionActual.Autenticado) await _sesionActual.CerrarAsync();
+                return (true, "Contraseña restablecida. Inicia sesión con la nueva contraseña.");
+            }
+
+            return (false, mensaje);
         }
 
         public async Task<(bool Ok, string Error)> LoginAsync(LoginRequest request)
@@ -101,6 +137,37 @@ namespace Inventario.Web.Services
             }
 
             await _sesionActual.CerrarAsync();
+        }
+
+        public async Task<(bool Ok, string Mensaje)> CambiarPasswordAsync(CambiarPasswordRequest request)
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/auth/cambiar-password")
+            {
+                Content = JsonContent.Create(new
+                {
+                    request.PasswordActual,
+                    request.NuevaPassword
+                })
+            };
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _sesionActual.Token);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                await _sesionActual.CerrarAsync();
+                return (false, "Tu sesión no es válida. Inicia sesión de nuevo.");
+            }
+
+            // RF-CA-22: la API responde 404 con { mensaje } si la contraseña actual es incorrecta.
+            var (ok, mensaje) = await LeerRespuestaApiAsync(response, "No se pudo cambiar la contraseña.");
+            if (ok)
+            {
+                // RF-CA-12: el token usado deja de servir; no se envía logout con él.
+                await _sesionActual.CerrarAsync();
+                return (true, "Contraseña actualizada. Inicia sesión de nuevo.");
+            }
+
+            return (false, mensaje);
         }
 
         private static async Task<string> LeerErrorAsync(HttpResponseMessage response)

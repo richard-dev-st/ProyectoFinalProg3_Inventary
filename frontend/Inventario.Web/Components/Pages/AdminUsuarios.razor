@@ -46,6 +46,10 @@ else
                         </button>
                         @if (!EsPropio(usuario))
                         {
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    @onclick="() => ForzarRestablecimiento(usuario)">
+                                Forzar restablecimiento
+                            </button>
                             <button class="btn btn-sm @(usuario.Activo ? "btn-warning" : "btn-success")"
                                     @onclick="() => CambiarEstado(usuario)">
                                 @(usuario.Activo ? "Desactivar" : "Reactivar")
@@ -115,5 +119,13 @@ else
         mensaje = ok ? (usuario.Activo ? "Usuario desactivado." : "Usuario reactivado.") : null;
         error = ok ? null : msg;
         if (ok) await CargarAsync();
+    }
+
+    // RF-CA-13: el botón se oculta en la fila propia para no invalidar la sesión del administrador.
+    private async Task ForzarRestablecimiento(UsuarioAdmin usuario)
+    {
+        var (ok, msg) = await Admin.ForzarRestablecimientoAsync(usuario.Id);
+        mensaje = ok ? $"Se envió un código de restablecimiento a {usuario.Email}." : null;
+        error = ok ? null : msg;
     }
 }
