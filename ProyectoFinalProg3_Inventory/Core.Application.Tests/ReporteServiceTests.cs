@@ -181,6 +181,36 @@ public class ReporteServiceTests
         Assert.Equal(2, reporte.Total);
     }
 
+    // Hallazgo 1: `hasta=9999-12-31` (el último día representable) desborda al sumar un día.
+    [Fact]
+    public async Task RF_REP_05_HastaFechaMaxima_NoDesborda()
+    {
+        using var context = CreateContext();
+        var usuario = CrearUsuario("maxima@test.com");
+        var proveedor = new Proveedor { Nombre = "Proveedor Máximo" };
+        context.Usuarios.Add(usuario);
+        context.Proveedores.Add(proveedor);
+        await context.SaveChangesAsync();
+
+        var solicitud = new SolicitudPermiso(usuario.Id, "p1", "d1");
+        context.SolicitudesPermiso.Add(solicitud);
+        var orden = NuevaOrden(proveedor.Id, 25m, EstadoOrden.Aprobada, new DateTime(9999, 12, 31, 12, 0, 0));
+        context.OrdenesCompra.Add(orden);
+        await context.SaveChangesAsync();
+
+        var fechaMaxima = new DateTime(9999, 12, 31);
+        var servicio = new ReporteService(context);
+
+        var solicitudes = await servicio.ObtenerSolicitudesAsync(
+            usuario.Id, esAdministrador: true, new DateTime(2026, 1, 1), fechaMaxima);
+        var ordenes = await servicio.ObtenerOrdenesAsync(
+            usuario.Id, esAdministrador: true, new DateTime(2026, 1, 1), fechaMaxima);
+
+        Assert.Equal(1, solicitudes.Total);
+        Assert.Equal(1, ordenes.TotalOrdenes);
+        Assert.Equal(25m, ordenes.MontoTotalUsd);
+    }
+
     // RF-REP-05: `hasta=AAAA-MM-DD` incluye todo ese día, no solo la medianoche.
     [Fact]
     public async Task RF_REP_05_HastaFecha_IncluyeTodoElDia()
