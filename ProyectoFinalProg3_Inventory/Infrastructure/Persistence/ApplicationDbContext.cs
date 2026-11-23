@@ -27,6 +27,9 @@ namespace Infrastructure.Persistence
         public DbSet<Documento> Documentos { get; set; }
         public DbSet<Notificacion> Notificaciones { get; set; }
 
+        //Historial de auditoría (RF-AUD-01..07)
+        public DbSet<RegistroAuditoria> Auditoria { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -169,6 +172,20 @@ namespace Infrastructure.Persistence
                       .WithMany()
                       .HasForeignKey(d => d.SubidoPorUsuarioId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RegistroAuditoria>(entity =>
+            {
+                entity.ToTable("Auditoria");
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.UsuarioEmail).IsRequired().HasMaxLength(150);
+                entity.Property(r => r.Accion).IsRequired().HasMaxLength(30);
+                entity.Property(r => r.Entidad).IsRequired().HasMaxLength(60);
+                entity.Property(r => r.EntidadId).IsRequired().HasMaxLength(50);
+                entity.HasIndex(r => r.UsuarioId);
+                entity.HasIndex(r => r.Entidad);
+                entity.HasIndex(r => r.FechaHoraUtc);
+                //Sin FK a Usuarios: el historial no debe depender de que el usuario exista.
             });
         }
     }

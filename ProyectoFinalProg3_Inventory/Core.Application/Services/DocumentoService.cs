@@ -1,11 +1,13 @@
-﻿using Application.DTOs.Documentos;
+using Application.DTOs.Documentos;
 using Application.Interfaces;
+using Core.Domain.Constants;
 using Core.Domain.Entities;
 using Core.Domain.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 
 namespace Application.Services
 {
@@ -18,11 +20,13 @@ namespace Application.Services
 
         private readonly IApplicationDbContext _context;
         private readonly IAlmacenDocumentos _almacen;
+        private readonly IAuditoriaService _auditoria;
 
-        public DocumentoService(IApplicationDbContext context, IAlmacenDocumentos almacen)
+        public DocumentoService(IApplicationDbContext context, IAlmacenDocumentos almacen, IAuditoriaService auditoria)
         {
             _context = context;
             _almacen = almacen;
+            _auditoria = auditoria;
         }
 
         public async Task<DocumentoDescargaDto> DescargarDocumentoAsync(Guid id, Guid usuarioId)
@@ -44,7 +48,30 @@ namespace Application.Services
 
             if (documento.SubidoPorUsuarioId != usuarioId && !await EsAdministradorAsync(usuarioId)) throw new UnauthorizedAccessException("No puedes eliminar un documento que no te pertenece.");
 
+            // RF-AUD-03: el actor es quien elimina (dueño o administrador).
+            var usuario = await _context.Usuarios.FindAsync(usuarioId)
+                ?? throw new UnauthorizedAccessException("Usuario no válido.");
+
+            // RF-AUD-03: valor anterior antes de marcar como eliminado.
+            var valorAnterior = JsonSerializer.Serialize(new { documento.EsEliminado });
+
             documento.Eliminar();
+
+            var valorNuevo = JsonSerializer.Serialize(new
+            {
+                documento.EsEliminado,
+                documento.FechaEliminacion
+            });
+
+            _context.Auditoria.Add(_auditoria.Preparar(
+                usuario.Id,
+                usuario.Email,
+                AccionesAuditoria.Eliminar,
+                EntidadesAuditoria.Documento,
+                documento.Id.ToString(),
+                valorAnterior,
+                valorNuevo));
+
             await _context.SaveChangesAsync();
         }
 
@@ -112,6 +139,24 @@ namespace Application.Services
             try
             {
                 _context.Documentos.Add(documento);
+
+                // RF-AUD-03: la subida se audita en la misma unidad de trabajo (sin valor anterior).
+                var valorNuevo = JsonSerializer.Serialize(new
+                {
+                    documento.NombreOriginal,
+                    documento.TipoContenido,
+                    documento.TamanioBytes
+                });
+
+                _context.Auditoria.Add(_auditoria.Preparar(
+                    usuario.Id,
+                    usuario.Email,
+                    AccionesAuditoria.Crear,
+                    EntidadesAuditoria.Documento,
+                    documento.Id.ToString(),
+                    null,
+                    valorNuevo));
+
                 await _context.SaveChangesAsync();
             }
             catch

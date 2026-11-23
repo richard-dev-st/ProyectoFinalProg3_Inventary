@@ -34,7 +34,8 @@ public class AuthServiceTests
             new PasswordService(),
             new JwtFalso(),
             new JwtSettings { ExpirationInHours = 8 },
-            new FrontendSettings { BaseUrl = baseUrlFrontend });
+            new FrontendSettings { BaseUrl = baseUrlFrontend },
+            new AuditoriaService(contexto));
     }
 
     private static RegistroRequestDto Registro(string email, string password)
@@ -275,7 +276,7 @@ public class AuthServiceTests
         var usuario = await CrearUsuarioActivoAsync(contexto, "forzado@test.com");
         var fechaInicial = usuario.FechaUltimoCambioPassword;
 
-        await servicio.ForzarRestablecimientoPasswordAsync(usuario.Id);
+        await servicio.ForzarRestablecimientoPasswordAsync(usuario.Id, usuario.Id);
 
         Assert.False(ClaveValida(usuario, "Clave1234"));
         Assert.NotEqual(fechaInicial, usuario.FechaUltimoCambioPassword);
@@ -309,5 +310,58 @@ public class AuthServiceTests
         Assert.True(ClaveValida(usuario, "Nueva1234"));
         Assert.False(ClaveValida(usuario, "Clave1234"));
         Assert.NotEqual(fechaInicial, usuario.FechaUltimoCambioPassword);
+    }
+
+    // RF-AUD-05: el restablecimiento propio se atribuye al dueño y no guarda secretos.
+    [Fact]
+    public async Task RF_AUD_05_RestablecerPropio_RegistraAuditoriaSinSecretos()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var usuario = await CrearUsuarioActivoAsync(contexto, "aud-propio@test.com");
+
+        await servicio.SolicitarRecuperacionPasswordAsync(
+            new SolicitarRecuperacionDto { Email = usuario.Email });
+        var codigo = usuario.CodigoRecuperacion!;
+
+        await servicio.RestablecerPasswordAsync(new RestablecerPasswordDto
+        {
+            Email = usuario.Email,
+            Codigo = codigo,
+            NuevaPassword = "Nueva1234"
+        });
+
+        var registro = Assert.Single(contexto.Auditoria);
+        Assert.Equal(usuario.Id, registro.UsuarioId);
+        Assert.Equal(usuario.Email, registro.UsuarioEmail);
+        Assert.Equal("RestablecerPassword", registro.Accion);
+        Assert.Equal("Usuario", registro.Entidad);
+        Assert.Equal(usuario.Id.ToString(), registro.EntidadId);
+        Assert.Contains("Propio", registro.ValorNuevo);
+        Assert.DoesNotContain(codigo, registro.ValorNuevo!);
+        Assert.DoesNotContain("Nueva1234", registro.ValorNuevo!);
+        Assert.DoesNotContain(usuario.PasswordHash, registro.ValorNuevo!);
+    }
+
+    // RF-AUD-05: cuando lo fuerza un admin, el actor del registro es el administrador.
+    [Fact]
+    public async Task RF_AUD_05_ForzarRestablecimiento_RegistraAlAdministradorComoActor()
+    {
+        using var contexto = CrearContexto();
+        var servicio = CrearServicio(contexto);
+        var admin = await CrearUsuarioActivoAsync(contexto, "admin-aud-forzar@test.com");
+        var usuario = await CrearUsuarioActivoAsync(contexto, "aud-forzado@test.com");
+
+        await servicio.ForzarRestablecimientoPasswordAsync(usuario.Id, admin.Id);
+
+        var registro = Assert.Single(contexto.Auditoria);
+        Assert.Equal(admin.Id, registro.UsuarioId);
+        Assert.Equal(admin.Email, registro.UsuarioEmail);
+        Assert.Equal("RestablecerPassword", registro.Accion);
+        Assert.Equal("Usuario", registro.Entidad);
+        Assert.Equal(usuario.Id.ToString(), registro.EntidadId);
+        Assert.Contains("Administrador", registro.ValorNuevo);
+        Assert.DoesNotContain(usuario.CodigoRecuperacion!, registro.ValorNuevo!);
+        Assert.DoesNotContain(usuario.PasswordHash, registro.ValorNuevo!);
     }
 }

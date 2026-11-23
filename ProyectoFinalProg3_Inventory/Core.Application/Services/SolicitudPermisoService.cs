@@ -1,10 +1,12 @@
-﻿using Application.DTOs.Permisos;
+using Application.DTOs.Permisos;
 using Application.Interfaces;
+using Core.Domain.Constants;
 using Core.Domain.Entities;
 using Core.Domain.Entities.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 
 namespace Application.Services
 {
@@ -12,11 +14,16 @@ namespace Application.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly INotificacionService _notificaciones;
+        private readonly IAuditoriaService _auditoria;
 
-        public SolicitudPermisoService(IApplicationDbContext context, INotificacionService notificaciones)
+        public SolicitudPermisoService(
+            IApplicationDbContext context,
+            INotificacionService notificaciones,
+            IAuditoriaService auditoria)
         {
             _context = context;
             _notificaciones = notificaciones;
+            _auditoria = auditoria;
         }
 
         public async Task<SolicitudPermiso?> AprobarAsync(Guid solicitudId, Guid usuarioId)
@@ -28,11 +35,39 @@ namespace Application.Services
                 return null;
             }
 
+            // RF-AUD-02: el actor es el administrador que resuelve.
+            var admin = await _context.Usuarios.FindAsync(usuarioId)
+                ?? throw new UnauthorizedAccessException("Usuario no válido.");
+
+            // RF-AUD-02: valor anterior antes de resolver.
+            var valorAnterior = JsonSerializer.Serialize(new
+            {
+                Estado = s.Estado.ToString(),
+                ResueltoPorUsuarioId = s.ResueltoPorUsuarioId
+            });
+
             var fecha = DateTime.UtcNow;
             s.Aprobar(usuarioId, fecha);
 
             // RF-GP-05: aplicar el cambio de permiso automaticamente en la misma transaccion
             _context.PermisosUsuario.Add(new PermisoUsuario(s.SolicitanteUsuarioId, s.Permiso, s.Id, fecha));
+
+            var valorNuevo = JsonSerializer.Serialize(new
+            {
+                Estado = s.Estado.ToString(),
+                ResueltoPorUsuarioId = s.ResueltoPorUsuarioId,
+                s.FechaResolucion
+            });
+
+            _context.Auditoria.Add(_auditoria.Preparar(
+                admin.Id,
+                admin.Email,
+                AccionesAuditoria.Aprobar,
+                EntidadesAuditoria.SolicitudPermiso,
+                s.Id.ToString(),
+                valorAnterior,
+                valorNuevo,
+                fecha));
 
             // RF-NOT-02: el solicitante sabe que fue aprobada. Hallazgo 2: se prepara en el
             // mismo contexto y se guarda junto con la resolución (una sola unidad de trabajo).
@@ -117,7 +152,37 @@ namespace Application.Services
                 return null;
             }
 
-            solicitud.Rechazar(usuarioId, motivo, DateTime.UtcNow);
+            // RF-AUD-02: el actor es el administrador que resuelve.
+            var admin = await _context.Usuarios.FindAsync(usuarioId)
+                ?? throw new UnauthorizedAccessException("Usuario no válido.");
+
+            // RF-AUD-02: valor anterior antes de resolver.
+            var valorAnterior = JsonSerializer.Serialize(new
+            {
+                Estado = solicitud.Estado.ToString(),
+                ResueltoPorUsuarioId = solicitud.ResueltoPorUsuarioId
+            });
+
+            var fecha = DateTime.UtcNow;
+            solicitud.Rechazar(usuarioId, motivo, fecha);
+
+            var valorNuevo = JsonSerializer.Serialize(new
+            {
+                Estado = solicitud.Estado.ToString(),
+                ResueltoPorUsuarioId = solicitud.ResueltoPorUsuarioId,
+                solicitud.MotivoRechazo,
+                solicitud.FechaResolucion
+            });
+
+            _context.Auditoria.Add(_auditoria.Preparar(
+                admin.Id,
+                admin.Email,
+                AccionesAuditoria.Rechazar,
+                EntidadesAuditoria.SolicitudPermiso,
+                solicitud.Id.ToString(),
+                valorAnterior,
+                valorNuevo,
+                fecha));
 
             // RF-NOT-02: el solicitante sabe que fue rechazada y por qué. Hallazgo 2:
             // rechazo y notificación se guardan juntos.

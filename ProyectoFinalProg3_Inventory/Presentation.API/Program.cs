@@ -106,12 +106,12 @@ builder.Services.AddAuthentication(options =>
                     return;
                 }
 
-                if(usuario.FechaUltimoCambioPassword.HasValue && context.SecurityToken != null)
+                if (usuario.FechaUltimoCambioPassword.HasValue && context.SecurityToken != null)
                 {
                     var fechaEmisionToken = context.SecurityToken.ValidFrom;
 
                     //Margen de 2 segundos para evitar desajustes de reloj
-                    if(fechaEmisionToken < usuario.FechaUltimoCambioPassword.Value.AddSeconds(-2))
+                    if (fechaEmisionToken < usuario.FechaUltimoCambioPassword.Value.AddSeconds(-2))
                     {
                         context.Fail("La contraseña fue cambiada. Debe iniciar sesión nuevamente.");
                         return;
@@ -150,6 +150,7 @@ builder.Services.AddScoped<ISolicitudPermisoService, SolicitudPermisoService>();
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
 builder.Services.AddScoped<ICorreoColaService, CorreoColaService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
 builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
@@ -180,7 +181,7 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation("Migraciones aplicadas correctamente");
             break;
         }
-        catch(Exception ex) when (intento < 10)
+        catch (Exception ex) when (intento < 10)
         {
             intento++;
             logger.LogWarning(ex, "SQL Server no disponible. Reintento {Intento}/10 en 5 s.", intento);

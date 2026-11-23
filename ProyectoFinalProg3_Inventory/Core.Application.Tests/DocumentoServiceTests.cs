@@ -44,7 +44,7 @@ public class DocumentoServiceTests
         await context.SaveChangesAsync();
 
         var almacen = new AlmacenEnMemoria();
-        var service = new DocumentoService(context, almacen);
+        var service = new DocumentoService(context, almacen, new AuditoriaService(context));
 
         //Act
         var resultado = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf"), usuario.Id);
@@ -71,7 +71,7 @@ public class DocumentoServiceTests
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
 
         var resultado = await service.SubirDocumentoAsync(CrearArchivo("notas.txt", tipoContenido: ""), usuario.Id);
 
@@ -89,7 +89,7 @@ public class DocumentoServiceTests
         await context.SaveChangesAsync();
 
         var almacen = new AlmacenEnMemoria();
-        var service = new DocumentoService(context, almacen);
+        var service = new DocumentoService(context, almacen, new AuditoriaService(context));
 
         var propio = await service.SubirDocumentoAsync(CrearArchivo("propio.pdf"), usuario1.Id);
         var ajeno = await service.SubirDocumentoAsync(CrearArchivo("ajeno.pdf"), usuario2.Id);
@@ -115,7 +115,7 @@ public class DocumentoServiceTests
         context.Usuarios.AddRange(usuario1, usuario2, admin);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
 
         await service.SubirDocumentoAsync(CrearArchivo("uno.pdf"), usuario1.Id);
         await service.SubirDocumentoAsync(CrearArchivo("dos.pdf"), usuario2.Id);
@@ -134,7 +134,7 @@ public class DocumentoServiceTests
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var subido = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf", contenido: "datos"), usuario.Id);
 
         var descarga = await service.DescargarDocumentoAsync(subido.Id, usuario.Id);
@@ -155,7 +155,7 @@ public class DocumentoServiceTests
         context.Usuarios.AddRange(duenio, intruso);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var subido = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf"), duenio.Id);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -172,7 +172,7 @@ public class DocumentoServiceTests
         context.Usuarios.AddRange(duenio, admin);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var subido = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf"), duenio.Id);
 
         var descarga = await service.DescargarDocumentoAsync(subido.Id, admin.Id);
@@ -189,7 +189,7 @@ public class DocumentoServiceTests
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var subido = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf"), usuario.Id);
 
         await service.EliminarDocumentoAsync(subido.Id, usuario.Id);
@@ -210,7 +210,7 @@ public class DocumentoServiceTests
         context.Usuarios.AddRange(duenio, intruso);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var subido = await service.SubirDocumentoAsync(CrearArchivo("informe.pdf"), duenio.Id);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -232,7 +232,7 @@ public class DocumentoServiceTests
         context.Documentos.Add(documento);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.DescargarDocumentoAsync(documento.Id, usuario.Id));
@@ -247,7 +247,7 @@ public class DocumentoServiceTests
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
         var archivo = new ArchivoEntrada("vacio.pdf", "application/pdf", 0, new MemoryStream());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -263,10 +263,55 @@ public class DocumentoServiceTests
         context.Usuarios.Add(usuario);
         await context.SaveChangesAsync();
 
-        var service = new DocumentoService(context, new AlmacenEnMemoria());
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.SubirDocumentoAsync(CrearArchivo("malware.exe"), usuario.Id));
+    }
+
+    // RF-AUD-03: subir un documento registra quién lo subió y qué archivo se creó.
+    [Fact]
+    public async Task RF_AUD_03_Subir_RegistraAuditoria()
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("aud-doc@dominio.com", "hash");
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
+
+        var documento = await service.SubirDocumentoAsync(CrearArchivo("auditoria.pdf"), usuario.Id);
+
+        var registro = Assert.Single(context.Auditoria);
+        Assert.Equal(usuario.Id, registro.UsuarioId);
+        Assert.Equal(usuario.Email, registro.UsuarioEmail);
+        Assert.Equal("Crear", registro.Accion);
+        Assert.Equal("Documento", registro.Entidad);
+        Assert.Equal(documento.Id.ToString(), registro.EntidadId);
+        Assert.Null(registro.ValorAnterior);
+        Assert.Contains("auditoria.pdf", registro.ValorNuevo);
+    }
+
+    // RF-AUD-03: eliminar registra el cambio de estado, sin eliminar el rastro.
+    [Fact]
+    public async Task RF_AUD_03_Eliminar_RegistraAuditoria()
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("aud-eliminar@dominio.com", "hash");
+        var documento = new Documento("plan.pdf", "plan.pdf", "application/pdf", 10, usuario.Id, DateTime.UtcNow);
+        context.Usuarios.Add(usuario);
+        context.Documentos.Add(documento);
+        await context.SaveChangesAsync();
+        var service = new DocumentoService(context, new AlmacenEnMemoria(), new AuditoriaService(context));
+
+        await service.EliminarDocumentoAsync(documento.Id, usuario.Id);
+
+        var registro = Assert.Single(context.Auditoria);
+        Assert.Equal(usuario.Id, registro.UsuarioId);
+        Assert.Equal("Eliminar", registro.Accion);
+        Assert.Equal("Documento", registro.Entidad);
+        Assert.Equal(documento.Id.ToString(), registro.EntidadId);
+        Assert.Contains("false", registro.ValorAnterior);
+        Assert.Contains("true", registro.ValorNuevo);
     }
 
     private sealed class AlmacenEnMemoria : IAlmacenDocumentos
