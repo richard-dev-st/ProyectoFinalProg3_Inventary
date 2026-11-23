@@ -271,10 +271,10 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 La suite cubre el dominio, la capa de aplicación (autenticación, permisos, documentos, notificaciones, cola de correos y reportes) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas y las reglas de creación, aprobación y rechazo).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 73 pruebas con EF Core InMemory:
-  - 13 de `AuthService` (registro/activación, login/logout y recuperación/cambio/restablecimiento de contraseña; RF-CA).
-  - 12 de `SolicitudPermisoService` (RF-GP-01..07, con los límites de `permiso`, `descripcion` y `motivo`).
-  - 12 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07).
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 89 pruebas con EF Core InMemory:
+  - 15 de `AuthService` (registro/activación, login/logout y recuperación/cambio/restablecimiento de contraseña; RF-CA, RF-AUD-05).
+  - 13 de `SolicitudPermisoService` (RF-GP-01..07, con los límites de `permiso`, `descripcion` y `motivo`, y RF-AUD-02).
+  - 14 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07, y RF-AUD-03).
   - 8 de `CurrencyApiTasaCambioService` (respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout).
   - 3 de `OrdenCompraService` (orden inexistente, conversión con redondeo y propagación del error externo).
   - 3 de `EmailService` (fallback a log con SMTP vacío, valores de ejemplo y destinatario inválido).
@@ -282,6 +282,8 @@ La suite cubre el dominio, la capa de aplicación (autenticación, permisos, doc
   - 2 de `NotificacionTransaccionTests` (el evento de negocio y la notificación se guardan en una sola unidad de trabajo).
   - 5 de `ProcesadorCorreos` (RF-NOT-08..13: reintentos, máximo de 3 y correo `Fallido`).
   - 8 de `ReporteService` (RF-REP-01..05, con rango sin datos, rango invertido y `hasta=9999-12-31`).
+   - 3 de `AdminUsuarioService` (RF-AUD-04: cambio de rol, desactivación y reactivación).
+   - 7 de `AuditoriaService` (RF-AUD-06/07 y RD-06/07: rechazo a Estándar, filtros, paginación, límites de fecha, inmutabilidad y filtros inválidos).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
@@ -292,7 +294,9 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 103` (12 de dominio + 73 de aplicación + 18 de `Bussiness.inventory.Tests`) en .NET 10. Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las de notificaciones comprueban el destinatario, el aislamiento entre usuarios, la preferencia de correo y que el evento y la notificación se persisten juntos; las de reportes comparan las agregaciones con la fuente y los extremos del rango de fechas. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 119` (12 de dominio + 89 de aplicación + 18 de `Bussiness.inventory.Tests`) en .NET 10. Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las de notificaciones comprueban el destinatario, el aislamiento entre usuarios, la preferencia de correo y que el evento y la notificación se persisten juntos; las de reportes comparan las agregaciones con la fuente y los extremos del rango de fechas. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+
+Las pruebas de auditoría cubren un caso por cada tipo de evento (RF-AUD-02 a 05) verificando **todos** los campos del registro —incluidos valor anterior y valor nuevo—, el rechazo al Estándar (RF-AUD-07/RD-06), la inmutabilidad del historial (RF-AUD-06), los filtros y su paginación (RF-AUD-07) y los rechazos controlados de filtros inválidos (RD-07). Todas son pruebas de dominio/aplicación con EF Core InMemory: no levantan la aplicación (RD-12) y son independientes entre sí.
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -1422,6 +1426,107 @@ catch { $_.Exception.Response.StatusCode.value__ }   # 400
 **Esperado:** cada rango produce totales distintos y coherentes con las fechas; un registro con
 fecha exactamente igual a `desde` o a `hasta` se incluye; `hasta < desde` responde `400` con un
 mensaje que explica el rango inválido.
+
+## Asignación 4 — Historial de auditoría (RF-AUD-01..07)
+
+La auditoría es la Pieza 6 del Core: guarda **quién cambió qué, cuándo y qué había antes**, igual que `git log` para el repositorio. La tabla `Auditoria` se crea con la migración `AgregarRegistroAuditoria` y la API la aplica al arrancar, así que el historial sobrevive a reinicios y a `docker compose down` sin `-v` (RD-09).
+
+### Decisiones de diseño
+
+| Decisión | Cómo se resolvió |
+|---|---|
+| Que no quede un cambio sin su registro | El caso de uso llama a `IAuditoriaService.Preparar(...)` y agrega el registro al **mismo `ApplicationDbContext`**. Hay un solo `SaveChangesAsync` para el cambio de negocio, la notificación y la auditoría. |
+| Valor anterior / nuevo | Se serializa con `System.Text.Json` un objeto anónimo con **solo los campos auditables** (por ejemplo `{ Estado, ResueltoPorUsuarioId }`), nunca la entidad completa. Así no se filtran `PasswordHash`, `CodigoRecuperacion` ni ningún otro secreto (RF-AUD-05). |
+| Que el Core no dependa del negocio (RD-03) | La entidad y las constantes viven en `Core.Domain`; el contrato y el servicio en `Core.Application`. No hay referencia a `Business.Inventory`. |
+| Inmutabilidad (RF-AUD-06) | `RegistroAuditoria` tiene `private set` y no existe DTO ni método de edición o borrado: `IAuditoriaService` solo expone `Preparar` y `ConsultarAsync`, y el controlador solo expone `GET /api/auditoria`. |
+| Fecha y hora (RD-11) | `DateTime.UtcNow`, el mismo criterio que `FechaSubida`, `FechaResolucion` y las demás marcas del sistema. Se persiste en `datetime2` y se devuelve en UTC. |
+
+### Qué se audita
+
+| RF | Evento | `Accion` | `Entidad` | Valor anterior → valor nuevo |
+|---|---|---|---|---|
+| 02 | Aprobar solicitud | `Aprobar` | `SolicitudPermiso` | Estado y resolutor → estado `Aplicada`, resolutor y fecha |
+| 02 | Rechazar solicitud | `Rechazar` | `SolicitudPermiso` | Estado y resolutor → estado `Rechazada`, motivo y fecha |
+| 03 | Subir documento | `Crear` | `Documento` | `null` → nombre, tipo y tamaño |
+| 03 | Eliminar documento | `Eliminar` | `Documento` | `EsEliminado: false` → `EsEliminado: true` y fecha |
+| 04 | Cambiar rol | `CambiarRol` | `Usuario` | Rol anterior → rol nuevo |
+| 04 | Desactivar / reactivar | `Desactivar` / `Reactivar` | `Usuario` | `Activo` anterior → `Activo` nuevo |
+| 05 | Restablecer propio | `RestablecerPassword` | `Usuario` | `PasswordRestablecida: false` → `true`, `IniciadoPor: "Propio"` |
+| 05 | Restablecer forzado por admin | `RestablecerPassword` | `Usuario` | `PasswordRestablecida: false` → `true`, `IniciadoPor: "Administrador"` |
+
+En las acciones de administrador, `UsuarioId`/`UsuarioEmail` son del **administrador que actuó** y `EntidadId` es el **usuario afectado**.
+
+### Cómo provocar cada evento
+
+Reutiliza `$base`, `Login` y `Api` de la [Preparación común](#preparación-común). No escribas contraseñas reales en este documento: usa marcadores.
+
+```powershell
+$adm  = Login 'admin1@inventario.test' '<password-admin>'
+$std  = Login 'estandar1@inventario.test' '<password>'
+$otro = Login 'estandar2@inventario.test' '<password>'
+$uidOtro = (Invoke-RestMethod "$base/api/auth/me" -Headers @{ Authorization = "Bearer $otro" }).id
+
+# RF-AUD-02: aprobar y rechazar solicitudes
+$s1 = Api Post '/api/solicitudes' $std @{ permiso='exportar-inventario'; descripcion='Auditoría: aprobar' }
+$s2 = Api Post '/api/solicitudes' $std @{ permiso='exportar-inventario'; descripcion='Auditoría: rechazar' }
+Api Post "/api/solicitudes/$($s1.id)/aprobar" $adm | Out-Null
+Api Post "/api/solicitudes/$($s2.id)/rechazar" $adm @{ motivo='No cumple los requisitos' } | Out-Null
+
+# RF-AUD-03: subir y eliminar documento (multipart/form-data)
+Set-Content "$env:TEMP\auditoria.txt" 'prueba de auditoría'
+$doc = Invoke-RestMethod "$base/api/documentos/subir" -Method Post `
+    -Headers @{ Authorization = "Bearer $std" } -Form @{ archivo = Get-Item "$env:TEMP\auditoria.txt" }
+Api Delete "/api/documentos/$($doc.id)" $std | Out-Null
+
+# RF-AUD-04: cambiar rol, desactivar y reactivar a otro usuario
+Api Put "/api/admin/usuarios/$uidOtro/rol" $adm @{ nuevoRol='Administrador' } | Out-Null
+Api Put "/api/admin/usuarios/$uidOtro/estado" $adm @{ activo=$false } | Out-Null
+Api Put "/api/admin/usuarios/$uidOtro/estado" $adm @{ activo=$true } | Out-Null
+
+# RF-AUD-05 propio: solicita el código en /api/auth/solicitar-recuperacion,
+# léelo en el log del worker (sección de contraseñas) y restablécelo:
+Api Post '/api/auth/restablecer-password' $std @{
+    email='estandar1@inventario.test'; codigo='<codigo>'; nuevaPassword='Nueva1234'
+} | Out-Null
+
+# RF-AUD-05 forzado por un Administrador (sobre el otro usuario)
+Api Post "/api/auth/$uidOtro/forzar-restablecimiento" $adm | Out-Null
+```
+
+### Cómo consultar el historial con cada filtro
+
+`GET /api/auditoria` admite `usuarioId`, `entidad`, `desde`, `hasta`, `pagina` y `tamanioPagina` (máximo 100). Devuelve `{ registros, total, pagina, tamanioPagina }`, ordenado por fecha descendente. `hasta` sin hora incluye el día completo; con hora respeta el instante.
+
+```powershell
+$h = @{ Authorization = "Bearer $adm" }
+$uidStd = (Invoke-RestMethod "$base/api/auth/me" -Headers @{ Authorization = "Bearer $std" }).id
+$desde  = (Get-Date).AddDays(-1).ToString('yyyy-MM-dd')
+$hasta  = (Get-Date).ToString('yyyy-MM-dd')
+
+$sinFiltro   = Invoke-RestMethod "$base/api/auditoria" -Headers $h
+$porUsuario  = Invoke-RestMethod "$base/api/auditoria?usuarioId=$uidStd" -Headers $h
+$porEntidad  = Invoke-RestMethod "$base/api/auditoria?entidad=Documento" -Headers $h
+$porFechas   = Invoke-RestMethod "$base/api/auditoria?desde=$desde&hasta=$hasta" -Headers $h
+$paginado    = Invoke-RestMethod "$base/api/auditoria?pagina=2&tamanioPagina=3" -Headers $h
+
+# Usuario Estándar -> 403 (RF-AUD-07 / RD-06)
+try { Api Get '/api/auditoria' $std } catch { $_.Exception.Response.StatusCode.value__ }
+
+# Filtro inválido -> 400 (RD-07)
+try { Api Get '/api/auditoria?pagina=0' $adm } catch { $_.Exception.Response.StatusCode.value__ }
+```
+
+**Esperado:** los cuatro filtros producen totales distintos y coherentes; cada registro trae los ocho campos de RF-AUD-01; en ningún `ValorAnterior`/`ValorNuevo` aparece una contraseña ni un código de recuperación; el Estándar recibe `403` y `pagina=0` recibe `400`. No existe `POST`, `PUT` ni `DELETE` sobre `/api/auditoria` (RF-AUD-06).
+
+### Persistencia (RD-09)
+
+```powershell
+docker compose down
+docker compose up --build
+Invoke-RestMethod "$base/api/auditoria" -Headers $h   # los mismos registros siguen ahí
+```
+
+La bitácora de esta asignación, incluido el paralelo campo por campo entre un registro de auditoría y un commit de git, está en `docs/bitacora-asignacion-4.md`.
 
 ## Contenedor
 
