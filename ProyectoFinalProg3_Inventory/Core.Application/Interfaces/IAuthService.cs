@@ -26,8 +26,9 @@ namespace Application.Interfaces
         //RF-CA-22: Cambiar password con sesion activa
         Task CambiarPasswordAsync(Guid usuarioId, CambiarPasswordDto dto);
 
-        //RF-CA-13: Administrador fuerza el envio de un codigo de recuperacion
-        Task ForzarRestablecimientoPasswordAsync(Guid usuarioId);
+        //RF-CA-13: Administrador fuerza el envio de un codigo de recuperacion.
+        //RF-AUD-05: el adminId identifica quién inició el restablecimiento en el historial.
+        Task ForzarRestablecimientoPasswordAsync(Guid usuarioId, Guid adminId);
 
 
     }

@@ -169,9 +169,16 @@ namespace Presentation.API.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ForzarRestablecimiento(Guid id, [FromServices] IAuthService authService)
         {
+            // RF-AUD-05: el administrador autenticado queda como actor del registro de auditoría.
+            var adminClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminClaim) || !Guid.TryParse(adminClaim, out var adminId))
+            {
+                return Unauthorized(new { mensaje = "Sin sesión válida." });
+            }
+
             try
             {
-                await authService.ForzarRestablecimientoPasswordAsync(id);
+                await authService.ForzarRestablecimientoPasswordAsync(id, adminId);
                 return Ok(new { mensaje = "Se ha forzado el restablecimiento y enviado el código por correo." });
             }
             catch (KeyNotFoundException ex)

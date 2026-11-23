@@ -9,6 +9,8 @@ using Application.DTOs.Auth;
 using Application.DTOs.Login;
 using Core.Application.Interfaces;
 using Core.Application.Configurations;
+using Core.Domain.Constants;
+using System.Text.Json;
 
 namespace Application.Services
 {
@@ -19,19 +21,22 @@ namespace Application.Services
         private readonly IJwtService _jwtService;
         private readonly JwtSettings _jwtSettings;
         private readonly FrontendSettings _frontend;
+        private readonly IAuditoriaService _auditoria;
 
         public AuthService(
             IApplicationDbContext context,
             IPasswordService passwordService,
             IJwtService jwtService,
             JwtSettings jwtSettings,
-            FrontendSettings frontendSettings)
+            FrontendSettings frontendSettings,
+            IAuditoriaService auditoria)
         {
             _context = context;
             _passwordService = passwordService;
             _jwtService = jwtService;
             _jwtSettings = jwtSettings;
             _frontend = frontendSettings;
+            _auditoria = auditoria;
         }
 
         // RF-CA-15 / RF-CA-17: con el frontend configurado el enlace abre su página /activar;
@@ -275,7 +280,8 @@ namespace Application.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ForzarRestablecimientoPasswordAsync(Guid usuarioId)
+        // RF-AUD-05: el administrador que fuerza el restablecimiento queda como actor del registro.
+        public async Task ForzarRestablecimientoPasswordAsync(Guid usuarioId, Guid adminId)
         {
             //Buscamos el usuario en la base de datos
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
@@ -286,12 +292,25 @@ namespace Application.Services
                 throw new KeyNotFoundException("Usuario no encontrado.");
             }
 
+            var admin = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == adminId)
+                ?? throw new KeyNotFoundException("Administrador no encontrado.");
+
             usuario.EstablecerNuevaPassword(_passwordService.HashPassword("RESET_FORZADO_" + Guid.NewGuid().ToString("N"))); //Invalida clave vieja y sesiones (limpia el código previo)
             usuario.GenerarCodigoRecuperacion();
 
             string cuerpoCorreo = $"<p>Un administrador ha iniciado el restablecimiento de tu contraseña. Tu código es: <strong>{usuario.CodigoRecuperacion}</strong>.</p>";
 
             var correoEnCola = new CorreoEnCola(usuario.Email, "Restablecimiento de contraseña solicitado por un administrador", cuerpoCorreo);
+
+            // RF-AUD-05: se audita el hecho, nunca la contraseña ni el código generado.
+            _context.Auditoria.Add(_auditoria.Preparar(
+                admin.Id,
+                admin.Email,
+                AccionesAuditoria.RestablecerPassword,
+                EntidadesAuditoria.Usuario,
+                usuario.Id.ToString(),
+                JsonSerializer.Serialize(new { PasswordRestablecida = false }),
+                JsonSerializer.Serialize(new { PasswordRestablecida = true, IniciadoPor = "Administrador" })));
 
             _context.CorreosEnCola.Add(correoEnCola);
             await _context.SaveChangesAsync();
@@ -323,6 +342,16 @@ namespace Application.Services
 
             var nuevoHash = _passwordService.HashPassword(dto.NuevaPassword);
             usuario.EstablecerNuevaPassword(nuevoHash);
+
+            // RF-AUD-05: restablecimiento iniciado por el propio usuario, sin guardar código ni contraseña.
+            _context.Auditoria.Add(_auditoria.Preparar(
+                usuario.Id,
+                usuario.Email,
+                AccionesAuditoria.RestablecerPassword,
+                EntidadesAuditoria.Usuario,
+                usuario.Id.ToString(),
+                JsonSerializer.Serialize(new { PasswordRestablecida = false }),
+                JsonSerializer.Serialize(new { PasswordRestablecida = true, IniciadoPor = "Propio" })));
 
             await _context.SaveChangesAsync();
         }

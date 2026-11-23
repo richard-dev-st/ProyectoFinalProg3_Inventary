@@ -49,7 +49,7 @@ public class NotificacionServiceTests
         await context.SaveChangesAsync();
 
         var notificaciones = new NotificacionService(context);
-        var solicitudes = new SolicitudPermisoService(context, notificaciones);
+        var solicitudes = new SolicitudPermisoService(context, notificaciones, new AuditoriaService(context));
 
         var solicitud = await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Sin administradores.");
 
@@ -72,7 +72,7 @@ public class NotificacionServiceTests
         await context.SaveChangesAsync();
 
         var notificaciones = new NotificacionService(context);
-        var solicitudes = new SolicitudPermisoService(context, notificaciones);
+        var solicitudes = new SolicitudPermisoService(context, notificaciones, new AuditoriaService(context));
 
         await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Necesito exportar el inventario.");
 
@@ -96,7 +96,7 @@ public class NotificacionServiceTests
         await context.SaveChangesAsync();
 
         var notificaciones = new NotificacionService(context);
-        var solicitudes = new SolicitudPermisoService(context, notificaciones);
+        var solicitudes = new SolicitudPermisoService(context, notificaciones, new AuditoriaService(context));
 
         var aprobada = await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Para el cierre.");
         await solicitudes.AprobarAsync(aprobada.Id, admin.Id);

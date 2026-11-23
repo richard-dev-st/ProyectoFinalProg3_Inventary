@@ -42,7 +42,7 @@ public class NotificacionTransaccionTests
         context.Usuarios.AddRange(admin, estandar);
         await context.SaveChangesAsync();
 
-        var solicitudes = new SolicitudPermisoService(context, new NotificacionService(context));
+        var solicitudes = new SolicitudPermisoService(context, new NotificacionService(context), new AuditoriaService(context));
 
         context.FallarEnElGuardadoNumero(2);
         var solicitud = await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Cierre de mes.");
@@ -63,7 +63,7 @@ public class NotificacionTransaccionTests
         context.Usuarios.AddRange(admin, estandar);
         await context.SaveChangesAsync();
 
-        var solicitudes = new SolicitudPermisoService(context, new NotificacionService(context));
+        var solicitudes = new SolicitudPermisoService(context, new NotificacionService(context), new AuditoriaService(context));
         var solicitud = await solicitudes.CrearAsync(estandar.Id, "exportar-inventario", "Cierre de mes.");
         context.ResetearContadorDeGuardados();
 

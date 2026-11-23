@@ -308,6 +308,57 @@ namespace Infrastructure.Migrations
                     b.ToTable("PermisosUsuario");
                 });
 
+            modelBuilder.Entity("Core.Domain.Entities.RegistroAuditoria", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Accion")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Entidad")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("EntidadId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("FechaHoraUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UsuarioEmail")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ValorAnterior")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ValorNuevo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Entidad");
+
+                    b.HasIndex("FechaHoraUtc");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Auditoria", (string)null);
+                });
+
             modelBuilder.Entity("Core.Domain.Entities.SolicitudPermiso", b =>
                 {
                     b.Property<Guid>("Id")
