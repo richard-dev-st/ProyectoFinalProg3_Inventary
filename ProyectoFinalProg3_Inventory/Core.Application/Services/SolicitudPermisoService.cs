@@ -34,14 +34,15 @@ namespace Application.Services
             // RF-GP-05: aplicar el cambio de permiso automaticamente en la misma transaccion
             _context.PermisosUsuario.Add(new PermisoUsuario(s.SolicitanteUsuarioId, s.Permiso, s.Id, fecha));
 
-            await _context.SaveChangesAsync();
-
-            // RF-NOT-02: el solicitante sabe que fue aprobada.
-            await _notificaciones.CrearAsync(
+            // RF-NOT-02: el solicitante sabe que fue aprobada. Hallazgo 2: se prepara en el
+            // mismo contexto y se guarda junto con la resolución (una sola unidad de trabajo).
+            await _notificaciones.PrepararAsync(
                 s.SolicitanteUsuarioId,
                 $"Tu solicitud de permiso '{s.Permiso}' fue aprobada.",
                 NotificacionService.TipoSolicitudAprobada,
                 s.Id.ToString());
+
+            await _context.SaveChangesAsync();
 
             return s;
         }
@@ -62,13 +63,14 @@ namespace Application.Services
             // Agregar la solicitud al contexto
             _context.SolicitudesPermiso.Add(solicitud);
 
-            await _context.SaveChangesAsync();
-
-            // RF-NOT-01: todos los Administradores activos, nadie más.
-            await _notificaciones.NotificarAdministradoresAsync(
+            // RF-NOT-01: todos los Administradores activos, nadie más. Hallazgo 2: la
+            // notificación se prepara antes del único SaveChanges del caso de uso.
+            await _notificaciones.PrepararAdministradoresAsync(
                 $"{usuario.Email} creó la solicitud de permiso '{permiso}'.",
                 NotificacionService.TipoSolicitudCreada,
                 solicitud.Id.ToString());
+
+            await _context.SaveChangesAsync();
 
             return solicitud;
         }
@@ -116,14 +118,16 @@ namespace Application.Services
             }
 
             solicitud.Rechazar(usuarioId, motivo, DateTime.UtcNow);
-            await _context.SaveChangesAsync();
 
-            // RF-NOT-02: el solicitante sabe que fue rechazada y por qué.
-            await _notificaciones.CrearAsync(
+            // RF-NOT-02: el solicitante sabe que fue rechazada y por qué. Hallazgo 2:
+            // rechazo y notificación se guardan juntos.
+            await _notificaciones.PrepararAsync(
                 solicitud.SolicitanteUsuarioId,
                 $"Tu solicitud de permiso '{solicitud.Permiso}' fue rechazada. Motivo: {motivo}.",
                 NotificacionService.TipoSolicitudRechazada,
                 solicitud.Id.ToString());
+
+            await _context.SaveChangesAsync();
 
             return solicitud;
         }

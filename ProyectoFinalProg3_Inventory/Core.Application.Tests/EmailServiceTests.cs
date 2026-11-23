@@ -94,4 +94,33 @@ public class EmailServiceTests
         Assert.Contains(logger.Mensajes, m => m.Contains("[FALLBACK CORREO]"));
         Assert.Contains(logger.Mensajes, m => m.Contains("123456"));
     }
+
+    // Auditoría (caso no cubierto): un destinatario con formato inválido no debe tumbar
+    // el procesador; el envío devuelve false y deja el motivo en UltimoError (RF-NOT-10).
+    [Fact]
+    public async Task RF_NOT_10_DestinatarioInvalido_DevuelveFalseYRegistraError()
+    {
+        var logger = new LoggerDePrueba<EmailService>();
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                // Valores que NO son de ejemplo para que el servicio intente el envío real.
+                ["EmailSettings:SmtpServer"] = "127.0.0.1",
+                ["EmailSettings:SmtpPort"] = "1",
+                ["EmailSettings:SenderEmail"] = "no-reply@inventario.test",
+                ["EmailSettings:SenderPassword"] = "clave-de-prueba",
+                ["EmailSettings:UseSsl"] = "false"
+            })
+            .Build();
+
+        var servicio = new EmailService(configuracion, logger);
+
+        var enviado = await servicio.EnviarCorreoAsync(
+            "esto-no-es-un-correo",
+            "Asunto de prueba",
+            "<p>Cuerpo</p>");
+
+        Assert.False(enviado);
+        Assert.False(string.IsNullOrWhiteSpace(servicio.UltimoError));
+    }
 }

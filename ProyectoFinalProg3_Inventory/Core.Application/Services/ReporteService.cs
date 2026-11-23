@@ -40,8 +40,13 @@ namespace Application.Services
                 // trae hora, se incluye el día completo; si trae hora, se respeta el instante.
                 if (hasta.Value.TimeOfDay == TimeSpan.Zero)
                 {
-                    var limiteExclusivo = hasta.Value.AddDays(1);
-                    consulta = consulta.Where(s => s.CreadoEn < limiteExclusivo);
+                    // Hallazgo 1: AddDays(1) sobre 9999-12-31 desborda DateTime. Ese día ya
+                    // es el máximo representable, así que no hace falta límite superior.
+                    if (hasta.Value.Date < DateTime.MaxValue.Date)
+                    {
+                        var limiteExclusivo = hasta.Value.AddDays(1);
+                        consulta = consulta.Where(s => s.CreadoEn < limiteExclusivo);
+                    }
                 }
                 else
                 {
@@ -99,8 +104,12 @@ namespace Application.Services
                 // RF-REP-05: mismo criterio que en solicitudes: AAAA-MM-DD incluye el día completo.
                 if (hasta.Value.TimeOfDay == TimeSpan.Zero)
                 {
-                    var limiteExclusivo = hasta.Value.AddDays(1);
-                    consulta = consulta.Where(o => o.FechaCreacion < limiteExclusivo);
+                    // Hallazgo 1: el último día representable no admite AddDays(1).
+                    if (hasta.Value.Date < DateTime.MaxValue.Date)
+                    {
+                        var limiteExclusivo = hasta.Value.AddDays(1);
+                        consulta = consulta.Where(o => o.FechaCreacion < limiteExclusivo);
+                    }
                 }
                 else
                 {

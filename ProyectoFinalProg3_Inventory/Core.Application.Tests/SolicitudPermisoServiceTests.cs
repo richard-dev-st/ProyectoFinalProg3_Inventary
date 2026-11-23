@@ -39,6 +39,76 @@ public class SolicitudPermisoServiceTests
         Assert.Single(context.SolicitudesPermiso);
     }
 
+    // Auditoría (caso no cubierto): una entrada vacía se rechaza antes de persistir.
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RF_GP_01_PermisoVacio_SeRechaza(string permisoVacio)
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("vacio@dominio.com", "afafasdfefdsfdsf");
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearAsync(usuario.Id, permisoVacio, "Descripción válida."));
+        Assert.Empty(context.SolicitudesPermiso);
+    }
+
+    // Hallazgo 3: el permiso no puede superar el tamaño de la columna (nvarchar(100)).
+    [Fact]
+    public async Task RF_GP_01_PermisoFueraDeRango_SeRechaza()
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("limite@dominio.com", "afafasdfefdsfdsf");
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
+
+        var permisoLargo = new string('x', 101);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearAsync(usuario.Id, permisoLargo, "Descripción válida."));
+        Assert.Empty(context.SolicitudesPermiso);
+    }
+
+    // Hallazgo 3: la descripción no puede superar el tamaño de la columna (nvarchar(500)).
+    [Fact]
+    public async Task RF_GP_01_DescripcionFueraDeRango_SeRechaza()
+    {
+        using var context = CreateContext();
+        var usuario = new Usuario("limite-descripcion@dominio.com", "afafasdfefdsfdsf");
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        var service = new SolicitudPermisoService(context, new NotificacionService(context));
+
+        var descripcionLarga = new string('d', 501);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearAsync(usuario.Id, "exportar-inventario", descripcionLarga));
+        Assert.Empty(context.SolicitudesPermiso);
+    }
+
+    // Hallazgo 3: el motivo de rechazo no puede superar el tamaño de la columna (nvarchar(500)).
+    [Fact]
+    public async Task RF_GP_04_MotivoFueraDeRango_SeRechaza()
+    {
+        using var context = CreateContext();
+        var solicitante = new Usuario("limite-motivo@dominio.com", "afafasdfefdsfdsf");
+        context.Usuarios.Add(solicitante);
+        var solicitud = new SolicitudPermiso(solicitante.Id, "exportar-inventario", "Descripción válida.");
+        context.SolicitudesPermiso.Add(solicitud);
+        await context.SaveChangesAsync();
+        var servicio = new SolicitudPermisoService(context, new NotificacionService(context));
+
+        var motivoLargo = new string('m', 501);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => servicio.RechazarAsync(solicitud.Id, Guid.NewGuid(), motivoLargo));
+        Assert.Equal(EstadoSolicitudPermiso.Pendiente, solicitud.Estado);
+    }
+
     [Fact]
     public async Task RF_GP_02_MiasAsync_SoloDevuelveLasDelUsuario()
     {

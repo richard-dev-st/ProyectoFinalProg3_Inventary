@@ -23,6 +23,17 @@ namespace Application.Services
 
         public async Task<Notificacion> CrearAsync(Guid usuarioId, string mensaje, string tipo, string? referenciaId = null)
         {
+            var notificacion = await PrepararAsync(usuarioId, mensaje, tipo, referenciaId);
+            await _context.SaveChangesAsync();
+            return notificacion;
+        }
+
+        /// <summary>
+        /// Hallazgo 2: deja la notificación (y su correo) listos en el contexto. No guarda:
+        /// el dueño de la operación decide cuándo cerrar la unidad de trabajo.
+        /// </summary>
+        public async Task<Notificacion> PrepararAsync(Guid usuarioId, string mensaje, string tipo, string? referenciaId = null)
+        {
             var usuario = await _context.Usuarios.FindAsync(usuarioId);
             if (usuario == null)
             {
@@ -35,11 +46,25 @@ namespace Application.Services
             // RF-NOT-06/07: el canal interno siempre; el correo solo si está habilitado.
             EncolarCorreoSiCorresponde(usuario, mensaje, tipo);
 
-            await _context.SaveChangesAsync();
             return notificacion;
         }
 
         public async Task<int> NotificarAdministradoresAsync(string mensaje, string tipo, string? referenciaId = null)
+        {
+            var cantidad = await PrepararAdministradoresAsync(mensaje, tipo, referenciaId);
+
+            if (cantidad > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return cantidad;
+        }
+
+        /// <summary>
+        /// Hallazgo 2: prepara una notificación por Administrador activo sin guardar.
+        /// </summary>
+        public async Task<int> PrepararAdministradoresAsync(string mensaje, string tipo, string? referenciaId = null)
         {
             // RF-NOT-01: todos los Administradores activos, nadie más.
             var administradores = await _context.Usuarios
@@ -50,11 +75,6 @@ namespace Application.Services
             {
                 _context.Notificaciones.Add(new Notificacion(administrador.Id, mensaje, tipo, referenciaId));
                 EncolarCorreoSiCorresponde(administrador, mensaje, tipo);
-            }
-
-            if (administradores.Count > 0)
-            {
-                await _context.SaveChangesAsync();
             }
 
             return administradores.Count;
