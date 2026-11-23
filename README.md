@@ -268,15 +268,20 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 
 ## Pruebas
 
-La suite cubre el dominio, la capa de aplicación (permisos y documentos) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
+La suite cubre el dominio, la capa de aplicación (autenticación, permisos, documentos, notificaciones, cola de correos y reportes) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
-- `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 32 pruebas con EF Core InMemory:
-  - 7 de `SolicitudPermisoService` (RF-GP-01..07).
+- `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas y las reglas de creación, aprobación y rechazo).
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 73 pruebas con EF Core InMemory:
+  - 13 de `AuthService` (registro/activación, login/logout y recuperación/cambio/restablecimiento de contraseña; RF-CA).
+  - 12 de `SolicitudPermisoService` (RF-GP-01..07, con los límites de `permiso`, `descripcion` y `motivo`).
   - 12 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07).
   - 8 de `CurrencyApiTasaCambioService` (respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout).
   - 3 de `OrdenCompraService` (orden inexistente, conversión con redondeo y propagación del error externo).
-  - 2 de `EmailService` (fallback a log con SMTP vacío y con los valores de ejemplo).
+  - 3 de `EmailService` (fallback a log con SMTP vacío, valores de ejemplo y destinatario inválido).
+  - 7 de `NotificacionService` (RF-NOT-01, 02, 03, 04, 05 y 07, más el caso sin Administrador activo).
+  - 2 de `NotificacionTransaccionTests` (el evento de negocio y la notificación se guardan en una sola unidad de trabajo).
+  - 5 de `ProcesadorCorreos` (RF-NOT-08..13: reintentos, máximo de 3 y correo `Fallido`).
+  - 8 de `ReporteService` (RF-REP-01..05, con rango sin datos, rango invertido y `hasta=9999-12-31`).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
@@ -287,7 +292,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 62` (12 de dominio + 32 de aplicación + 18 de `Bussiness.inventory.Tests`). Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 103` (12 de dominio + 73 de aplicación + 18 de `Bussiness.inventory.Tests`) en .NET 10. Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las de notificaciones comprueban el destinatario, el aislamiento entre usuarios, la preferencia de correo y que el evento y la notificación se persisten juntos; las de reportes comparan las agregaciones con la fuente y los extremos del rango de fechas. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
 
 ## Práctica 2 — Defectos plantados (Variante A)
 
@@ -592,7 +597,7 @@ En PowerShell 5.1 no existe `-Form`; usa `curl.exe` o haz la subida desde Swagge
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 62` (12 de dominio + 32 de aplicación: 7 de permisos, 12 de documentos, 8 de API externa, 3 de órdenes y 2 del fallback de correo + 18 de negocio).
+Salida esperada al cierre de la Práctica 4: `Passed: 62` (12 de dominio + 32 de aplicación: 7 de permisos, 12 de documentos, 8 de API externa, 3 de órdenes y 2 del fallback de correo + 18 de negocio). El conteo vigente de la suite está en la sección [Pruebas](#pruebas).
 
 ## Práctica 4 - API externa (punto 1.4)
 
@@ -991,8 +996,10 @@ Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/total-en-dop" `
 
 ## Práctica 5 - Notificaciones y reportes
 
-> **Estado: entregada al docente el 20/11/2026** (tag `practica-5`, commit `ddefd7f`). Esta
-> sección se conserva como guía de verificación; el avance posterior quedó en `main`.
+> **Estado: entregada al docente el 20/11/2026** (tag `practica-5`, commit `ddefd7f`). La
+> **Asignación 3** auditó esta práctica y corrigió tres defectos; el resultado quedó en `main` y en
+> el tag [`asignacion-3`](https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary/releases/tag/asignacion-3),
+> con la bitácora en [`docs/bitacora-asignacion-3.md`](docs/bitacora-asignacion-3.md).
 
 Esta práctica agrega tres piezas sobre lo ya existente, sin cambiar las rutas ni los contratos
 anteriores:
@@ -1006,6 +1013,28 @@ anteriores:
 Los criterios completos y verificables están en
 [`docs/criterios-notificaciones-reportes.md`](docs/criterios-notificaciones-reportes.md). Lo que
 sigue explica cómo comprobarlos con el stack levantado.
+
+### Correcciones de la Asignación 3 (tag `asignacion-3`)
+
+La auditoría posterior encontró y corrigió tres defectos, cada uno en un commit propio con su
+prueba de regresión:
+
+| # | Defecto | Corrección | Commit | Prueba |
+|---|---|---|---|---|
+| 1 | `hasta=9999-12-31` desbordaba `AddDays(1)` y el reporte respondía `500` con traza | `ReporteService` no suma un día cuando `hasta` es el máximo representable | `0126647` | `RF_REP_05_HastaFechaMaxima_NoDesborda` |
+| 2 | El evento de negocio y la notificación se guardaban en dos `SaveChanges` (podía quedar el evento sin aviso) | `PrepararAsync`/`PrepararAdministradoresAsync` y un único `SaveChanges` en el caso de uso | `ffe4be7` | `NotificacionTransaccionTests` |
+| 3 | `permiso`, `descripcion` y `motivo` sin límite de longitud (EF InMemory lo ocultaba; SQL Server fallaba) | Validación de longitud en la entidad `SolicitudPermiso` | `6cf2761` | `RF_GP_01_PermisoFueraDeRango_SeRechaza` y equivalentes |
+
+También se declaró, sin corregir, una deuda de severidad baja: `Core.Application` referencia a
+`Business.Inventory` (RD-03). La bitácora explica por qué se escapó cada defecto, qué se ejecutó
+para demostarlo y qué regla de proceso queda. Para comprobar una regresión:
+
+```powershell
+git checkout 0126647^ -- ProyectoFinalProg3_Inventory/Core.Application/Services/ReporteService.cs
+dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx `
+  --filter "FullyQualifiedName~RF_REP_05_HastaFechaMaxima_NoDesborda"
+git checkout 0126647 -- ProyectoFinalProg3_Inventory/Core.Application/Services/ReporteService.cs
+```
 
 > **Máximo de intentos de envío de la cola: 3.** Es el valor de
 > `ProcesadorCorreos.MaximoIntentos`; al tercer fallo el correo queda `Fallido` y no se vuelve a
