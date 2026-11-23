@@ -1,13 +1,14 @@
-# Contexto de sesión — Handoff activo (actualizado 21/11/2026)
+# Contexto de sesión — Handoff activo (actualizado 23/11/2026)
 
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo cerrada:** `feat/frontend-contrasenas-recuperacion-cambio` (`d5e26f9`);
-`main`/`origin/main` en `e557148` (merge del PR #25)
+**Rama de trabajo actual:** `feat/asignacion-3` (entregable de la Asignación 3)
 **Estado vigente:** ver **§0**. Las secciones §1–§10 son el corte histórico de la Práctica 5
-(19–20/11/2026); donde digan otra cosa (79/62/86 pruebas, `main` en `3746eb5`, frontend «no
-iniciado», etc.), prevalece §0.
+(19–20/11/2026); §11 documenta la Asignación 3. Donde digan otra cosa (79/62/86 pruebas, `main`
+en `3746eb5`, frontend «no iniciado», etc.), prevalece §0/§11.
+**Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
+`docs/bitacora-asignacion-3.md`; suite **103/103**.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
 **Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
@@ -26,6 +27,7 @@ iniciado», etc.), prevalece §0.
 |---|---|
 | Práctica 4 (`practica-4`) | ✅ Cerrada, etiquetada y pusheada |
 | Práctica 5 (`practica-5`) | ✅ Cerrada, etiquetada, pusheada y **entregada al docente el 20/11/2026** |
+| **Asignación 3 (auditoría de la Práctica 5)** | ✅ 3 hallazgos corregidos + 1 declarado; tag `asignacion-3`; ver §11 |
 | Backend (auth, permisos, órdenes, documentos, notificaciones, reportes) | ✅ Implementado |
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
@@ -40,7 +42,7 @@ iniciado», etc.), prevalece §0.
 ```powershell
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 92/92 (12 + 62 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 103/103 (12 + 73 + 18)
 ```
 
 ### Rutas del frontend que ya existen
@@ -708,3 +710,58 @@ No se encontró ningún defecto abierto en los seis frentes.
   `docker-compose.yml` siguen iguales.
 - Los registros históricos de `CorreosEnCola` anteriores a la migración de reintentos no tienen
   `FechaUltimoIntento`; la revisión solo exige esos campos a los correos nuevos.
+
+---
+
+## 11. Asignación 3 - auditoría de la Práctica 5 (23/11/2026)
+
+**Entregable:** tag `asignacion-3` (anotado) sobre `feat/asignacion-3`. Bitácora completa en
+`docs/bitacora-asignacion-3.md`. Base: `main` en `b1b9582`.
+
+### Hallazgos
+
+| # | Tema | Criterio | Severidad | Commit | Prueba(s) |
+|---|---|---|---|---|---|
+| 1 | `hasta=9999-12-31` desborda `AddDays(1)` y responde 500 con traza | RF-REP-05, RD-07 | Alta | `0126647` | `RF_REP_05_HastaFechaMaxima_NoDesborda` |
+| 2 | Evento de negocio y notificación en dos `SaveChanges` (escritura parcial) | RF-NOT-01/02/03 | Alta | `ffe4be7` | `NotificacionTransaccionTests` (2) |
+| 3 | `permiso`/`descripcion`/`motivo` sin límite de longitud (SQL falla, InMemory no) | RF-GP-01/04 | Media | `6cf2761` | `*FueraDeRango_SeRechaza` (3) |
+| 4 | `Core.Application` referencia `Business.Inventory` | RD-03 | Baja | — (declarado) | — |
+
+Cobertura adicional de casos no contemplados en `558c948`: rango sin datos, permiso vacío, sin
+Administrador activo, destinatario inválido (y dos pruebas previas de `EmailService` restauradas).
+
+### Reglas que quedan para el próximo trabajo
+
+1. Toda prueba de rango de fechas incluye `DateTime.MaxValue.Date`.
+2. Todo flujo que emita una notificación usa `Preparar*` y **un único** `SaveChanges`; la prueba
+   inyecta un fallo de guardado (contexto que falla en el N-ésimo guardado).
+3. Cada columna de texto con límite tiene una prueba en el valor máximo + 1. **EF InMemory no
+   valida longitudes**; no confiar en él para eso.
+4. La deuda RD-03 se cierra solo separando contratos (`IApplicationDbContext` del Core y un
+   contexto del módulo de negocio) y moviendo `OrdenCompraService`, sus DTOs/contratos y el reporte
+   de órdenes a `Business.Inventory`. No es una corrección puntual.
+
+### Verificación ejecutada
+
+```powershell
+dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   # 103/103 (12 + 73 + 18)
+dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   # 0 errores, 0 warnings
+```
+
+Regresión pre-fix comprobada revirtiendo solo el archivo de producción de cada corrección:
+hallazgo 1 -> `ArgumentOutOfRangeException`; hallazgo 2 -> `InvalidOperationException` en el
+guardado 2; hallazgo 3 -> 3 pruebas sin excepción.
+
+Revisión acumulada de los seis frentes sobre el stack Docker (imágenes delgadas sobre
+`aspnet:10.0` por los timeouts de `mcr.microsoft.com`, sin tocar el repo): **180 comprobaciones,
+0 fallos** (39 + 32 + 44 + 46 + 19). El bloque RF-NOT-10 espera por sondeo hasta 180 s: con varios
+Administradores activos una solicitud encola más de un lote de 10 correos por ciclo de 10 s y una
+espera fija de 40 s daba un falso negativo del guion.
+
+### Trampas nuevas
+
+- `docker compose up --build` sigue fallando si el registro de Microsoft no entrega el SDK; usar
+  `dotnet publish` + imágenes propias y `docker compose up -d --no-build`.
+- Los guiones de revisión acumulan usuarios administradores en la BD; una solicitud puede encolar
+  un correo por cada uno. Drenar la cola antes de medir RF-NOT-10 o esperar por sondeo.
+- `README.Docker.md` sigue sin versionar: no agregarlo.
