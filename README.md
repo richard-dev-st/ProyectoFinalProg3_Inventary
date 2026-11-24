@@ -170,6 +170,33 @@ Recorrido manual:
 5. Con sesión, abre `/cambiar-password`: una clave actual incorrecta se rechaza; la correcta actualiza el hash, cierra la sesión y obliga a entrar de nuevo (RF-CA-22).
 6. Como Administrador, en `/admin/usuarios` pulsa «Forzar restablecimiento» sobre otro usuario: su clave anterior deja de servir, recibe un código por la cola y tu propia sesión sigue activa (RF-CA-13).
 
+## Frontend — gestión de permisos (RF-GP-01..07)
+
+> **Verificado manualmente el 24/11/2026:** recorrido completo con API y frontend en marcha,
+> créditos de Estándar y Administrador, descarga del CSV y persistencia tras reiniciar. Sin cambios
+> en el backend ni en el tag `asignacion-2`.
+
+La Asignación 2 se entregó solo en backend (tag `asignacion-2`). El frontend añade ahora la interfaz de esa misma pieza, sin cambiar contratos ni el tag:
+
+| Ruta | Acción |
+|---|---|
+| `/solicitudes` | Privada. Formulario de permiso + descripción e historial de las solicitudes propias con su estado (RF-GP-01/02). |
+| `/solicitudes/pendientes` | Solo Administrador. Lista de pendientes con **Aprobar** y **Rechazar** (motivo obligatorio) (RF-GP-02/03/04). |
+| `/mis-permisos` | Privada. Permisos concedidos al usuario y botón «Descargar inventario (CSV)» que consume `GET /api/inventario/exportar` (RF-GP-05). |
+
+Los enlaces están en el menú: «Mis solicitudes» y «Mis permisos» para cualquier usuario con sesión; «Solicitudes pendientes» solo para el rol Administrador. `SolicitudesPermisosServices` e `InventarioServices` envían el Bearer en cada petición desde `SesionActual`; un `401` cierra la sesión y un `403` se muestra como mensaje (RD-06). Las validaciones del formulario espejean los límites del dominio (100 caracteres para el permiso, 500 para descripción y motivo).
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Estándar y abre `/solicitudes`: crea `exportar-inventario` y verifica que nace **Pendiente** (RF-GP-01). Repite con el permiso vacío: el formulario no envía (RD-07).
+2. En la misma página solo aparecen tus solicitudes. Abre `/solicitudes/pendientes` con esa cuenta: el menú no muestra el enlace y la API responde **403** aunque forces la URL (RF-GP-02).
+3. Entra como Administrador, abre `/solicitudes/pendientes` y pulsa **Aprobar**: la solicitud desaparece de pendientes y en `/solicitudes` del Estándar aparece **Aplicada** con quién y cuándo la resolvió (RF-GP-03/05).
+4. Sin intervención manual, el Estándar abre `/mis-permisos`: `exportar-inventario` está en la lista y «Descargar inventario (CSV)» devuelve el archivo (antes de aprobar mostraba el mensaje de permiso insuficiente) (RF-GP-05).
+5. Crea otra solicitud y recházala sin motivo: el backend responde 400 y se muestra `El motivo de rechazo es obligatorio.`. Con motivo, aparece **Rechazada** con el motivo en `/solicitudes` (RF-GP-04).
+6. Como Administrador crea una solicitud propia desde `/solicitudes` y pulsa **Aprobar** sobre la fila marcada «Tu solicitud»: se muestra `El solicitante no puede aprobar su propia solicitud.` (RF-GP-07). Lo mismo al rechazarla.
+7. Aprobar dos veces la misma solicitud no está en la interfaz (ya salió de pendientes); si se repite el `POST` contra la API, se muestra `Transición inválida: Aplicada -> Aprobada.` y el estado no cambia (RF-GP-06).
+8. Reinicia la API y vuelve a entrar: `/solicitudes` y `/mis-permisos` muestran los mismos datos, porque las solicitudes y los permisos están persistidos (RD-09).
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |

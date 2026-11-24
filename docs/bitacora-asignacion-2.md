@@ -27,3 +27,13 @@ Herramienta: agente de IA en la terminal (opencode) sobre el repositorio del pro
 **Cómo lo corregí:** agregué al plan el endpoint `GET /api/solicitudes/pendientes` restringido a `Administrador` y el filtrado por solicitante en `GET /api/solicitudes/mias` (el id se toma del token, no del cliente). Quedó cubierto por el servicio (`PendientesAsync`, `MiasAsync`) y con un `[Authorize(Roles = "Administrador")]` en el controller. Este es el caso que el enunciado exige documentar: no todo salió bien a la primera.
 
 ---
+
+## Sesión de continuación (24/11/2026) — Frontend de gestión de permisos
+
+**Qué le pedí:** que revisara la pieza RF-GP ya etiquetada en `asignacion-2` y el frontend Blazor existente, y que me ayudara a llevar esta parte al frontend sin tocar el backend ni el tag: formulario de solicitud, historial propio, bandeja de aprobación administrativa, consulta de permisos concedidos y una forma de comprobar RF-GP-05.
+
+**Qué me devolvió:** un mapa de los contratos reales (rutas `api/solicitudes`, DTOs, roles, códigos 400/401/403/404, permisos `exportar-inventario` y `recibir-orden`) y la implementación de tres páginas (`/solicitudes`, `/solicitudes/pendientes`, `/mis-permisos`), cuatro modelos, dos servicios con Bearer por petición, los registros DI, los enlaces del menú y un helper JS para descargar el CSV. Verifiqué `dotnet build` del frontend (0 errores) y `dotnet test` de la suite (119/119).
+
+**Error del agente detectado y corregido:** el primer build falló con `CS0542: 'Solicitudes': member names cannot be the same as their enclosing type`. El agente había inyectado el servicio con el nombre `Solicitudes` dentro del componente `Solicitudes.razor`, que ya se llama así. Lo detecté ejecutando `dotnet build frontend/Inventario.Web/Inventario.Web.csproj` antes de seguir, y lo corregí renombrando la inyección a `ServicioPermisos` y sus dos llamadas. El build quedó limpio. Es el segundo caso real de error del agente en esta bitácora.
+
+---

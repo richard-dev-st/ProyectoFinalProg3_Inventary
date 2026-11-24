@@ -3,9 +3,11 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (24/11/2026):** `main` en `533b6ce` (PR #27 de la Asignación 4 mergeado; antes
-> PR #26 de la Asignación 3, #25 de contraseñas, #24 de roles/administración, #23 de
-> registro/activación y #22 de Práctica 5, **entregada al docente el 20/11/2026**).
+> **Estado actual (24/11/2026):** `main`/`origin/main` en `040fd11` (commit de documentación sobre
+> `533b6ce`, PR #27 de la Asignación 4 mergeado; antes PR #26 de la Asignación 3, #25 de
+> contraseñas, #24 de roles/administración, #23 de registro/activación y #22 de Práctica 5,
+> **entregada al docente el 20/11/2026**). La rama `feat/frontend-permisos` contiene el frontend de
+> RF-GP-01..07, verificado manualmente y pusheado; el PR/merge a `main` lo gestiona el autor.
 > Baseline de pruebas: **119/119** (12 + 89 + 18).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
@@ -20,7 +22,7 @@ Cubre, por hitos:
 | Módulo | Requisitos | Estado |
 |---|---|---|
 | Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
-| Gestión de permisos de usuario | RF-GP | Implementado |
+| Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend en `feat/frontend-permisos` (verificado 24/11) |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
 | Órdenes de compra con máquina de estados | RF-NEG | Implementado |
 | Manejador de documentos | RF-DOC | Implementado |
@@ -45,7 +47,7 @@ ProyectoFinalProg3_Inventory/
 ├── Presentation.API/       Controladores REST, DI, autorización, Swagger
 ├── EmailWorker/            Proceso independiente que vacía la cola de correos
 └── *Tests/                 Core.Domain.Tests, Core.Application.Tests, Bussiness.inventory.Tests
-frontend/Inventario.Web/    Blazor Server (login, registro/activación, roles y sesión)
+frontend/Inventario.Web/    Blazor Server (login, registro/activación, roles, contraseñas y permisos)
 docs/                       Documentación y criterios de aceptación
 ```
 
@@ -72,6 +74,9 @@ dotnet run --project frontend/Inventario.Web --launch-profile http
 ```
 
 - Disponible en `http://localhost:5299`; requiere la API arriba en `http://localhost:8080`.
+- Si la API se ejecuta localmente con el perfil `http` (5176), configura
+  `$env:ApiBaseUrl = "http://localhost:5176"` antes de `dotnet run`; con Docker no hace falta porque
+  `appsettings.json` ya apunta a 8080.
 
 ### Compilar y probar
 
@@ -141,8 +146,8 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 6. **No ejecutar** `docker compose down -v` ni comandos que borren volúmenes, datos o historial.
    Tampoco `git reset --hard`, `git push --force` ni reescrituras de historia.
 7. **Frontend:** la prohibición de tocarlo era exclusiva de la Práctica 5 (cerrada y etiquetada).
-   Hoy el frontend incluye registro/activación y administración de usuarios; cualquier cambio
-   nuevo debe pedirlo el usuario.
+   Hoy el frontend incluye registro/activación, administración de usuarios, contraseñas y gestión
+   de permisos; cualquier cambio nuevo debe pedirlo el usuario.
 8. **Shell:** PowerShell en Windows. No usar `&&`, `||`, `tail` ni `grep`; usar `;`,
    `Select-String`, `Select-Object`, `Out-Host`.
 9. **Alcance:** si un requisito es ambiguo, preguntar antes de inventar comportamiento.
@@ -164,5 +169,6 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 - `dotnet test` con la suite anterior en verde y las pruebas nuevas pasando.
 - Criterios de `docs/criterios-notificaciones-reportes.md` verificables a mano siguiendo el
   README, sin preguntar al autor.
-- README actualizado (secciones **Notificaciones**, **Reportes** y **Asignación 4**).
+- README actualizado (secciones **Notificaciones**, **Reportes**, **Asignación 4** y
+  **Frontend — gestión de permisos**).
 - Ningún secreto nuevo en el working tree ni en el historial (`gitleaks` en el pre-commit).

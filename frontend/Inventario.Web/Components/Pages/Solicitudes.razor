@@ -1,0 +1,167 @@
+@page "/solicitudes"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject SolicitudesPermisosServices ServicioPermisos
+
+<PageTitle>Mis solicitudes de permiso</PageTitle>
+<h1>Mis solicitudes de permiso</h1>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 card-title">Nueva solicitud</h2>
+
+                <EditForm Model="modelo" OnValidSubmit="Crear">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label class="form-label">Permiso solicitado</label>
+                        <InputText class="form-control" @bind-Value="modelo.Permiso"
+                                   placeholder="exportar-inventario" />
+                        <ValidationMessage For="() => modelo.Permiso" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="modelo.Descripcion" />
+                        <ValidationMessage For="() => modelo.Descripcion" />
+                    </div>
+
+                    <button class="btn btn-primary" type="submit" disabled="@enviando">
+                        @(enviando ? "Enviando…" : "Solicitar permiso")
+                    </button>
+                </EditForm>
+
+                <p class="text-muted mt-3 mb-0">
+                    RF-GP-01: la solicitud se crea en estado <strong>Pendiente</strong>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <h2 class="h5">Mis solicitudes</h2>
+
+        @if (cargando)
+        {
+            <p>Cargando…</p>
+        }
+        else if (solicitudes.Count == 0)
+        {
+            <p>No has solicitado permisos todavía.</p>
+        }
+        else
+        {
+            <table class="table table-striped table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Permiso</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var solicitud in solicitudes)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@solicitud.Permiso</strong>
+                                @if (!string.IsNullOrWhiteSpace(solicitud.Descripcion))
+                                {
+                                    <br />
+                                    <small class="text-muted">@solicitud.Descripcion</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @ClaseEstado(solicitud.Estado)">@solicitud.Estado</span>
+                            </td>
+                            <td>@solicitud.CreadoEn.ToLocalTime().ToString("g")</td>
+                            <td>
+                                @if (solicitud.FechaResolucion is not null)
+                                {
+                                    <small>
+                                        Resuelta el @solicitud.FechaResolucion.Value.ToLocalTime().ToString("g")
+                                    </small>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(solicitud.MotivoRechazo))
+                                {
+                                    <br />
+                                    <small class="text-danger">Motivo: @solicitud.MotivoRechazo</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success mt-3">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    private CrearSolicitudRequest modelo = new();
+    private List<SolicitudPermisoDto> solicitudes = new();
+    private bool cargando = true;
+    private bool enviando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var (ok, lista, msg) = await ServicioPermisos.ObtenerMiasAsync();
+        if (ok)
+        {
+            solicitudes = lista;
+        }
+        else
+        {
+            error = msg;
+        }
+        cargando = false;
+    }
+
+    // RF-GP-01: el estado inicial lo decide el dominio, no el formulario.
+    private async Task Crear()
+    {
+        enviando = true;
+        mensaje = null;
+        error = null;
+
+        var (ok, msg) = await ServicioPermisos.CrearAsync(modelo);
+        if (ok)
+        {
+            modelo = new();
+            mensaje = "Solicitud enviada. Estado: Pendiente.";
+        }
+        else
+        {
+            error = msg;
+        }
+
+        enviando = false;
+        await CargarAsync();
+    }
+
+    private static string ClaseEstado(string estado) => estado switch
+    {
+        "Pendiente" => "bg-warning text-dark",
+        "Aprobada" => "bg-info text-dark",
+        "Aplicada" => "bg-success",
+        "Rechazada" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
