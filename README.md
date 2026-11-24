@@ -216,11 +216,30 @@ Es una adición: no cambia ningún contrato ni comportamiento existente. Además
 
 Recorrido manual (con API y frontend en marcha):
 
-1. Entra como Estándar y abre `/ordenes`: crea un borrador con un proveedor y un producto; aparece en estado **Borrador** (RF-NEG-02/03).
-2. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
-3. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
-4. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
-5. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición (RF-NEG-04/05).
+1. Entra como Administrador y crea al menos un proveedor y un producto en `/proveedores` y `/productos` (ver la sección siguiente); sin datos maestros no se puede crear una orden.
+2. Entra como Estándar y abre `/ordenes`: crea un borrador con un proveedor y un producto; aparece en estado **Borrador** (RF-NEG-02/03).
+3. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
+4. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
+5. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
+6. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición (RF-NEG-04/05).
+
+## Frontend — datos maestros de inventario
+
+El módulo de negocio necesita proveedores y productos, pero el backend no tenía forma de crearlos (no había seed ni controlador). Se añadieron las dos pantallas y sus endpoints:
+
+| Ruta | Acción |
+|---|---|
+| `/proveedores` | Privada. Listado de proveedores con su cantidad de productos; el Administrador ve además el formulario de alta (nombre, cédula, teléfono y correo). La lectura está disponible para cualquier usuario con sesión. |
+| `/productos` | Privada. Listado de productos con código, precio, stock y proveedor; el Administrador ve el formulario de alta (nombre, código opcional, proveedor, precio y stocks). Si el código se deja vacío, se genera uno automáticamente. |
+
+Backend añadido, de solo lectura para cualquier usuario autenticado y de alta solo para Administrador (`[Authorize(Roles = "Administrador")]`):
+
+- `GET /api/catalogo/proveedores` y `POST /api/catalogo/proveedores`.
+- `GET /api/catalogo/productos` y `POST /api/catalogo/productos`.
+
+`CatalogoService` valida nombre obligatorio, correo con formato válido, precio y stock no negativos, proveedor existente y código único; devuelve `400` con el mensaje concreto (RD-07) y sus pruebas cubren cada regla.
+
+Con estos datos, el formulario de `/ordenes` deja de depender de ids tecleados a ciegas y el flujo de compras funciona de extremo a extremo.
 
 ## Criterios implementados y cómo verificarlos
 
