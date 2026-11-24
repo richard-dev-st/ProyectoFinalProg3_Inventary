@@ -203,11 +203,13 @@ La Práctica 3 cubría el módulo de negocio solo en backend (tag `practica-3`).
 
 | Ruta | Acción |
 |---|---|
-| `/ordenes` | Privada. Listado de órdenes con estado y total; crear borrador con desplegables de proveedor y producto; enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
+| `/ordenes` | Privada. Listado de órdenes con el **nombre del proveedor**, estado y total; crear borrador con desplegables de proveedor y producto; **ver el detalle** de una orden con sus líneas; **editar un borrador**; enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
 
 Para que el listado sea posible se añadieron **dos endpoints de solo lectura**:
 
 - `GET /api/OrdenesCompra`: DTO de resumen (no la entidad de EF), filtrado por usuario. El Estándar ve solo sus órdenes; el Administrador ve todas.
+- `GET /api/OrdenesCompra/{id}`: detalle con el nombre del proveedor y las líneas (producto, código, cantidad, precio y subtotal). El Estándar solo accede a sus órdenes; ajeno responde `403`.
+- `PUT /api/OrdenesCompra/{id}`: actualiza un borrador (proveedor y líneas) y recalcula el total. Si la orden ya no está en `Borrador` responde `400`, y `403` si es de otro usuario.
 - `GET /api/OrdenesCompra/catalogo`: proveedores y productos existentes para el formulario. Sin esto, teclear un id inexistente producía el error genérico de EF (`An error occurred while saving the entity changes`).
 
 Es una adición: no cambia ningún contrato ni comportamiento existente. Además, `CrearBorradorAsync` ahora valida proveedor y productos y responde `400` con un mensaje claro (`El proveedor 99 no existe.`) antes de tocar la base de datos (RD-07).
@@ -220,10 +222,12 @@ Recorrido manual (con API y frontend en marcha):
 
 1. Entra como Administrador y crea al menos un proveedor y un producto en `/proveedores` y `/productos` (ver la sección siguiente); sin datos maestros no se puede crear una orden.
 2. Entra como Estándar y abre `/ordenes`: crea un borrador con un proveedor y un producto; aparece en estado **Borrador** (RF-NEG-02/03).
-3. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
-4. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
-5. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
-6. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición (RF-NEG-04/05).
+3. Pulsa **Ver detalle**: se muestran el proveedor y cada línea con producto, código, cantidad, precio y subtotal.
+4. Mientras siga en **Borrador**, pulsa **Editar**, cambia el proveedor, el producto o las cantidades y **Guardar cambios**: el total se recalcula. Si ya se envió a aprobación, Editar deja de estar disponible.
+5. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
+6. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
+7. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
+8. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición ni de edición (RF-NEG-04/05).
 
 ## Frontend — datos maestros de inventario
 
