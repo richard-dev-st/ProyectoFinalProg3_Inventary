@@ -38,6 +38,7 @@ prevalece §0/§12.
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
+| Frontend — gestión de permisos (RF-GP-01..07) | ✅ Implementado en rama `feat/frontend-permisos`; no cambia el tag `asignacion-2` |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -53,16 +54,20 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 ### Rutas del frontend que ya existen
 
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
-`/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/acceso-denegado`, `/`
-(Home con email/rol y logout). El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar;
-con sesión, «Cambiar contraseña» y «Usuarios» solo con `<AuthorizeView Roles="Administrador">`.
+`/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
+`/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/` (Home con email/rol y logout).
+El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
+«Mis solicitudes» y «Mis permisos»; «Usuarios» y «Solicitudes pendientes» solo con
+`<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
 `AuthService` (login, `me`, logout, registro, activación, reenvío, recuperación,
 restablecimiento y cambio de clave), `AdminUsuariosServices` (listado, cambio de rol y estado,
-forzado de restablecimiento), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
-**por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
+forzado de restablecimiento), `SolicitudesPermisosServices` (crear, listar propias/pendientes,
+aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el permiso concedido),
+`SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un
+`DelegatingHandler` scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
 
@@ -77,12 +82,15 @@ forzado de restablecimiento), `SesionActual`, `SesionAuthStateProvider`. El `Bea
   `cambiar-password` responde `404` con `{ mensaje }` cuando la clave actual es incorrecta.
 - No hay administrador sembrado: promover un usuario activo con
   `UPDATE Usuarios SET Rol = 'Administrador', Activo = 1 WHERE Email = '…';` (en `InventarioBP4`).
+- En Blazor, el nombre inyectado no puede igualar el de la clase del componente: en
+  `Solicitudes.razor` el servicio se llama `ServicioPermisos` (si no, `CS0542`).
 - `README.Docker.md` está sin versionar: no agregarlo.
 
 ### Cómo retomar
 
 1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
-   contraseñas y **Asignación 4**), además de `docs/bitacora-asignacion-4.md`.
+   contraseñas, **Frontend — gestión de permisos** y **Asignación 4**), además de
+   `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
 2. Verificar build + `dotnet test` antes de tocar código.
 3. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia este handoff.
 
