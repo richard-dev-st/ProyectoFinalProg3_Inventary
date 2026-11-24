@@ -180,7 +180,7 @@ La Asignación 2 se entregó solo en backend (tag `asignacion-2`). El frontend a
 
 | Ruta | Acción |
 |---|---|
-| `/solicitudes` | Privada. Formulario de permiso + descripción e historial de las solicitudes propias con su estado (RF-GP-01/02). |
+| `/solicitudes` | Privada. Formulario de permiso + descripción e historial de las solicitudes propias con su estado, id y botón «Copiar id» (RF-GP-01/02/06). |
 | `/solicitudes/pendientes` | Solo Administrador. Lista de pendientes con **Aprobar** y **Rechazar** (motivo obligatorio) (RF-GP-02/03/04). |
 | `/mis-permisos` | Privada. Permisos concedidos al usuario y botón «Descargar inventario (CSV)» que consume `GET /api/inventario/exportar` (RF-GP-05). |
 
@@ -194,7 +194,7 @@ Recorrido manual (con API y frontend en marcha):
 4. Sin intervención manual, el Estándar abre `/mis-permisos`: `exportar-inventario` está en la lista y «Descargar inventario (CSV)» devuelve el archivo (antes de aprobar mostraba el mensaje de permiso insuficiente) (RF-GP-05).
 5. Crea otra solicitud y recházala sin motivo: el backend responde 400 y se muestra `El motivo de rechazo es obligatorio.`. Con motivo, aparece **Rechazada** con el motivo en `/solicitudes` (RF-GP-04).
 6. Como Administrador crea una solicitud propia desde `/solicitudes` y pulsa **Aprobar** sobre la fila marcada «Tu solicitud»: se muestra `El solicitante no puede aprobar su propia solicitud.` (RF-GP-07). Lo mismo al rechazarla.
-7. Aprobar dos veces la misma solicitud no está en la interfaz (ya salió de pendientes); si se repite el `POST` contra la API, se muestra `Transición inválida: Aplicada -> Aprobada.` y el estado no cambia (RF-GP-06).
+7. Aprobar dos veces la misma solicitud no está en la interfaz (ya salió de pendientes). En `/solicitudes`, pulsa **Copiar id** en la fila ya aprobada y pega ese valor en `POST /api/solicitudes/{id}/aprobar` de Swagger con el token del Administrador: se muestra `Transición inválida: Aplicada -> Aprobada.` y el estado no cambia (RF-GP-06).
 8. Reinicia la API y vuelve a entrar: `/solicitudes` y `/mis-permisos` muestran los mismos datos, porque las solicitudes y los permisos están persistidos (RD-09).
 
 ## Criterios implementados y cómo verificarlos

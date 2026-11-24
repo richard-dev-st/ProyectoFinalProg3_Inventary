@@ -2,7 +2,9 @@
 @attribute [Authorize]
 @using Inventario.Web.Models
 @using Inventario.Web.Services
+@using Microsoft.JSInterop
 @inject SolicitudesPermisosServices ServicioPermisos
+@inject IJSRuntime JS
 
 <PageTitle>Mis solicitudes de permiso</PageTitle>
 <h1>Mis solicitudes de permiso</h1>
@@ -57,6 +59,7 @@
             <table class="table table-striped table-sm align-middle">
                 <thead>
                     <tr>
+                        <th>Id</th>
                         <th>Permiso</th>
                         <th>Estado</th>
                         <th>Fecha</th>
@@ -67,6 +70,18 @@
                     @foreach (var solicitud in solicitudes)
                     {
                         <tr>
+                            <td>
+                                <small class="text-muted">@solicitud.Id</small>
+                                <br />
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => CopiarIdAsync(solicitud.Id)">
+                                    Copiar id
+                                </button>
+                                @if (idCopiado == solicitud.Id)
+                                {
+                                    <span class="badge bg-success ms-1">Copiado</span>
+                                }
+                            </td>
                             <td>
                                 <strong>@solicitud.Permiso</strong>
                                 @if (!string.IsNullOrWhiteSpace(solicitud.Descripcion))
@@ -114,6 +129,7 @@
     private List<SolicitudPermisoDto> solicitudes = new();
     private bool cargando = true;
     private bool enviando;
+    private Guid? idCopiado;
     private string? mensaje;
     private string? error;
 
@@ -153,7 +169,24 @@
         }
 
         enviando = false;
+        idCopiado = null;
         await CargarAsync();
+    }
+
+    // RF-GP-06: permite repetir la transición prohibida desde Swagger sin buscar el id en la API.
+    private async Task CopiarIdAsync(Guid id)
+    {
+        var ok = await JS.InvokeAsync<bool>("copiarTexto", id.ToString());
+        if (ok)
+        {
+            idCopiado = id;
+            error = null;
+        }
+        else
+        {
+            idCopiado = null;
+            error = "No se pudo copiar el id. Selecciónalo manualmente desde la tabla.";
+        }
     }
 
     private static string ClaseEstado(string estado) => estado switch
