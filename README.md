@@ -212,6 +212,8 @@ Para que el listado sea posible se añadieron **dos endpoints de solo lectura**:
 
 Es una adición: no cambia ningún contrato ni comportamiento existente. Además, `CrearBorradorAsync` ahora valida proveedor y productos y responde `400` con un mensaje claro (`El proveedor 99 no existe.`) antes de tocar la base de datos (RD-07).
 
+**La orden solo admite productos del proveedor elegido.** El desplegable de producto filtra por el proveedor seleccionado y, al cambiarlo, se limpian las líneas anteriores. El backend aplica la misma regla: si una línea usa un producto de otro proveedor, responde `400` con `El producto 10 no pertenece al proveedor 1.` para que no se pueda saltar la validación desde la API.
+
 `OrdenesCompraServices` envía el Bearer en cada petición desde `SesionActual`; un `401` cierra la sesión y un `403` muestra el mensaje del servidor, de modo que al intentar **Recibir** sin el permiso se indica que hay que solicitar `recibir-orden` desde «Mis solicitudes».
 
 Recorrido manual (con API y frontend en marcha):
