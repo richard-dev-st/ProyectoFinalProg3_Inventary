@@ -3,11 +3,10 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `feat/frontend-permisos-id` pusheada con el id y el botón «Copiar id»
-en `/solicitudes` (RF-GP-06), verificado manualmente el 24/11/2026; PR/merge a `main` pendiente,
-lo gestiona el autor.
-`main`/`origin/main` en `41b4421`; PR #28 (frontend de permisos) y PR #27 (Asignación 4) mergeados;
-la rama `feat/registro-auditoria` ya está integrada y etiquetada.
+**Rama de trabajo actual:** `main` en `69804f9`, sincronizada con `origin/main`; PR #29 («Copiar id»
+en `/solicitudes`, RF-GP-06) mergeado después del PR #28 (frontend de permisos) y del PR #27
+(Asignación 4). No queda PR pendiente; la rama `feat/registro-auditoria` ya está integrada y
+etiquetada.
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
 otra cosa (79/92/103 pruebas, `main` en `3746eb5`/`e557148`, frontend «no iniciado», etc.),
@@ -17,7 +16,7 @@ prevalece §0/§12.
 **Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
 `docs/bitacora-asignacion-3.md`; suite histórica **103/103**.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)

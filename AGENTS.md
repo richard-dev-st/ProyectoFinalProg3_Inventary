@@ -3,12 +3,11 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (24/11/2026):** `main`/`origin/main` en `41b4421` (PR #28 de frontend de permisos
-> mergeado; antes `533b6ce`, PR #27 de la Asignación 4, PR #26 de la Asignación 3, #25 de
-> contraseñas, #24 de roles/administración, #23 de registro/activación y #22 de Práctica 5,
-> **entregada al docente el 20/11/2026**). La rama `feat/frontend-permisos-id` está pusheada con el
-> id y el botón «Copiar id» en `/solicitudes` (RF-GP-06), verificado manualmente; el PR/merge a
-> `main` lo gestiona el autor.
+> **Estado actual (24/11/2026):** `main`/`origin/main` en `69804f9` (PR #29 del botón «Copiar id»
+> mergeado; antes PR #28 de frontend de permisos, `533b6ce` de la Asignación 4, PR #26 de la
+> Asignación 3, #25 de contraseñas, #24 de roles/administración, #23 de registro/activación y #22
+> de Práctica 5, **entregada al docente el 20/11/2026**). RF-GP-01..07 están implementados en
+> backend y frontend y verificados manualmente; no queda ningún PR pendiente.
 > Baseline de pruebas: **119/119** (12 + 89 + 18).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
@@ -23,7 +22,7 @@ Cubre, por hitos:
 | Módulo | Requisitos | Estado |
 |---|---|---|
 | Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
-| Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend mergeado en PR #28 (verificado 24/11; «Copiar id» en `feat/frontend-permisos-id`) |
+| Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend mergeado en PR #28 y #29 (verificado 24/11; «Copiar id» incluido) |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
 | Órdenes de compra con máquina de estados | RF-NEG | Implementado |
 | Manejador de documentos | RF-DOC | Implementado |
