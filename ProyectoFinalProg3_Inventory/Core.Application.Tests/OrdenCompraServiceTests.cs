@@ -169,6 +169,46 @@ public class OrdenCompraServiceTests
     }
 
     [Fact]
+    public async Task CrearBorrador_ProductoDeOtroProveedor_LanzaMensajeClaro()
+    {
+        // Preparar: el producto 10 pertenece al proveedor 2, pero la orden es del 1.
+        using var context = CreateContext();
+        context.Proveedores.AddRange(
+            new Proveedor { Id = 1, Nombre = "Carlos" },
+            new Proveedor { Id = 2, Nombre = "Otro proveedor" });
+        context.Productos.Add(new Producto
+        {
+            Id = 10,
+            Nombre = "NVIDIA",
+            Codigo = "GPU-01",
+            ProveedorId = 2
+        });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null),
+            new TasaFalsa(59m),
+            context,
+            new NotificacionService(context));
+
+        var dto = new CrearOrdenCompraDto
+        {
+            ProveedorId = 1,
+            ordenes = new()
+            {
+                new() { ProductoId = 10, Cantidad = 1, Precio = 100m }
+            }
+        };
+
+        // Actuar y verificar: RF-NEG-02 impide mezclar productos de otro proveedor.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearBorradorAsync(dto, Guid.NewGuid()));
+
+        Assert.Contains("no pertenece", ex.Message);
+        Assert.Equal(0, await context.OrdenesCompra.CountAsync());
+    }
+
+    [Fact]
     public async Task ListarAsync_Estandar_SoloDevuelveSusPropiasOrdenes()
     {
         // Preparar: dos órdenes de usuarios distintos.

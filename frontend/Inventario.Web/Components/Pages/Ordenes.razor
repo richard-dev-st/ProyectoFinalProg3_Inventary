@@ -32,7 +32,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Proveedor</label>
-                    <select class="form-select" @bind="proveedorId">
+                    <select class="form-select" @bind="proveedorId" @bind:after="AlCambiarProveedor">
                         <option value="0">— Selecciona un proveedor —</option>
                         @foreach (var proveedor in catalogo.Proveedores)
                         {
@@ -42,6 +42,19 @@
                 </div>
 
                 <h3 class="h6">Productos</h3>
+
+                @if (proveedorId <= 0)
+                {
+                    <p class="text-muted small">Selecciona primero un proveedor para ver sus productos.</p>
+                }
+                else if (!ProductosDelProveedor().Any())
+                {
+                    <div class="alert alert-warning py-1">
+                        Este proveedor no tiene productos registrados. Crea uno en
+                        <a href="productos">Productos</a>.
+                    </div>
+                }
+
                 @for (var i = 0; i < detalles.Count; i++)
                 {
                     var indice = i;
@@ -49,10 +62,11 @@
                         <div class="mb-2">
                             <label class="form-label">Producto</label>
                             <select class="form-select"
+                                    disabled="@(proveedorId <= 0)"
                                     @bind="detalles[indice].ProductoId"
                                     @bind:after="() => AplicarPrecio(indice)">
                                 <option value="0">— Selecciona un producto —</option>
-                                @foreach (var producto in catalogo.Productos)
+                                @foreach (var producto in ProductosDelProveedor())
                                 {
                                     <option value="@producto.Id">
                                         @producto.Nombre (@producto.Codigo) — @producto.Precio.ToString("0.00")
@@ -211,6 +225,23 @@
         await CargarAsync();
     }
 
+    // RF-NEG-02: la orden solo puede incluir productos del proveedor seleccionado.
+    private IEnumerable<ProductoOpcionDto> ProductosDelProveedor() =>
+        proveedorId <= 0
+            ? Enumerable.Empty<ProductoOpcionDto>()
+            : catalogo.Productos.Where(p => p.ProveedorId == proveedorId);
+
+    // Al cambiar de proveedor, las líneas ya elegidas dejan de ser válidas.
+    private void AlCambiarProveedor()
+    {
+        foreach (var detalle in detalles)
+        {
+            detalle.ProductoId = 0;
+            detalle.Precio = 0;
+        }
+        totales.Clear();
+    }
+
     // RF-NEG-02: al elegir producto se propone su precio de catálogo (editable).
     private void AplicarPrecio(int indice)
     {
@@ -247,12 +278,18 @@
 
         if (proveedorId <= 0)
         {
-            error = "Indica un id de proveedor válido.";
+            error = "Selecciona un proveedor.";
             return;
         }
-        if (detalles.Count == 0 || detalles.Any(d => d.ProductoId <= 0 || d.Cantidad <= 0 || d.Precio < 0))
+
+        // RF-NEG-02: cada línea debe usar un producto que venda ese proveedor.
+        var permitidos = ProductosDelProveedor().Select(p => p.Id).ToHashSet();
+        if (detalles.Count == 0 || detalles.Any(d =>
+                d.ProductoId <= 0 || !permitidos.Contains(d.ProductoId) ||
+                d.Cantidad <= 0 || d.Precio < 0))
         {
-            error = "Cada producto necesita id, cantidad mayor que cero y precio no negativo.";
+            error = "Cada línea necesita un producto del proveedor, cantidad mayor que cero " +
+                    "y precio no negativo.";
             return;
         }
 

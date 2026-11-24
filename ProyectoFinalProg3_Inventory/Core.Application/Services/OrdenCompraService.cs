@@ -89,10 +89,22 @@ namespace Application.Services
 
             foreach (var detalle in dto.ordenes)
             {
-                if (!await _context.Productos.AnyAsync(p => p.Id == detalle.ProductoId))
+                var producto = await _context.Productos
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == detalle.ProductoId);
+
+                if (producto is null)
                 {
                     throw new InvalidOperationException(
                         $"El producto {detalle.ProductoId} no existe.");
+                }
+
+                // RF-NEG-02: la orden es de un proveedor concreto; solo puede incluir
+                // productos que ese proveedor vende. Antes se colaban productos ajenos.
+                if (producto.ProveedorId != dto.ProveedorId)
+                {
+                    throw new InvalidOperationException(
+                        $"El producto {detalle.ProductoId} no pertenece al proveedor {dto.ProveedorId}.");
                 }
             }
 
