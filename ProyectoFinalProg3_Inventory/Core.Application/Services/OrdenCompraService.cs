@@ -2,6 +2,7 @@
 using Application.DTOs.Ordenes;
 using Application.Interfaces;
 using Business.Inventory.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -24,6 +25,28 @@ namespace Application.Services
             _service = service;
             _context = context;
             _notificaciones = notificaciones;
+        }
+
+        // RF-NEG-02: el listado es de solo lectura; el Estándar ve únicamente sus órdenes.
+        public async Task<List<OrdenCompraResumenDto>> ListarAsync(Guid usuarioId, bool esAdministrador)
+        {
+            var consulta = _context.OrdenesCompra.AsNoTracking().AsQueryable();
+            if (!esAdministrador)
+            {
+                consulta = consulta.Where(o => o.CreadoPorUsuarioId == usuarioId);
+            }
+
+            return await consulta
+                .OrderByDescending(o => o.Id)
+                .Select(o => new OrdenCompraResumenDto(
+                    o.Id,
+                    o.ProveedorId,
+                    o.Estado.ToString(),
+                    o.Total,
+                    o.FechaCreacion,
+                    o.CreadoPorUsuarioId,
+                    o.Detalles.Count))
+                .ToListAsync();
         }
 
         public async Task AprobarAsync(int id)

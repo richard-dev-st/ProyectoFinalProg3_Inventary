@@ -23,6 +23,16 @@ namespace Presentation.API.Controllers
             _context = context;
         }
 
+        // RF-NEG-02: endpoint de solo lectura que alimenta el listado del frontend.
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Listar()
+        {
+            var ordenes = await _ordenCompraService.ListarAsync(
+                ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+            return Ok(ordenes);
+        }
+
         [HttpPost("crear-borrador")]
         [Authorize(Roles = "Estandar,Administrador")]
         public async Task<IActionResult> CrearBorrador([FromBody] CrearOrdenCompraDto dto, [FromQuery] Guid usuarioId)

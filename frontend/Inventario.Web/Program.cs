@@ -39,6 +39,12 @@ builder.Services.AddHttpClient<InventarioServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// RF-NEG-02..06: cliente de órdenes de compra (módulo de negocio).
+builder.Services.AddHttpClient<OrdenesCompraServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();

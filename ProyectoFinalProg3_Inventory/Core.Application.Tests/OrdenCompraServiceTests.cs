@@ -107,4 +107,55 @@ public class OrdenCompraServiceTests
 
         Assert.Equal(ServicioExternoException.Causa.NoConfigurado, ex.Motivo);
     }
+
+    [Fact]
+    public async Task ListarAsync_Estandar_SoloDevuelveSusPropiasOrdenes()
+    {
+        // Preparar: dos órdenes de usuarios distintos.
+        using var context = CreateContext();
+        var usuario = Guid.NewGuid();
+        var otroUsuario = Guid.NewGuid();
+        context.OrdenesCompra.AddRange(
+            new OrdenCompra { Id = 1, CreadoPorUsuarioId = usuario, Total = 10m },
+            new OrdenCompra { Id = 2, CreadoPorUsuarioId = otroUsuario, Total = 20m });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null),
+            new TasaFalsa(59m),
+            context,
+            new NotificacionService(context));
+
+        // Actuar: listar como Estándar.
+        var ordenes = await service.ListarAsync(usuario, esAdministrador: false);
+
+        // Verificar: solo aparece la orden propia.
+        Assert.Single(ordenes);
+        Assert.Equal(1, ordenes[0].Id);
+        Assert.Equal("Borrador", ordenes[0].Estado);
+    }
+
+    [Fact]
+    public async Task ListarAsync_Administrador_DevuelveTodasLasOrdenes()
+    {
+        // Preparar: dos órdenes de usuarios distintos.
+        using var context = CreateContext();
+        context.OrdenesCompra.AddRange(
+            new OrdenCompra { Id = 1, CreadoPorUsuarioId = Guid.NewGuid(), Total = 10m },
+            new OrdenCompra { Id = 2, CreadoPorUsuarioId = Guid.NewGuid(), Total = 20m });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null),
+            new TasaFalsa(59m),
+            context,
+            new NotificacionService(context));
+
+        // Actuar: listar como Administrador.
+        var ordenes = await service.ListarAsync(Guid.NewGuid(), esAdministrador: true);
+
+        // Verificar: aparecen las dos, la más reciente primero.
+        Assert.Equal(2, ordenes.Count);
+        Assert.Equal(2, ordenes[0].Id);
+    }
 }

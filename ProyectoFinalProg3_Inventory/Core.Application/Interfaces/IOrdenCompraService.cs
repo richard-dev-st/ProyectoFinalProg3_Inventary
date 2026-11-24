@@ -8,6 +8,9 @@ namespace Application.Interfaces
 {
     public interface IOrdenCompraService
     {
+        // RF-NEG-02: listado de órdenes para la UI (Estándar solo ve las suyas).
+        Task<List<OrdenCompraResumenDto>> ListarAsync(Guid usuarioId, bool esAdministrador);
+
         //Crear orden en borrador
         Task<int> CrearBorradorAsync(CrearOrdenCompraDto dto, Guid usuarioId);
         Task<TotalEnDopDto> ObtenerTotalEnDopAsync(int ordenId, CancellationToken ct = default);

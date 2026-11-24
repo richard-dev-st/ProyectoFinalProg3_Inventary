@@ -1,0 +1,288 @@
+@page "/ordenes"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject OrdenesCompraServices ServicioOrdenes
+
+<PageTitle>Órdenes de compra</PageTitle>
+<h1>Órdenes de compra</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 card-title">Nueva orden</h2>
+
+                <div class="mb-3">
+                    <label class="form-label">Id del proveedor</label>
+                    <input class="form-control" type="number" min="1" @bind="proveedorId" />
+                </div>
+
+                <h3 class="h6">Productos</h3>
+                @for (var i = 0; i < detalles.Count; i++)
+                {
+                    var indice = i;
+                    <div class="border rounded p-2 mb-2">
+                        <div class="mb-2">
+                            <label class="form-label">Id del producto</label>
+                            <input class="form-control" type="number" min="1"
+                                   @bind="detalles[indice].ProductoId" />
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label class="form-label">Cantidad</label>
+                                <input class="form-control" type="number" min="1"
+                                       @bind="detalles[indice].Cantidad" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Precio unitario</label>
+                                <input class="form-control" type="number" min="0" step="0.01"
+                                       @bind="detalles[indice].Precio" />
+                            </div>
+                        </div>
+                        @if (detalles.Count > 1)
+                        {
+                            <button class="btn btn-sm btn-outline-danger mt-2"
+                                    @onclick="() => QuitarDetalle(indice)">
+                                Quitar producto
+                            </button>
+                        }
+                    </div>
+                }
+
+                <button class="btn btn-sm btn-outline-secondary mb-3" @onclick="AgregarDetalle">
+                    + Otro producto
+                </button>
+
+                <button class="btn btn-primary w-100" disabled="@enviando" @onclick="CrearAsync">
+                    @(enviando ? "Creando..." : "Crear borrador")
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <h2 class="h5">Historial</h2>
+
+        @if (cargando)
+        {
+            <p>Cargando órdenes...</p>
+        }
+        else if (ordenes.Count == 0)
+        {
+            <p>No hay órdenes para mostrar.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                            <th>Total</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var orden in ordenes)
+                        {
+                            <tr>
+                                <td>@orden.Id</td>
+                                <td>@orden.ProveedorId</td>
+                                <td><span class="badge @ClaseEstado(orden.Estado)">@orden.Estado</span></td>
+                                <td>@orden.Total.ToString("0.00")</td>
+                                <td>@orden.FechaCreacion.ToLocalTime().ToString("g")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info mb-1"
+                                            @onclick="() => VerTotalAsync(orden.Id)">
+                                        Total DOP
+                                    </button>
+
+                                    @if (orden.Estado == "Borrador")
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary mb-1"
+                                                @onclick="() => EnviarAprobacionAsync(orden.Id)">
+                                            Enviar a aprobación
+                                        </button>
+                                    }
+
+                                    @if (orden.Estado == "Aprobada")
+                                    {
+                                        <button class="btn btn-sm btn-outline-success mb-1"
+                                                @onclick="() => RecibirAsync(orden.Id)">
+                                            Recibir
+                                        </button>
+                                    }
+
+                                    <AuthorizeView Roles="Administrador">
+                                        <Authorized>
+                                            @if (orden.Estado is "PendienteAprobacion")
+                                            {
+                                                <button class="btn btn-sm btn-outline-success mb-1"
+                                                        @onclick="() => AprobarAsync(orden.Id)">
+                                                    Aprobar
+                                                </button>
+                                            }
+                                            @if (orden.Estado is "Borrador" or "PendienteAprobacion" or "Aprobada")
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger mb-1"
+                                                        @onclick="() => CancelarAsync(orden.Id)">
+                                                    Cancelar
+                                                </button>
+                                            }
+                                        </Authorized>
+                                    </AuthorizeView>
+
+                                    @if (totales.TryGetValue(orden.Id, out var total))
+                                    {
+                                        <div class="small text-muted">
+                                            @total.TotalUsd.ToString("0.00") USD × @total.Tasa =
+                                            <strong>@total.TotalDop.ToString("0.00") DOP</strong>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<OrdenCompraResumenDto> ordenes = new();
+    private Dictionary<int, TotalEnDopDto> totales = new();
+    private int proveedorId;
+    private List<DetalleOrdenRequest> detalles = new() { new() };
+    private bool cargando = true;
+    private bool enviando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private void AgregarDetalle() => detalles.Add(new());
+
+    private void QuitarDetalle(int indice) => detalles.RemoveAt(indice);
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await ServicioOrdenes.ListarAsync();
+        if (resultado.Ok)
+        {
+            ordenes = resultado.Ordenes;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+        cargando = false;
+    }
+
+    private async Task CrearAsync()
+    {
+        mensaje = null;
+        error = null;
+
+        if (proveedorId <= 0)
+        {
+            error = "Indica un id de proveedor válido.";
+            return;
+        }
+        if (detalles.Count == 0 || detalles.Any(d => d.ProductoId <= 0 || d.Cantidad <= 0 || d.Precio < 0))
+        {
+            error = "Cada producto necesita id, cantidad mayor que cero y precio no negativo.";
+            return;
+        }
+
+        enviando = true;
+        var resultado = await ServicioOrdenes.CrearAsync(new CrearOrdenCompraRequest
+        {
+            ProveedorId = proveedorId,
+            Ordenes = detalles
+        });
+        enviando = false;
+
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = $"Orden #{resultado.OrdenId} creada en estado Borrador.";
+        proveedorId = 0;
+        detalles = new() { new() };
+        await CargarAsync();
+    }
+
+    private async Task EnviarAprobacionAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.EnviarAprobacionAsync(id), "Orden enviada a aprobación.");
+
+    private async Task AprobarAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.AprobarAsync(id), "Orden aprobada.");
+
+    private async Task RecibirAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.RecibirAsync(id), "Orden recibida.");
+
+    private async Task CancelarAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.CancelarAsync(id), "Orden cancelada.");
+
+    private async Task EjecutarAsync(
+        Func<Task<(bool Ok, string Mensaje)>> operacion, string mensajeExito)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await operacion();
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = mensajeExito;
+        await CargarAsync();
+    }
+
+    private async Task VerTotalAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerTotalEnDopAsync(id);
+        if (!resultado.Ok || resultado.Total is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        totales[id] = resultado.Total;
+    }
+
+    private static string ClaseEstado(string estado) => estado switch
+    {
+        "Borrador" => "bg-secondary",
+        "PendienteAprobacion" => "bg-warning text-dark",
+        "Aprobada" => "bg-info text-dark",
+        "Recibida" => "bg-success",
+        "Cancelada" => "bg-dark",
+        _ => "bg-light text-dark"
+    };
+}
