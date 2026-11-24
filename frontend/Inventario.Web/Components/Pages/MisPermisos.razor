@@ -1,0 +1,106 @@
+@page "/mis-permisos"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@using Microsoft.JSInterop
+@inject SolicitudesPermisosServices Solicitudes
+@inject InventarioServices Inventario
+@inject IJSRuntime JS
+
+<PageTitle>Mis permisos</PageTitle>
+<h1>Mis permisos</h1>
+
+@if (cargando)
+{
+    <p>Cargando…</p>
+}
+else if (permisos.Count == 0)
+{
+    <div class="alert alert-info">
+        Todavía no tienes permisos concedidos.
+        <a href="/solicitudes">Solicitar un permiso</a>.
+    </div>
+}
+else
+{
+    <table class="table table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Permiso</th>
+                <th>Concedido el</th>
+                <th>Solicitud</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var permiso in permisos)
+            {
+                <tr>
+                    <td><strong>@permiso.Permiso</strong></td>
+                    <td>@permiso.ConcedidoEn.ToLocalTime().ToString("g")</td>
+                    <td><small class="text-muted">@permiso.SolicitudId</small></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<hr />
+<h2 class="h5">Comprobar un permiso concedido</h2>
+<p class="text-muted">
+    RF-GP-05: tras aprobar la solicitud, el permiso se aplica automáticamente y esta acción
+    funciona sin intervención manual adicional.
+</p>
+<button class="btn btn-outline-primary" disabled="@descargando" @onclick="ExportarAsync">
+    @(descargando ? "Generando…" : "Descargar inventario (CSV)")
+</button>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success mt-3">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    private List<PermisoDto> permisos = new();
+    private bool cargando = true;
+    private bool descargando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var (ok, lista, msg) = await Solicitudes.ObtenerMisPermisosAsync();
+        if (ok)
+        {
+            permisos = lista;
+        }
+        else
+        {
+            error = msg;
+        }
+        cargando = false;
+    }
+
+    private async Task ExportarAsync()
+    {
+        descargando = true;
+        mensaje = null;
+        error = null;
+
+        var (ok, csv, msg) = await Inventario.ExportarCsvAsync();
+        if (ok)
+        {
+            await JS.InvokeVoidAsync("descargarTexto", "inventario.csv", csv, "text/csv;charset=utf-8");
+            mensaje = "Inventario exportado.";
+        }
+        else
+        {
+            error = msg;
+        }
+
+        descargando = false;
+    }
+}

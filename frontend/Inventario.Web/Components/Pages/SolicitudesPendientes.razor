@@ -1,0 +1,163 @@
+@page "/solicitudes/pendientes"
+@attribute [Authorize(Roles = "Administrador")]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject SolicitudesPermisosServices Solicitudes
+@inject AuthService Auth
+
+<PageTitle>Solicitudes pendientes</PageTitle>
+<h1>Solicitudes pendientes</h1>
+
+<p class="text-muted">
+    RF-GP-03/04/06/07: aprobar concede el permiso automáticamente; rechazar exige un motivo.
+</p>
+
+@if (cargando)
+{
+    <p>Cargando…</p>
+}
+else if (filas.Count == 0)
+{
+    <div class="alert alert-info">No hay solicitudes pendientes.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Solicitante</th>
+                <th>Permiso</th>
+                <th>Fecha</th>
+                <th>Resolución</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fila in filas)
+            {
+                <tr>
+                    <td>
+                        <small class="text-muted">@fila.Solicitud.SolicitanteUsuarioId</small>
+                        @if (fila.Solicitud.SolicitanteUsuarioId == miId)
+                        {
+                            <br />
+                            <span class="badge bg-secondary">Tu solicitud</span>
+                        }
+                    </td>
+                    <td>
+                        <strong>@fila.Solicitud.Permiso</strong>
+                        @if (!string.IsNullOrWhiteSpace(fila.Solicitud.Descripcion))
+                        {
+                            <br />
+                            <small class="text-muted">@fila.Solicitud.Descripcion</small>
+                        }
+                    </td>
+                    <td>@fila.Solicitud.CreadoEn.ToLocalTime().ToString("g")</td>
+                    <td style="min-width: 20rem;">
+                        <div class="d-flex gap-2 align-items-start">
+                            <button class="btn btn-sm btn-success"
+                                    disabled="@fila.Procesando"
+                                    @onclick="() => Aprobar(fila)">
+                                Aprobar
+                            </button>
+                            <input class="form-control form-control-sm" @bind="fila.Motivo"
+                                   placeholder="Motivo del rechazo" maxlength="500" />
+                            <button class="btn btn-sm btn-outline-danger"
+                                    disabled="@fila.Procesando"
+                                    @onclick="() => Rechazar(fila)">
+                                Rechazar
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success mt-3">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger mt-3">@error</div>
+}
+
+@code {
+    private sealed class FilaSolicitud
+    {
+        public SolicitudPermisoDto Solicitud { get; init; } = default!;
+        public string Motivo { get; set; } = string.Empty;
+        public bool Procesando { get; set; }
+    }
+
+    private List<FilaSolicitud> filas = new();
+    private Guid miId;
+    private bool cargando = true;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // RF-GP-07: necesitamos el id del token para marcar las solicitudes propias.
+        var actual = await Auth.ObtenerUsuarioActualAsync();
+        if (actual is null) return;
+
+        miId = actual.Id;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var (ok, lista, msg) = await Solicitudes.ObtenerPendientesAsync();
+        if (ok)
+        {
+            filas = lista.Select(s => new FilaSolicitud { Solicitud = s }).ToList();
+        }
+        else
+        {
+            error = msg;
+        }
+        cargando = false;
+    }
+
+    private async Task Aprobar(FilaSolicitud fila)
+    {
+        fila.Procesando = true;
+        mensaje = null;
+        error = null;
+
+        // RF-GP-07: si es propia, el backend rechaza la operación y mostramos su mensaje.
+        var (ok, msg) = await Solicitudes.AprobarAsync(fila.Solicitud.Id);
+        if (ok)
+        {
+            mensaje = $"Permiso '{fila.Solicitud.Permiso}' aprobado y aplicado.";
+            await CargarAsync();
+        }
+        else
+        {
+            error = msg;
+            fila.Procesando = false;
+        }
+    }
+
+    private async Task Rechazar(FilaSolicitud fila)
+    {
+        fila.Procesando = true;
+        mensaje = null;
+        error = null;
+
+        var (ok, msg) = await Solicitudes.RechazarAsync(fila.Solicitud.Id, fila.Motivo);
+        if (ok)
+        {
+            mensaje = "Solicitud rechazada.";
+            await CargarAsync();
+        }
+        else
+        {
+            error = msg;
+            fila.Procesando = false;
+        }
+    }
+}

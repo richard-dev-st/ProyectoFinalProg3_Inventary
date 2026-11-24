@@ -28,6 +28,17 @@ builder.Services.AddHttpClient<AdminUsuariosServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// RF-GP-01..07 y RF-GP-05: clientes de permisos y del endpoint protegido por permiso.
+builder.Services.AddHttpClient<SolicitudesPermisosServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
+builder.Services.AddHttpClient<InventarioServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();
