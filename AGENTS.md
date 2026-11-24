@@ -3,12 +3,12 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (21/11/2026):** `main` en `e557148` (PR #25 de contraseñas mergeado; antes
-> PR #24 de roles/administración, #23 de registro/activación y #22 de Práctica 5, **entregada al
-> docente el 20/11/2026**).
-> Baseline de pruebas: **92/92** (12 + 62 + 18).
-> Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; el resto es
-> el corte histórico de la Práctica 5).
+> **Estado actual (24/11/2026):** `main` en `533b6ce` (PR #27 de la Asignación 4 mergeado; antes
+> PR #26 de la Asignación 3, #25 de contraseñas, #24 de roles/administración, #23 de
+> registro/activación y #22 de Práctica 5, **entregada al docente el 20/11/2026**).
+> Baseline de pruebas: **119/119** (12 + 89 + 18).
+> Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
+> §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
 
 ---
 
@@ -26,6 +26,7 @@ Cubre, por hitos:
 | Manejador de documentos | RF-DOC | Implementado |
 | Notificaciones y cola de correos | RF-NOT | Implementado (Práctica 5, tag `practica-5`) |
 | Reportes con agregación | RF-REP | Implementado (Práctica 5, tag `practica-5`) |
+| Historial de auditoría | RF-AUD-01..07 | Implementado (Asignación 4, tag `asignacion-4`, PR #27) |
 
 ## 2. Lenguaje, framework y estructura
 
@@ -78,7 +79,7 @@ dotnet run --project frontend/Inventario.Web --launch-profile http
 # Backend completo
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
-# Suite de pruebas (línea base: 92 pruebas en verde)
+# Suite de pruebas (línea base: 119 pruebas en verde)
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
 # Un grupo de pruebas
@@ -135,7 +136,7 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 4. **No romper lo existente:** la máquina de estados de `OrdenCompra`, las reglas de
    `DocumentoService`, los flujos de `AuthService` y las rutas/contratos actuales no se modifican
    salvo que la tarea lo pida explícitamente. Solo se agrega funcionalidad.
-5. **La suite debe seguir en verde:** las 92 pruebas actuales no pueden romperse; las nuevas se
+5. **La suite debe seguir en verde:** las 119 pruebas actuales no pueden romperse; las nuevas se
    agregan aparte.
 6. **No ejecutar** `docker compose down -v` ni comandos que borren volúmenes, datos o historial.
    Tampoco `git reset --hard`, `git push --force` ni reescrituras de historia.
@@ -149,8 +150,8 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 
 ## 6. Flujo de trabajo esperado
 
-1. Leer `contexto-sesion.md` §0 (estado vigente; el resto es el corte de Práctica 5) y
-   `docs/criterios-notificaciones-reportes.md` (criterios de aceptación vigentes).
+1. Leer `contexto-sesion.md` §0 (estado vigente; §12 documenta la Asignación 4; §1–§11 son
+   históricos) y `docs/criterios-notificaciones-reportes.md` (criterios de aceptación vigentes).
 2. Verificar que el build y las pruebas estén en verde **antes** de cambiar código.
 3. Implementar en incrementos pequeños, con su prueba y su entrada en el README.
 4. Ejecutar build + suite completa al terminar cada incremento.
@@ -163,5 +164,5 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 - `dotnet test` con la suite anterior en verde y las pruebas nuevas pasando.
 - Criterios de `docs/criterios-notificaciones-reportes.md` verificables a mano siguiendo el
   README, sin preguntar al autor.
-- README actualizado (secciones **Notificaciones** y **Reportes**).
+- README actualizado (secciones **Notificaciones**, **Reportes** y **Asignación 4**).
 - Ningún secreto nuevo en el working tree ni en el historial (`gitleaks` en el pre-commit).

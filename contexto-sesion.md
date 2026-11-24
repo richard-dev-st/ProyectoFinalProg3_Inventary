@@ -1,23 +1,27 @@
-# Contexto de sesión — Handoff activo (actualizado 23/11/2026)
+# Contexto de sesión — Handoff activo (actualizado 24/11/2026)
 
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `feat/asignacion-3` (entregable de la Asignación 3)
-**Estado vigente:** ver **§0**. Las secciones §1–§10 son el corte histórico de la Práctica 5
-(19–20/11/2026); §11 documenta la Asignación 3. Donde digan otra cosa (79/62/86 pruebas, `main`
-en `3746eb5`, frontend «no iniciado», etc.), prevalece §0/§11.
+**Rama de trabajo actual:** `main` en `533b6ce` (PR #27 de la Asignación 4 mergeado; la rama
+`feat/registro-auditoria` ya está integrada y etiquetada)
+**Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
+(19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
+otra cosa (79/92/103 pruebas, `main` en `3746eb5`/`e557148`, frontend «no iniciado», etc.),
+prevalece §0/§12.
+**Asignación 4:** historial de auditoría RF-AUD-01..07; tag `asignacion-4`; bitácora en
+`docs/bitacora-asignacion-4.md`; suite **119/119**.
 **Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
-`docs/bitacora-asignacion-3.md`; suite **103/103**.
+`docs/bitacora-asignacion-3.md`; suite histórica **103/103**.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
 
 > Este documento es el handoff que se usa al cambiar de agente. **Si algo cambia, actualízalo en el
-> mismo commit.** La Práctica 4 y la Práctica 5 están cerradas y etiquetadas; sus detalles se
-> conservan como referencia histórica en §4 y §10.
+> mismo commit.** La Práctica 4, la Práctica 5 y la Asignación 3 están cerradas y etiquetadas; sus
+> detalles se conservan como referencia histórica en §4, §10 y §11. La Asignación 4 está en §12.
 
 ---
 
@@ -27,7 +31,8 @@ en `3746eb5`, frontend «no iniciado», etc.), prevalece §0/§11.
 |---|---|
 | Práctica 4 (`practica-4`) | ✅ Cerrada, etiquetada y pusheada |
 | Práctica 5 (`practica-5`) | ✅ Cerrada, etiquetada, pusheada y **entregada al docente el 20/11/2026** |
-| **Asignación 3 (auditoría de la Práctica 5)** | ✅ 3 hallazgos corregidos + 1 declarado; tag `asignacion-3`; ver §11 |
+| **Asignación 4 (historial de auditoría)** | ✅ RF-AUD-01..07; tag `asignacion-4`; PR #27 mergeado; ver §12 |
+| Asignación 3 (auditoría de la Práctica 5) | ✅ 3 hallazgos corregidos + 1 declarado; tag `asignacion-3`; ver §11 (histórico) |
 | Backend (auth, permisos, órdenes, documentos, notificaciones, reportes) | ✅ Implementado |
 | Frontend — login y sesión persistente | ✅ Implementado |
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
@@ -35,14 +40,14 @@ en `3746eb5`, frontend «no iniciado», etc.), prevalece §0/§11.
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
-| Pruebas de `AdminUsuarioService` / endpoints de admin | ⬜ Pendientes (cobertura solo indirecta) |
+| Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
 
 ### Verificación actual
 
 ```powershell
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 103/103 (12 + 73 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 119/119 (12 + 89 + 18)
 ```
 
 ### Rutas del frontend que ya existen
@@ -76,7 +81,8 @@ forzado de restablecimiento), `SesionActual`, `SesionAuthStateProvider`. El `Bea
 
 ### Cómo retomar
 
-1. Leer §0 y el README (secciones de registro/activación, roles/administración y contraseñas).
+1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
+   contraseñas y **Asignación 4**), además de `docs/bitacora-asignacion-4.md`.
 2. Verificar build + `dotnet test` antes de tocar código.
 3. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia este handoff.
 
@@ -111,7 +117,8 @@ Verificación histórica al cierre de la Práctica 5 (19/11/2026):
 dotnet test → 79/79 (12 + 49 + 18)
 ```
 
-**Verificación vigente (21/11/2026): 92/92 (12 + 62 + 18).** Ver §0.
+**Verificación vigente (24/11/2026): 119/119 (12 + 89 + 18).** Ver §0/§12. El valor 92/92
+corresponde al cierre de la Práctica 5.
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
 > CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
@@ -744,7 +751,7 @@ Administrador activo, destinatario inválido (y dos pruebas previas de `EmailSer
 ### Verificación ejecutada
 
 ```powershell
-dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   # 103/103 (12 + 73 + 18)
+dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   # 103/103 (12 + 73 + 18) — histórico de Asignación 3; vigente: 119/119 (§0/§12)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   # 0 errores, 0 warnings
 ```
 
@@ -764,4 +771,52 @@ espera fija de 40 s daba un falso negativo del guion.
   `dotnet publish` + imágenes propias y `docker compose up -d --no-build`.
 - Los guiones de revisión acumulan usuarios administradores en la BD; una solicitud puede encolar
   un correo por cada uno. Drenar la cola antes de medir RF-NOT-10 o esperar por sondeo.
+- `README.Docker.md` sigue sin versionar: no agregarlo.
+
+---
+
+## 12. Asignación 4 — Historial de auditoría (24/11/2026)
+
+| Dato | Valor |
+|---|---|
+| Rama de trabajo | `feat/registro-auditoria` (mergeada a `main` mediante PR #27) |
+| Merge en `main` | `533b6ce` |
+| Commits | `4dc717a` (código, pruebas y migración) y `4e12209` (README y bitácora) |
+| Tag entregado | `asignacion-4` → `4e12209` (pusheado) |
+| Bitácora | `docs/bitacora-asignacion-4.md` (2 tareas delegadas, 3 errores detectados y corregidos, paralelo registro ↔ commit) |
+| Suite | **119/119** (12 + 89 + 18) |
+
+### Qué quedó implementado
+
+- `RegistroAuditoria` con los 8 campos de RF-AUD-01, `private set` y factory `Crear`.
+- Constantes `AccionesAuditoria` / `EntidadesAuditoria` en `Core.Domain/Constants`.
+- `IAuditoriaService.Preparar(...)` y `ConsultarAsync(esAdministrador, filtro, ct)`; `Preparar`
+  acepta fecha opcional y por defecto usa `DateTime.UtcNow` (RD-11).
+- Migración `AgregarRegistroAuditoria` (tabla `Auditoria` e índices por usuario, entidad y fecha),
+  aplicada al arrancar; el historial sobrevive a `docker compose down` sin `-v` (RD-09).
+- `GET /api/auditoria`: único endpoint, filtros por usuario/entidad/rango/paginación; `403` al
+  Estándar (también al invocar el servicio directamente, RD-06) y `400` a filtros inválidos (RD-07).
+- 8 eventos auditados: aprobar/rechazar solicitud, subir/eliminar documento, cambiar rol,
+  desactivar/reactivar usuario y restablecer contraseña propio/forzado por un Administrador.
+- `ForzarRestablecimientoPasswordAsync(usuarioId, adminId)`; el controlador toma el `NameIdentifier`
+  del token para que el actor sea el administrador autenticado.
+- Valor anterior/nuevo serializado como JSON de campos auditables: nunca contraseñas ni códigos.
+- Inmutabilidad (RF-AUD-06): el contrato solo expone `Preparar` y `ConsultarAsync`; no hay DTO ni
+  operación de edición/borrado, y Swagger solo muestra el `GET`.
+
+### Verificación manual realizada
+
+Con Docker + Swagger se provocaron los 9 eventos y se comprobó: `total` 9 con los 8 campos por
+registro, filtros con totales distintos, `403` para Estándar, `400` para `pagina=0`, `405` para
+`DELETE /api/Auditoria`, persistencia tras `docker compose down` + `up --build` y ausencia de
+contraseñas/códigos en las respuestas. Comando único: `dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx`.
+
+### Trampas de esta asignación
+
+- Los eventos generados antes de `docker compose up --build --force-recreate api` no se auditan:
+  la imagen antigua no tenía los enganches. Reconstruir la imagen antes de provocar los eventos.
+- `usuarioId` filtra por **quién actuó**, no por el usuario afectado; `entidadId` identifica la
+  solicitud, el documento o el usuario modificado.
+- `usuarioEmail` se desnormaliza desde la BD (`admin.Email`), no desde el claim del JWT; tras
+  promover un rol hay que volver a hacer login para regenerar el claim.
 - `README.Docker.md` sigue sin versionar: no agregarlo.
