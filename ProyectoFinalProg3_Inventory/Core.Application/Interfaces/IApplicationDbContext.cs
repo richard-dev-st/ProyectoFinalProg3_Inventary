@@ -17,6 +17,7 @@ namespace Application.Interfaces
         DbSet<Documento> Documentos { get; set; }
         DbSet<Notificacion> Notificaciones { get; set; }
         DbSet<OrdenCompra> OrdenesCompra { get; set; }
+        DbSet<DetalleOrden> DetallesOrden { get; set; }
         DbSet<Proveedor> Proveedores { get; set; }
         DbSet<Producto> Productos { get; set; }
         DbSet<RegistroAuditoria> Auditoria { get; set; }

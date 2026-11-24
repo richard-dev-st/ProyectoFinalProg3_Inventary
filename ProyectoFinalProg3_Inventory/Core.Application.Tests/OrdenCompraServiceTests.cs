@@ -209,6 +209,149 @@ public class OrdenCompraServiceTests
     }
 
     [Fact]
+    public async Task ObtenerDetalleAsync_DevuelveLineasYProveedor()
+    {
+        // Preparar: orden con una línea y su producto/proveedor.
+        using var context = CreateContext();
+        var usuario = Guid.NewGuid();
+        context.Proveedores.Add(new Proveedor { Id = 1, Nombre = "Carlos" });
+        context.Productos.Add(new Producto
+        {
+            Id = 10,
+            Nombre = "NVIDIA",
+            Codigo = "GPU-01",
+            ProveedorId = 1
+        });
+        context.OrdenesCompra.Add(new OrdenCompra
+        {
+            Id = 5,
+            ProveedorId = 1,
+            CreadoPorUsuarioId = usuario,
+            Total = 200m,
+            Detalles = new() { new DetalleOrden { ProductoId = 10, Cantidad = 2, Precio = 100m } }
+        });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null), new TasaFalsa(59m), context, new NotificacionService(context));
+
+        // Actuar
+        var detalle = await service.ObtenerDetalleAsync(5, usuario, esAdministrador: false);
+
+        // Verificar
+        Assert.NotNull(detalle);
+        Assert.Equal("Carlos", detalle!.ProveedorNombre);
+        var linea = Assert.Single(detalle.Detalles);
+        Assert.Equal("NVIDIA", linea.ProductoNombre);
+        Assert.Equal("GPU-01", linea.ProductoCodigo);
+        Assert.Equal(200m, linea.Subtotal);
+    }
+
+    [Fact]
+    public async Task ObtenerDetalleAsync_OtroUsuario_LanzaUnauthorized()
+    {
+        // Preparar: la orden pertenece a otro usuario.
+        using var context = CreateContext();
+        context.Proveedores.Add(new Proveedor { Id = 1, Nombre = "Carlos" });
+        context.Productos.Add(new Producto { Id = 10, Nombre = "NVIDIA", ProveedorId = 1 });
+        context.OrdenesCompra.Add(new OrdenCompra
+        {
+            Id = 5,
+            ProveedorId = 1,
+            CreadoPorUsuarioId = Guid.NewGuid(),
+            Detalles = new() { new DetalleOrden { ProductoId = 10, Cantidad = 1, Precio = 10m } }
+        });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null), new TasaFalsa(59m), context, new NotificacionService(context));
+
+        // Actuar y verificar
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => service.ObtenerDetalleAsync(5, Guid.NewGuid(), esAdministrador: false));
+    }
+
+    [Fact]
+    public async Task ActualizarBorradorAsync_ReemplazaLineasYRecalculaTotal()
+    {
+        // Preparar: borrador con proveedor 1 y producto 10.
+        using var context = CreateContext();
+        var usuario = Guid.NewGuid();
+        context.Proveedores.AddRange(
+            new Proveedor { Id = 1, Nombre = "Carlos" },
+            new Proveedor { Id = 2, Nombre = "Otro" });
+        context.Productos.AddRange(
+            new Producto { Id = 10, Nombre = "NVIDIA", Codigo = "GPU-01", Precio = 100m, ProveedorId = 1 },
+            new Producto { Id = 20, Nombre = "Monitor", Codigo = "MON-01", Precio = 50m, ProveedorId = 2 });
+        context.OrdenesCompra.Add(new OrdenCompra
+        {
+            Id = 5,
+            ProveedorId = 1,
+            CreadoPorUsuarioId = usuario,
+            Detalles = new() { new DetalleOrden { ProductoId = 10, Cantidad = 1, Precio = 100m } }
+        });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null), new TasaFalsa(59m), context, new NotificacionService(context));
+
+        var dto = new CrearOrdenCompraDto
+        {
+            ProveedorId = 2,
+            ordenes = new() { new() { ProductoId = 20, Cantidad = 3, Precio = 50m } }
+        };
+
+        // Actuar
+        await service.ActualizarBorradorAsync(5, dto, usuario, esAdministrador: false);
+
+        // Verificar: cambia proveedor, reemplaza líneas y recalcula el total.
+        var orden = await context.OrdenesCompra
+            .Include(o => o.Detalles)
+            .FirstAsync(o => o.Id == 5);
+        Assert.Equal(2, orden.ProveedorId);
+        Assert.Equal(150m, orden.Total);
+        var linea = Assert.Single(orden.Detalles);
+        Assert.Equal(20, linea.ProductoId);
+        Assert.Equal(3, linea.Cantidad);
+    }
+
+    [Fact]
+    public async Task ActualizarBorradorAsync_OrdenNoBorrador_LanzaInvalidOperation()
+    {
+        // Preparar: una orden ya enviada a aprobación.
+        using var context = CreateContext();
+        var usuario = Guid.NewGuid();
+        context.Proveedores.Add(new Proveedor { Id = 1, Nombre = "Carlos" });
+        context.Productos.Add(new Producto { Id = 10, Nombre = "NVIDIA", ProveedorId = 1 });
+        var orden = new OrdenCompra
+        {
+            Id = 5,
+            ProveedorId = 1,
+            CreadoPorUsuarioId = usuario,
+            Detalles = new() { new DetalleOrden { ProductoId = 10, Cantidad = 1, Precio = 10m } }
+        };
+        context.OrdenesCompra.Add(orden);
+        await context.SaveChangesAsync();
+        orden.EnviarAAprobacion();
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null), new TasaFalsa(59m), context, new NotificacionService(context));
+
+        var dto = new CrearOrdenCompraDto
+        {
+            ProveedorId = 1,
+            ordenes = new() { new() { ProductoId = 10, Cantidad = 2, Precio = 10m } }
+        };
+
+        // Actuar y verificar: solo se edita en Borrador.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.ActualizarBorradorAsync(5, dto, usuario, esAdministrador: false));
+
+        Assert.Contains("Borrador", ex.Message);
+    }
+
+    [Fact]
     public async Task ListarAsync_Estandar_SoloDevuelveSusPropiasOrdenes()
     {
         // Preparar: dos órdenes de usuarios distintos.

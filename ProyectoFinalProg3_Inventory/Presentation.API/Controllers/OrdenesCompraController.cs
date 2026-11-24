@@ -34,6 +34,50 @@ namespace Presentation.API.Controllers
             return Ok(ordenes);
         }
 
+        // RF-NEG-02: detalle de una orden con sus líneas (solo el dueño o un Administrador).
+        [HttpGet("{id:int}")]
+        [Authorize(Roles = "Estandar,Administrador")]
+        public async Task<IActionResult> ObtenerDetalle(int id)
+        {
+            try
+            {
+                var detalle = await _ordenCompraService.ObtenerDetalleAsync(
+                    id, ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+
+                if (detalle is null)
+                {
+                    return NotFound(new { mensaje = "Orden de compra no encontrada." });
+                }
+
+                return Ok(detalle);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { mensaje = ex.Message });
+            }
+        }
+
+        // RF-NEG-02: edición de una orden en Borrador (solo el dueño o un Administrador).
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Estandar,Administrador")]
+        public async Task<IActionResult> ActualizarBorrador(int id, [FromBody] CrearOrdenCompraDto dto)
+        {
+            try
+            {
+                await _ordenCompraService.ActualizarBorradorAsync(
+                    id, dto, ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { mensaje = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+        }
+
         // RF-NEG-02: proveedores y productos existentes para los desplegables del formulario.
         [HttpGet("catalogo")]
         [Authorize]
