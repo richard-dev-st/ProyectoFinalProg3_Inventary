@@ -3,12 +3,12 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (24/11/2026):** `main`/`origin/main` en `69804f9` (PR #29 del botón «Copiar id»
-> mergeado; antes PR #28 de frontend de permisos, `533b6ce` de la Asignación 4, PR #26 de la
-> Asignación 3, #25 de contraseñas, #24 de roles/administración, #23 de registro/activación y #22
-> de Práctica 5, **entregada al docente el 20/11/2026**). RF-GP-01..07 están implementados en
-> backend y frontend y verificados manualmente; no queda ningún PR pendiente.
-> Baseline de pruebas: **119/119** (12 + 89 + 18).
+> **Estado actual (24/11/2026):** `main`/`origin/main` en `0767cec`. El backend está completo
+> (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y se está construyendo
+> el **frontend del módulo de negocio** en la rama local `feat/frontend-ordenes` (órdenes de compra y
+> datos maestros de proveedores/productos; aún sin push ni PR). RF-GP-01..07 están implementados en
+> backend y frontend y verificados manualmente en `main`.
+> Baseline de pruebas: **136/136** (12 + 18 + 106).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
 
@@ -24,7 +24,8 @@ Cubre, por hitos:
 | Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
 | Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend mergeado en PR #28 y #29 (verificado 24/11; «Copiar id» incluido) |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
-| Órdenes de compra con máquina de estados | RF-NEG | Implementado |
+| Órdenes de compra con máquina de estados | RF-NEG | Backend en `practica-3`; frontend en rama `feat/frontend-ordenes` (crear, editar, detalle, enviar, aprobar, recibir, cancelar y total DOP) |
+| Datos maestros (proveedores y productos) | RF-NEG | Frontend y endpoints de catálogo en rama `feat/frontend-ordenes` |
 | Manejador de documentos | RF-DOC | Implementado |
 | Notificaciones y cola de correos | RF-NOT | Implementado (Práctica 5, tag `practica-5`) |
 | Reportes con agregación | RF-REP | Implementado (Práctica 5, tag `practica-5`) |
@@ -84,7 +85,7 @@ dotnet run --project frontend/Inventario.Web --launch-profile http
 # Backend completo
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
-# Suite de pruebas (línea base: 119 pruebas en verde)
+# Suite de pruebas (línea base: 136 pruebas en verde)
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 
 # Un grupo de pruebas
@@ -141,7 +142,7 @@ La API aplica migraciones al arrancar (`Database.MigrateAsync` con reintentos).
 4. **No romper lo existente:** la máquina de estados de `OrdenCompra`, las reglas de
    `DocumentoService`, los flujos de `AuthService` y las rutas/contratos actuales no se modifican
    salvo que la tarea lo pida explícitamente. Solo se agrega funcionalidad.
-5. **La suite debe seguir en verde:** las 119 pruebas actuales no pueden romperse; las nuevas se
+5. **La suite debe seguir en verde:** las 136 pruebas actuales no pueden romperse; las nuevas se
    agregan aparte.
 6. **No ejecutar** `docker compose down -v` ni comandos que borren volúmenes, datos o historial.
    Tampoco `git reset --hard`, `git push --force` ni reescrituras de historia.

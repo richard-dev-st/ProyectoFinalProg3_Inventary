@@ -5,6 +5,7 @@ using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace Presentation.API.Controllers
@@ -21,6 +22,78 @@ namespace Presentation.API.Controllers
         {
             _ordenCompraService = ordenCompraService;
             _context = context;
+        }
+
+        // RF-NEG-02: endpoint de solo lectura que alimenta el listado del frontend.
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Listar()
+        {
+            var ordenes = await _ordenCompraService.ListarAsync(
+                ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+            return Ok(ordenes);
+        }
+
+        // RF-NEG-02: detalle de una orden con sus líneas (solo el dueño o un Administrador).
+        [HttpGet("{id:int}")]
+        [Authorize(Roles = "Estandar,Administrador")]
+        public async Task<IActionResult> ObtenerDetalle(int id)
+        {
+            try
+            {
+                var detalle = await _ordenCompraService.ObtenerDetalleAsync(
+                    id, ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+
+                if (detalle is null)
+                {
+                    return NotFound(new { mensaje = "Orden de compra no encontrada." });
+                }
+
+                return Ok(detalle);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { mensaje = ex.Message });
+            }
+        }
+
+        // RF-NEG-02: edición de una orden en Borrador (solo el dueño o un Administrador).
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Estandar,Administrador")]
+        public async Task<IActionResult> ActualizarBorrador(int id, [FromBody] CrearOrdenCompraDto dto)
+        {
+            try
+            {
+                await _ordenCompraService.ActualizarBorradorAsync(
+                    id, dto, ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { mensaje = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensaje = ex.Message });
+            }
+        }
+
+        // RF-NEG-02: proveedores y productos existentes para los desplegables del formulario.
+        [HttpGet("catalogo")]
+        [Authorize]
+        public async Task<IActionResult> Catalogo()
+        {
+            var proveedores = await _context.Proveedores.AsNoTracking()
+                .OrderBy(p => p.Nombre)
+                .Select(p => new ProveedorOpcionDto(p.Id, p.Nombre))
+                .ToListAsync();
+
+            var productos = await _context.Productos.AsNoTracking()
+                .OrderBy(p => p.Nombre)
+                .Select(p => new ProductoOpcionDto(p.Id, p.Nombre, p.Codigo, p.Precio, p.ProveedorId))
+                .ToListAsync();
+
+            return Ok(new CatalogoOrdenDto(proveedores, productos));
         }
 
         [HttpPost("crear-borrador")]

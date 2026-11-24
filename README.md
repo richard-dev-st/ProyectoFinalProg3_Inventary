@@ -197,6 +197,56 @@ Recorrido manual (con API y frontend en marcha):
 7. Aprobar dos veces la misma solicitud no está en la interfaz (ya salió de pendientes). En `/solicitudes`, pulsa **Copiar id** en la fila ya aprobada y pega ese valor en `POST /api/solicitudes/{id}/aprobar` de Swagger con el token del Administrador: se muestra `Transición inválida: Aplicada -> Aprobada.` y el estado no cambia (RF-GP-06).
 8. Reinicia la API y vuelve a entrar: `/solicitudes` y `/mis-permisos` muestran los mismos datos, porque las solicitudes y los permisos están persistidos (RD-09).
 
+## Frontend — órdenes de compra (RF-NEG-02..06)
+
+La Práctica 3 cubría el módulo de negocio solo en backend (tag `practica-3`). La interfaz permite ejecutar esas mismas operaciones sin Swagger:
+
+| Ruta | Acción |
+|---|---|
+| `/ordenes` | Privada. Listado de órdenes con el **nombre del proveedor**, estado y total; crear borrador con desplegables de proveedor y producto; **ver el detalle** de una orden con sus líneas; **editar un borrador**; enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
+
+Para que el listado sea posible se añadieron **dos endpoints de solo lectura**:
+
+- `GET /api/OrdenesCompra`: DTO de resumen (no la entidad de EF), filtrado por usuario. El Estándar ve solo sus órdenes; el Administrador ve todas.
+- `GET /api/OrdenesCompra/{id}`: detalle con el nombre del proveedor y las líneas (producto, código, cantidad, precio y subtotal). El Estándar solo accede a sus órdenes; ajeno responde `403`.
+- `PUT /api/OrdenesCompra/{id}`: actualiza un borrador (proveedor y líneas) y recalcula el total. Si la orden ya no está en `Borrador` responde `400`, y `403` si es de otro usuario.
+- `GET /api/OrdenesCompra/catalogo`: proveedores y productos existentes para el formulario. Sin esto, teclear un id inexistente producía el error genérico de EF (`An error occurred while saving the entity changes`).
+
+Es una adición: no cambia ningún contrato ni comportamiento existente. Además, `CrearBorradorAsync` ahora valida proveedor y productos y responde `400` con un mensaje claro (`El proveedor 99 no existe.`) antes de tocar la base de datos (RD-07).
+
+**La orden solo admite productos del proveedor elegido.** El desplegable de producto filtra por el proveedor seleccionado y, al cambiarlo, se limpian las líneas anteriores. El backend aplica la misma regla: si una línea usa un producto de otro proveedor, responde `400` con `El producto 10 no pertenece al proveedor 1.` para que no se pueda saltar la validación desde la API.
+
+`OrdenesCompraServices` envía el Bearer en cada petición desde `SesionActual`; un `401` cierra la sesión y un `403` muestra el mensaje del servidor, de modo que al intentar **Recibir** sin el permiso se indica que hay que solicitar `recibir-orden` desde «Mis solicitudes».
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Administrador y crea al menos un proveedor y un producto en `/proveedores` y `/productos` (ver la sección siguiente); sin datos maestros no se puede crear una orden.
+2. Entra como Estándar y abre `/ordenes`: crea un borrador con un proveedor y un producto; aparece en estado **Borrador** (RF-NEG-02/03).
+3. Pulsa **Ver detalle**: se muestran el proveedor y cada línea con producto, código, cantidad, precio y subtotal.
+4. Mientras siga en **Borrador**, pulsa **Editar**, cambia el proveedor, el producto o las cantidades y **Guardar cambios**: el total se recalcula. Si ya se envió a aprobación, Editar deja de estar disponible.
+5. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
+6. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
+7. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
+8. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición ni de edición (RF-NEG-04/05).
+
+## Frontend — datos maestros de inventario
+
+El módulo de negocio necesita proveedores y productos, pero el backend no tenía forma de crearlos (no había seed ni controlador). Se añadieron las dos pantallas y sus endpoints:
+
+| Ruta | Acción |
+|---|---|
+| `/proveedores` | Privada. Listado de proveedores con su cantidad de productos; el Administrador ve además el formulario de alta (nombre, cédula, teléfono y correo). La lectura está disponible para cualquier usuario con sesión. |
+| `/productos` | Privada. Listado de productos con código, precio, stock y proveedor; el Administrador ve el formulario de alta (nombre, código opcional, proveedor, precio y stocks). Si el código se deja vacío, se genera uno automáticamente. |
+
+Backend añadido, de solo lectura para cualquier usuario autenticado y de alta solo para Administrador (`[Authorize(Roles = "Administrador")]`):
+
+- `GET /api/catalogo/proveedores` y `POST /api/catalogo/proveedores`.
+- `GET /api/catalogo/productos` y `POST /api/catalogo/productos`.
+
+`CatalogoService` valida nombre obligatorio, correo con formato válido, precio y stock no negativos, proveedor existente y código único; devuelve `400` con el mensaje concreto (RD-07) y sus pruebas cubren cada regla.
+
+Con estos datos, el formulario de `/ordenes` deja de depender de ids tecleados a ciegas y el flujo de compras funciona de extremo a extremo.
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
@@ -321,7 +371,7 @@ Desde la raíz del repositorio, un único comando ejecuta toda la suite:
 dotnet test ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx
 ```
 
-Salida esperada: `Passed: 119` (12 de dominio + 89 de aplicación + 18 de `Bussiness.inventory.Tests`) en .NET 10. Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las de notificaciones comprueban el destinatario, el aislamiento entre usuarios, la preferencia de correo y que el evento y la notificación se persisten juntos; las de reportes comparan las agregaciones con la fuente y los extremos del rango de fechas. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`).
+Salida esperada: `Passed: 136` (12 de dominio + 18 de `Bussiness.inventory.Tests` + 106 de aplicación) en .NET 10. Las pruebas de Gestión de permisos cubren la creación (RF-GP-01), el filtrado por usuario (RF-GP-02), las transiciones válidas verificando los datos registrados —quién/cuándo y el motivo— (RF-GP-03/04), la concesión del permiso (RF-GP-05) y las transiciones prohibidas verificando que el estado no cambia (RF-GP-06/07). Las pruebas de documentos cubren la subida (RF-DOC-01), el listado filtrado por rol (RF-DOC-02), la descarga restringida a dueño o Administrador (RF-DOC-03), el borrado lógico (RF-DOC-04), la autorización invocando el servicio directamente (RD-06) y el rechazo controlado de archivos vacíos, ausentes o con extensión no permitida (RD-07). Las pruebas de la API externa usan un `HttpMessageHandler` falso para no depender de la red. Las pruebas de correo verifican que, sin SMTP real, el enlace o código queda en el log y la cola marca el correo como enviado. Las de notificaciones comprueban el destinatario, el aislamiento entre usuarios, la preferencia de correo y que el evento y la notificación se persisten juntos; las de reportes comparan las agregaciones con la fuente y los extremos del rango de fechas. Las pruebas del módulo `OrdenCompra` ejercitan directamente los métodos de comportamiento de la entidad (`EnviarAAprobacion`, `Aprobar`, `Recibir`, `Cancelar`), verificando cada fila de las tablas de transiciones permitidas y prohibidas, así como que desde los estados terminales (`Recibida` y `Cancelada`) no se pueden realizar transiciones (el estado no cambia y se lanza `InvalidOperationException`). Las pruebas nuevas del frontend de negocio cubren el detalle de una orden con su proveedor y líneas (`ObtenerDetalleAsync_DevuelveLineasYProveedor`), el `403` ante una orden ajena, la edición de un borrador con recálculo del total y el rechazo de la edición cuando la orden ya no está en `Borrador`; además, el catálogo tiene sus propias pruebas de alta y la creación valida que el producto pertenezca al proveedor.
 
 Las pruebas de auditoría cubren un caso por cada tipo de evento (RF-AUD-02 a 05) verificando **todos** los campos del registro —incluidos valor anterior y valor nuevo—, el rechazo al Estándar (RF-AUD-07/RD-06), la inmutabilidad del historial (RF-AUD-06), los filtros y su paginación (RF-AUD-07) y los rechazos controlados de filtros inválidos (RD-07). Todas son pruebas de dominio/aplicación con EF Core InMemory: no levantan la aplicación (RD-12) y son independientes entre sí.
 

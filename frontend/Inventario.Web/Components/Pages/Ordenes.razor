@@ -1,0 +1,504 @@
+@page "/ordenes"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject OrdenesCompraServices ServicioOrdenes
+
+<PageTitle>Órdenes de compra</PageTitle>
+<h1>Órdenes de compra</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 card-title">@(editandoId is null ? "Nueva orden" : $"Editar orden #{editandoId}")</h2>
+
+                @if (catalogo.Proveedores.Count == 0)
+                {
+                    <div class="alert alert-warning">
+                        No hay proveedores ni productos registrados. Sin datos maestros no se
+                        puede crear una orden.
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Proveedor</label>
+                    <select class="form-select" @bind="proveedorId" @bind:after="AlCambiarProveedor">
+                        <option value="0">— Selecciona un proveedor —</option>
+                        @foreach (var proveedor in catalogo.Proveedores)
+                        {
+                            <option value="@proveedor.Id">@proveedor.Nombre</option>
+                        }
+                    </select>
+                </div>
+
+                <h3 class="h6">Productos</h3>
+
+                @if (proveedorId <= 0)
+                {
+                    <p class="text-muted small">Selecciona primero un proveedor para ver sus productos.</p>
+                }
+                else if (!ProductosDelProveedor().Any())
+                {
+                    <div class="alert alert-warning py-1">
+                        Este proveedor no tiene productos registrados. Crea uno en
+                        <a href="productos">Productos</a>.
+                    </div>
+                }
+
+                @for (var i = 0; i < detalles.Count; i++)
+                {
+                    var indice = i;
+                    <div class="border rounded p-2 mb-2">
+                        <div class="mb-2">
+                            <label class="form-label">Producto</label>
+                            <select class="form-select"
+                                    disabled="@(proveedorId <= 0)"
+                                    @bind="detalles[indice].ProductoId"
+                                    @bind:after="() => AplicarPrecio(indice)">
+                                <option value="0">— Selecciona un producto —</option>
+                                @foreach (var producto in ProductosDelProveedor())
+                                {
+                                    <option value="@producto.Id">
+                                        @producto.Nombre (@producto.Codigo) — @producto.Precio.ToString("0.00")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label class="form-label">Cantidad</label>
+                                <input class="form-control" type="number" min="1"
+                                       @bind="detalles[indice].Cantidad" />
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Precio unitario</label>
+                                <input class="form-control" type="number" min="0" step="0.01"
+                                       @bind="detalles[indice].Precio" />
+                            </div>
+                        </div>
+                        @if (detalles.Count > 1)
+                        {
+                            <button class="btn btn-sm btn-outline-danger mt-2"
+                                    @onclick="() => QuitarDetalle(indice)">
+                                Quitar producto
+                            </button>
+                        }
+                    </div>
+                }
+
+                <button class="btn btn-sm btn-outline-secondary mb-3" @onclick="AgregarDetalle">
+                    + Otro producto
+                </button>
+
+                <button class="btn btn-primary w-100" disabled="@enviando" @onclick="GuardarAsync">
+                    @(enviando ? "Guardando..." : (editandoId is null ? "Crear borrador" : "Guardar cambios"))
+                </button>
+                @if (editandoId is not null)
+                {
+                    <button class="btn btn-outline-secondary w-100 mt-2" @onclick="CancelarEdicion">
+                        Cancelar edición
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <h2 class="h5">Historial</h2>
+
+        @if (cargando)
+        {
+            <p>Cargando órdenes...</p>
+        }
+        else if (ordenes.Count == 0)
+        {
+            <p>No hay órdenes para mostrar.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Proveedor</th>
+                            <th>Estado</th>
+                            <th>Total</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var orden in ordenes)
+                        {
+                            <tr>
+                                <td>@orden.Id</td>
+                                <td>@NombreProveedor(orden.ProveedorId)</td>
+                                <td><span class="badge @ClaseEstado(orden.Estado)">@orden.Estado</span></td>
+                                <td>@orden.Total.ToString("0.00")</td>
+                                <td>@orden.FechaCreacion.ToLocalTime().ToString("g")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary mb-1"
+                                            @onclick="() => VerDetalleAsync(orden.Id)">
+                                        Ver detalle
+                                    </button>
+
+                                    <button class="btn btn-sm btn-outline-info mb-1"
+                                            @onclick="() => VerTotalAsync(orden.Id)">
+                                        Total DOP
+                                    </button>
+
+                                    @if (orden.Estado == "Borrador")
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary mb-1"
+                                                @onclick="() => EditarAsync(orden.Id)">
+                                            Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary mb-1"
+                                                @onclick="() => EnviarAprobacionAsync(orden.Id)">
+                                            Enviar a aprobación
+                                        </button>
+                                    }
+
+                                    @if (orden.Estado == "Aprobada")
+                                    {
+                                        <button class="btn btn-sm btn-outline-success mb-1"
+                                                @onclick="() => RecibirAsync(orden.Id)">
+                                            Recibir
+                                        </button>
+                                    }
+
+                                    <AuthorizeView Roles="Administrador">
+                                        <Authorized>
+                                            @if (orden.Estado is "PendienteAprobacion")
+                                            {
+                                                <button class="btn btn-sm btn-outline-success mb-1"
+                                                        @onclick="() => AprobarAsync(orden.Id)">
+                                                    Aprobar
+                                                </button>
+                                            }
+                                            @if (orden.Estado is "Borrador" or "PendienteAprobacion" or "Aprobada")
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger mb-1"
+                                                        @onclick="() => CancelarAsync(orden.Id)">
+                                                    Cancelar
+                                                </button>
+                                            }
+                                        </Authorized>
+                                    </AuthorizeView>
+
+                                    @if (totales.TryGetValue(orden.Id, out var total))
+                                    {
+                                        <div class="small text-muted">
+                                            @total.TotalUsd.ToString("0.00") USD × @total.Tasa =
+                                            <strong>@total.TotalDop.ToString("0.00") DOP</strong>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (detalle is not null)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <h2 class="h5">Orden #@detalle.Id — @detalle.Estado</h2>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => detalle = null">
+                    Cerrar
+                </button>
+            </div>
+            <p class="mb-2">
+                Proveedor: <strong>@detalle.ProveedorNombre</strong> ·
+                Fecha: @detalle.FechaCreacion.ToLocalTime().ToString("g") ·
+                Total: <strong>@detalle.Total.ToString("0.00")</strong>
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Código</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var linea in detalle.Detalles)
+                        {
+                            <tr>
+                                <td>@linea.ProductoNombre</td>
+                                <td>@linea.ProductoCodigo</td>
+                                <td>@linea.Cantidad</td>
+                                <td>@linea.Precio.ToString("0.00")</td>
+                                <td>@linea.Subtotal.ToString("0.00")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<OrdenCompraResumenDto> ordenes = new();
+    private Dictionary<int, TotalEnDopDto> totales = new();
+    private CatalogoOrdenDto catalogo = new(new(), new());
+    private int proveedorId;
+    private List<DetalleOrdenRequest> detalles = new() { new() };
+    private int? editandoId;
+    private OrdenCompraDetalleDto? detalle;
+    private bool cargando = true;
+    private bool enviando;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resultadoCatalogo = await ServicioOrdenes.ObtenerCatalogoAsync();
+        if (resultadoCatalogo.Ok && resultadoCatalogo.Catalogo is not null)
+        {
+            catalogo = resultadoCatalogo.Catalogo;
+        }
+        else if (!resultadoCatalogo.Ok)
+        {
+            error = resultadoCatalogo.Mensaje;
+        }
+
+        await CargarAsync();
+    }
+
+    // RF-NEG-02: nombre legible del proveedor en el listado (ya viene en el catálogo).
+    private string NombreProveedor(int id) =>
+        catalogo.Proveedores.FirstOrDefault(p => p.Id == id)?.Nombre ?? $"#{id}";
+
+    private async Task VerDetalleAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerDetalleAsync(id);
+        if (!resultado.Ok || resultado.Detalle is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        detalle = resultado.Detalle;
+    }
+
+    private async Task EditarAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerDetalleAsync(id);
+        if (!resultado.Ok || resultado.Detalle is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        editandoId = id;
+        detalle = resultado.Detalle;
+        proveedorId = resultado.Detalle.ProveedorId;
+        detalles = resultado.Detalle.Detalles.Select(d => new DetalleOrdenRequest
+        {
+            ProductoId = d.ProductoId,
+            Cantidad = d.Cantidad,
+            Precio = d.Precio
+        }).ToList();
+
+        if (detalles.Count == 0)
+        {
+            detalles.Add(new());
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        editandoId = null;
+        proveedorId = 0;
+        detalles = new() { new() };
+    }
+
+    // RF-NEG-02: la orden solo puede incluir productos del proveedor seleccionado.
+    private IEnumerable<ProductoOpcionDto> ProductosDelProveedor() =>
+        proveedorId <= 0
+            ? Enumerable.Empty<ProductoOpcionDto>()
+            : catalogo.Productos.Where(p => p.ProveedorId == proveedorId);
+
+    // Al cambiar de proveedor, las líneas ya elegidas dejan de ser válidas.
+    private void AlCambiarProveedor()
+    {
+        foreach (var detalle in detalles)
+        {
+            detalle.ProductoId = 0;
+            detalle.Precio = 0;
+        }
+        totales.Clear();
+    }
+
+    // RF-NEG-02: al elegir producto se propone su precio de catálogo (editable).
+    private void AplicarPrecio(int indice)
+    {
+        var producto = catalogo.Productos.FirstOrDefault(p => p.Id == detalles[indice].ProductoId);
+        if (producto is not null && producto.Precio > 0)
+        {
+            detalles[indice].Precio = producto.Precio;
+        }
+    }
+
+    private void AgregarDetalle() => detalles.Add(new());
+
+    private void QuitarDetalle(int indice) => detalles.RemoveAt(indice);
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await ServicioOrdenes.ListarAsync();
+        if (resultado.Ok)
+        {
+            ordenes = resultado.Ordenes;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+        cargando = false;
+    }
+
+    private async Task GuardarAsync()
+    {
+        mensaje = null;
+        error = null;
+
+        if (proveedorId <= 0)
+        {
+            error = "Selecciona un proveedor.";
+            return;
+        }
+
+        // RF-NEG-02: cada línea debe usar un producto que venda ese proveedor.
+        var permitidos = ProductosDelProveedor().Select(p => p.Id).ToHashSet();
+        if (detalles.Count == 0 || detalles.Any(d =>
+                d.ProductoId <= 0 || !permitidos.Contains(d.ProductoId) ||
+                d.Cantidad <= 0 || d.Precio < 0))
+        {
+            error = "Cada línea necesita un producto del proveedor, cantidad mayor que cero " +
+                    "y precio no negativo.";
+            return;
+        }
+
+        var solicitud = new CrearOrdenCompraRequest
+        {
+            ProveedorId = proveedorId,
+            Ordenes = detalles
+        };
+
+        enviando = true;
+
+        if (editandoId is int id)
+        {
+            var actualizacion = await ServicioOrdenes.ActualizarAsync(id, solicitud);
+            enviando = false;
+
+            if (!actualizacion.Ok)
+            {
+                error = actualizacion.Mensaje;
+                return;
+            }
+
+            mensaje = $"Orden #{id} actualizada.";
+            CancelarEdicion();
+            await CargarAsync();
+            return;
+        }
+
+        var resultado = await ServicioOrdenes.CrearAsync(solicitud);
+        enviando = false;
+
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = $"Orden #{resultado.OrdenId} creada en estado Borrador.";
+        proveedorId = 0;
+        detalles = new() { new() };
+        await CargarAsync();
+    }
+
+    private async Task EnviarAprobacionAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.EnviarAprobacionAsync(id), "Orden enviada a aprobación.");
+
+    private async Task AprobarAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.AprobarAsync(id), "Orden aprobada.");
+
+    private async Task RecibirAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.RecibirAsync(id), "Orden recibida.");
+
+    private async Task CancelarAsync(int id) => await EjecutarAsync(
+        () => ServicioOrdenes.CancelarAsync(id), "Orden cancelada.");
+
+    private async Task EjecutarAsync(
+        Func<Task<(bool Ok, string Mensaje)>> operacion, string mensajeExito)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await operacion();
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = mensajeExito;
+        await CargarAsync();
+    }
+
+    private async Task VerTotalAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerTotalEnDopAsync(id);
+        if (!resultado.Ok || resultado.Total is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        totales[id] = resultado.Total;
+    }
+
+    private static string ClaseEstado(string estado) => estado switch
+    {
+        "Borrador" => "bg-secondary",
+        "PendienteAprobacion" => "bg-warning text-dark",
+        "Aprobada" => "bg-info text-dark",
+        "Recibida" => "bg-success",
+        "Cancelada" => "bg-dark",
+        _ => "bg-light text-dark"
+    };
+}

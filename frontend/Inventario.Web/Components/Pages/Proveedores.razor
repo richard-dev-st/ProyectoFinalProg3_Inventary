@@ -1,0 +1,168 @@
+@page "/proveedores"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject CatalogoServices Catalogo
+
+<PageTitle>Proveedores</PageTitle>
+<h1>Proveedores</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="row">
+    <div class="col-md-7">
+        <h2 class="h5">Listado</h2>
+
+        @if (cargando)
+        {
+            <p>Cargando proveedores...</p>
+        }
+        else if (proveedores.Count == 0)
+        {
+            <p>No hay proveedores registrados.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre</th>
+                            <th>Cédula</th>
+                            <th>Teléfono</th>
+                            <th>Correo</th>
+                            <th>Productos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var proveedor in proveedores)
+                        {
+                            <tr>
+                                <td>@proveedor.Id</td>
+                                <td>@proveedor.Nombre</td>
+                                <td>@proveedor.Cedula</td>
+                                <td>@proveedor.Telefono</td>
+                                <td>@proveedor.Email</td>
+                                <td>@proveedor.CantidadProductos</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-5">
+        <AuthorizeView Roles="Administrador">
+            <Authorized>
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="h5 card-title">Nuevo proveedor</h2>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input class="form-control" @bind="nombre" maxlength="100" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cédula</label>
+                            <input class="form-control" @bind="cedula" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input class="form-control" @bind="telefono" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Correo</label>
+                            <input class="form-control" type="email" @bind="correo" />
+                        </div>
+
+                        <button class="btn btn-primary w-100" disabled="@enviando" @onclick="CrearAsync">
+                            @(enviando ? "Creando..." : "Crear proveedor")
+                        </button>
+                    </div>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="alert alert-info">
+                    Solo un Administrador puede crear proveedores.
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
+
+@code {
+    private List<ProveedorDto> proveedores = new();
+    private bool cargando = true;
+    private bool enviando;
+    private string? mensaje;
+    private string? error;
+
+    private string nombre = string.Empty;
+    private string? cedula;
+    private string? telefono;
+    private string? correo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        var resultado = await Catalogo.ListarProveedoresAsync();
+        if (resultado.Ok)
+        {
+            proveedores = resultado.Proveedores;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+        cargando = false;
+    }
+
+    private async Task CrearAsync()
+    {
+        mensaje = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            error = "El nombre del proveedor es obligatorio.";
+            return;
+        }
+
+        enviando = true;
+        var resultado = await Catalogo.CrearProveedorAsync(new CrearProveedorRequest
+        {
+            Nombre = nombre,
+            Cedula = cedula,
+            Telefono = telefono,
+            Email = correo
+        });
+        enviando = false;
+
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = $"Proveedor \"{resultado.Proveedor?.Nombre}\" creado.";
+        nombre = string.Empty;
+        cedula = null;
+        telefono = null;
+        correo = null;
+        await CargarAsync();
+    }
+}
