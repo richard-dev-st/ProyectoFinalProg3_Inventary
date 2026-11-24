@@ -153,6 +153,7 @@ builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
 builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
+builder.Services.AddScoped<ICatalogoService, CatalogoService>();
 builder.Services.AddScoped<IDocumentoService, DocumentoService>();
 builder.Services.AddScoped<IAlmacenDocumentos, AlmacenDocumentosLocal>();
 builder.Services.Configure<ApiExternaSettings>(builder.Configuration.GetSection(ApiExternaSettings.SectionName));

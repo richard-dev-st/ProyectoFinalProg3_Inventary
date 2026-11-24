@@ -45,6 +45,12 @@ builder.Services.AddHttpClient<OrdenesCompraServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// Datos maestros del módulo de negocio: proveedores y productos.
+builder.Services.AddHttpClient<CatalogoServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();
