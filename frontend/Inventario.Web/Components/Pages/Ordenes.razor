@@ -20,7 +20,7 @@
     <div class="col-md-5">
         <div class="card">
             <div class="card-body">
-                <h2 class="h5 card-title">Nueva orden</h2>
+                <h2 class="h5 card-title">@(editandoId is null ? "Nueva orden" : $"Editar orden #{editandoId}")</h2>
 
                 @if (catalogo.Proveedores.Count == 0)
                 {
@@ -100,9 +100,15 @@
                     + Otro producto
                 </button>
 
-                <button class="btn btn-primary w-100" disabled="@enviando" @onclick="CrearAsync">
-                    @(enviando ? "Creando..." : "Crear borrador")
+                <button class="btn btn-primary w-100" disabled="@enviando" @onclick="GuardarAsync">
+                    @(enviando ? "Guardando..." : (editandoId is null ? "Crear borrador" : "Guardar cambios"))
                 </button>
+                @if (editandoId is not null)
+                {
+                    <button class="btn btn-outline-secondary w-100 mt-2" @onclick="CancelarEdicion">
+                        Cancelar edición
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -137,11 +143,16 @@
                         {
                             <tr>
                                 <td>@orden.Id</td>
-                                <td>@orden.ProveedorId</td>
+                                <td>@NombreProveedor(orden.ProveedorId)</td>
                                 <td><span class="badge @ClaseEstado(orden.Estado)">@orden.Estado</span></td>
                                 <td>@orden.Total.ToString("0.00")</td>
                                 <td>@orden.FechaCreacion.ToLocalTime().ToString("g")</td>
                                 <td>
+                                    <button class="btn btn-sm btn-outline-secondary mb-1"
+                                            @onclick="() => VerDetalleAsync(orden.Id)">
+                                        Ver detalle
+                                    </button>
+
                                     <button class="btn btn-sm btn-outline-info mb-1"
                                             @onclick="() => VerTotalAsync(orden.Id)">
                                         Total DOP
@@ -149,6 +160,10 @@
 
                                     @if (orden.Estado == "Borrador")
                                     {
+                                        <button class="btn btn-sm btn-outline-primary mb-1"
+                                                @onclick="() => EditarAsync(orden.Id)">
+                                            Editar
+                                        </button>
                                         <button class="btn btn-sm btn-outline-primary mb-1"
                                                 @onclick="() => EnviarAprobacionAsync(orden.Id)">
                                             Enviar a aprobación
@@ -199,12 +214,58 @@
     </div>
 </div>
 
+@if (detalle is not null)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <h2 class="h5">Orden #@detalle.Id — @detalle.Estado</h2>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => detalle = null">
+                    Cerrar
+                </button>
+            </div>
+            <p class="mb-2">
+                Proveedor: <strong>@detalle.ProveedorNombre</strong> ·
+                Fecha: @detalle.FechaCreacion.ToLocalTime().ToString("g") ·
+                Total: <strong>@detalle.Total.ToString("0.00")</strong>
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Código</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var linea in detalle.Detalles)
+                        {
+                            <tr>
+                                <td>@linea.ProductoNombre</td>
+                                <td>@linea.ProductoCodigo</td>
+                                <td>@linea.Cantidad</td>
+                                <td>@linea.Precio.ToString("0.00")</td>
+                                <td>@linea.Subtotal.ToString("0.00")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<OrdenCompraResumenDto> ordenes = new();
     private Dictionary<int, TotalEnDopDto> totales = new();
     private CatalogoOrdenDto catalogo = new(new(), new());
     private int proveedorId;
     private List<DetalleOrdenRequest> detalles = new() { new() };
+    private int? editandoId;
+    private OrdenCompraDetalleDto? detalle;
     private bool cargando = true;
     private bool enviando;
     private string? mensaje;
@@ -223,6 +284,60 @@
         }
 
         await CargarAsync();
+    }
+
+    // RF-NEG-02: nombre legible del proveedor en el listado (ya viene en el catálogo).
+    private string NombreProveedor(int id) =>
+        catalogo.Proveedores.FirstOrDefault(p => p.Id == id)?.Nombre ?? $"#{id}";
+
+    private async Task VerDetalleAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerDetalleAsync(id);
+        if (!resultado.Ok || resultado.Detalle is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        detalle = resultado.Detalle;
+    }
+
+    private async Task EditarAsync(int id)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioOrdenes.ObtenerDetalleAsync(id);
+        if (!resultado.Ok || resultado.Detalle is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        editandoId = id;
+        detalle = resultado.Detalle;
+        proveedorId = resultado.Detalle.ProveedorId;
+        detalles = resultado.Detalle.Detalles.Select(d => new DetalleOrdenRequest
+        {
+            ProductoId = d.ProductoId,
+            Cantidad = d.Cantidad,
+            Precio = d.Precio
+        }).ToList();
+
+        if (detalles.Count == 0)
+        {
+            detalles.Add(new());
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        editandoId = null;
+        proveedorId = 0;
+        detalles = new() { new() };
     }
 
     // RF-NEG-02: la orden solo puede incluir productos del proveedor seleccionado.
@@ -271,7 +386,7 @@
         cargando = false;
     }
 
-    private async Task CrearAsync()
+    private async Task GuardarAsync()
     {
         mensaje = null;
         error = null;
@@ -293,12 +408,32 @@
             return;
         }
 
-        enviando = true;
-        var resultado = await ServicioOrdenes.CrearAsync(new CrearOrdenCompraRequest
+        var solicitud = new CrearOrdenCompraRequest
         {
             ProveedorId = proveedorId,
             Ordenes = detalles
-        });
+        };
+
+        enviando = true;
+
+        if (editandoId is int id)
+        {
+            var actualizacion = await ServicioOrdenes.ActualizarAsync(id, solicitud);
+            enviando = false;
+
+            if (!actualizacion.Ok)
+            {
+                error = actualizacion.Mensaje;
+                return;
+            }
+
+            mensaje = $"Orden #{id} actualizada.";
+            CancelarEdicion();
+            await CargarAsync();
+            return;
+        }
+
+        var resultado = await ServicioOrdenes.CrearAsync(solicitud);
         enviando = false;
 
         if (!resultado.Ok)

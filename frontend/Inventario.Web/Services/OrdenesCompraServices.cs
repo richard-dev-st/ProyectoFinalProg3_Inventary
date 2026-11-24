@@ -47,6 +47,29 @@ namespace Inventario.Web.Services
             return (true, catalogo, string.Empty);
         }
 
+        // RF-NEG-02: detalle de una orden (el backend valida dueño o Administrador).
+        public async Task<(bool Ok, OrdenCompraDetalleDto? Detalle, string Mensaje)> ObtenerDetalleAsync(int id)
+        {
+            using var request = CrearRequest(HttpMethod.Get, $"api/ordenescompra/{id}");
+            var response = await _http.SendAsync(request);
+
+            var (ok, mensaje) = await InterpretarAsync(response, "No se pudo cargar el detalle de la orden.");
+            if (!ok) return (false, null, mensaje);
+
+            var detalle = await response.Content.ReadFromJsonAsync<OrdenCompraDetalleDto>();
+            return (true, detalle, string.Empty);
+        }
+
+        // RF-NEG-02: edición de un borrador (el backend rechaza si ya no está en Borrador).
+        public async Task<(bool Ok, string Mensaje)> ActualizarAsync(int id, CrearOrdenCompraRequest orden)
+        {
+            using var request = CrearRequest(HttpMethod.Put, $"api/ordenescompra/{id}");
+            request.Content = JsonContent.Create(orden);
+
+            var response = await _http.SendAsync(request);
+            return await InterpretarAsync(response, "No se pudo actualizar la orden.");
+        }
+
         // RF-NEG-02: crear borrador. La API toma el usuario del cuerpo/query y valida la sesión.
         public async Task<(bool Ok, int OrdenId, string Mensaje)> CrearAsync(CrearOrdenCompraRequest orden)
         {
