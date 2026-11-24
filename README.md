@@ -203,9 +203,14 @@ La Práctica 3 cubría el módulo de negocio solo en backend (tag `practica-3`).
 
 | Ruta | Acción |
 |---|---|
-| `/ordenes` | Privada. Listado de órdenes con estado y total; crear borrador (proveedor + productos); enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
+| `/ordenes` | Privada. Listado de órdenes con estado y total; crear borrador con desplegables de proveedor y producto; enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
 
-Para que el listado sea posible se añadió **`GET /api/OrdenesCompra`**, un endpoint de solo lectura: devuelve un DTO de resumen (no la entidad de EF) y respeta el filtro por usuario del caso de uso de reportes. El Estándar ve solo sus órdenes; el Administrador ve todas. Es una adición: no cambia ningún contrato ni comportamiento existente.
+Para que el listado sea posible se añadieron **dos endpoints de solo lectura**:
+
+- `GET /api/OrdenesCompra`: DTO de resumen (no la entidad de EF), filtrado por usuario. El Estándar ve solo sus órdenes; el Administrador ve todas.
+- `GET /api/OrdenesCompra/catalogo`: proveedores y productos existentes para el formulario. Sin esto, teclear un id inexistente producía el error genérico de EF (`An error occurred while saving the entity changes`).
+
+Es una adición: no cambia ningún contrato ni comportamiento existente. Además, `CrearBorradorAsync` ahora valida proveedor y productos y responde `400` con un mensaje claro (`El proveedor 99 no existe.`) antes de tocar la base de datos (RD-07).
 
 `OrdenesCompraServices` envía el Bearer en cada petición desde `SesionActual`; un `401` cierra la sesión y un `403` muestra el mensaje del servidor, de modo que al intentar **Recibir** sin el permiso se indica que hay que solicitar `recibir-orden` desde «Mis solicitudes».
 
