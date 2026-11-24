@@ -197,6 +197,26 @@ Recorrido manual (con API y frontend en marcha):
 7. Aprobar dos veces la misma solicitud no está en la interfaz (ya salió de pendientes). En `/solicitudes`, pulsa **Copiar id** en la fila ya aprobada y pega ese valor en `POST /api/solicitudes/{id}/aprobar` de Swagger con el token del Administrador: se muestra `Transición inválida: Aplicada -> Aprobada.` y el estado no cambia (RF-GP-06).
 8. Reinicia la API y vuelve a entrar: `/solicitudes` y `/mis-permisos` muestran los mismos datos, porque las solicitudes y los permisos están persistidos (RD-09).
 
+## Frontend — órdenes de compra (RF-NEG-02..06)
+
+La Práctica 3 cubría el módulo de negocio solo en backend (tag `practica-3`). La interfaz permite ejecutar esas mismas operaciones sin Swagger:
+
+| Ruta | Acción |
+|---|---|
+| `/ordenes` | Privada. Listado de órdenes con estado y total; crear borrador (proveedor + productos); enviar a aprobación; aprobar y cancelar (Administrador); recibir (con permiso `recibir-orden`); y consultar el total en DOP. |
+
+Para que el listado sea posible se añadió **`GET /api/OrdenesCompra`**, un endpoint de solo lectura: devuelve un DTO de resumen (no la entidad de EF) y respeta el filtro por usuario del caso de uso de reportes. El Estándar ve solo sus órdenes; el Administrador ve todas. Es una adición: no cambia ningún contrato ni comportamiento existente.
+
+`OrdenesCompraServices` envía el Bearer en cada petición desde `SesionActual`; un `401` cierra la sesión y un `403` muestra el mensaje del servidor, de modo que al intentar **Recibir** sin el permiso se indica que hay que solicitar `recibir-orden` desde «Mis solicitudes».
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Estándar y abre `/ordenes`: crea un borrador con un proveedor y un producto; aparece en estado **Borrador** (RF-NEG-02/03).
+2. Pulsa **Enviar a aprobación**: pasa a **PendienteAprobacion**.
+3. Entra como Administrador: **Aprobar** la orden; pasa a **Aprobada** (RF-NEG-06).
+4. Con la cuenta Estándar pulsa **Recibir** sin tener el permiso: se muestra el mensaje `No posees el permiso 'recibir-orden'...` y el estado no cambia. Solicita y aprueba el permiso desde `/solicitudes` y `/solicitudes/pendientes`; repite **Recibir** y la orden pasa a **Recibida** (RF-NEG-05).
+5. **Total DOP** muestra la conversión con la tasa vigente; sobre una orden terminal ya no hay botones de transición (RF-NEG-04/05).
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
