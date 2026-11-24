@@ -3,8 +3,10 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `main` en `533b6ce` (PR #27 de la Asignación 4 mergeado; la rama
-`feat/registro-auditoria` ya está integrada y etiquetada)
+**Rama de trabajo actual:** `feat/frontend-permisos` pusheada con el frontend de RF-GP-01..07
+(verificado manualmente el 24/11/2026; PR/merge a `main` pendiente, lo gestiona el autor).
+`main`/`origin/main` en `040fd11`; PR #27 de la Asignación 4 mergeado y la rama
+`feat/registro-auditoria` ya está integrada y etiquetada.
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
 otra cosa (79/92/103 pruebas, `main` en `3746eb5`/`e557148`, frontend «no iniciado», etc.),
@@ -38,7 +40,7 @@ prevalece §0/§12.
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
-| Frontend — gestión de permisos (RF-GP-01..07) | ✅ Implementado en rama `feat/frontend-permisos`; no cambia el tag `asignacion-2` |
+| Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026 en rama `feat/frontend-permisos` (pusheada; PR/merge pendiente); no cambia el tag `asignacion-2` |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -49,6 +51,7 @@ prevalece §0/§12.
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
 dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 119/119 (12 + 89 + 18)
+Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 ```
 
 ### Rutas del frontend que ya existen
@@ -84,6 +87,9 @@ aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el perm
   `UPDATE Usuarios SET Rol = 'Administrador', Activo = 1 WHERE Email = '…';` (en `InventarioBP4`).
 - En Blazor, el nombre inyectado no puede igualar el de la clase del componente: en
   `Solicitudes.razor` el servicio se llama `ServicioPermisos` (si no, `CS0542`).
+- `appsettings.json` del frontend apunta a `http://localhost:8080` (Docker). Si la API se corre con
+  el perfil local `http` (5176), hay que poner `$env:ApiBaseUrl = "http://localhost:5176"` antes de
+  `dotnet run`, o las pantallas de permisos darán error de red.
 - `README.Docker.md` está sin versionar: no agregarlo.
 
 ### Cómo retomar

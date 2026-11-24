@@ -172,6 +172,10 @@ Recorrido manual:
 
 ## Frontend — gestión de permisos (RF-GP-01..07)
 
+> **Verificado manualmente el 24/11/2026:** recorrido completo con API y frontend en marcha,
+> créditos de Estándar y Administrador, descarga del CSV y persistencia tras reiniciar. Sin cambios
+> en el backend ni en el tag `asignacion-2`.
+
 La Asignación 2 se entregó solo en backend (tag `asignacion-2`). El frontend añade ahora la interfaz de esa misma pieza, sin cambiar contratos ni el tag:
 
 | Ruta | Acción |
