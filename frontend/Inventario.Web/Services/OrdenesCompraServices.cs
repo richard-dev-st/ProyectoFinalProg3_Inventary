@@ -34,6 +34,19 @@ namespace Inventario.Web.Services
             return (true, ordenes ?? new(), string.Empty);
         }
 
+        // RF-NEG-02: proveedores y productos existentes para los desplegables del formulario.
+        public async Task<(bool Ok, CatalogoOrdenDto? Catalogo, string Mensaje)> ObtenerCatalogoAsync()
+        {
+            using var request = CrearRequest(HttpMethod.Get, "api/ordenescompra/catalogo");
+            var response = await _http.SendAsync(request);
+
+            var (ok, mensaje) = await InterpretarAsync(response, "No se pudo cargar el catálogo.");
+            if (!ok) return (false, null, mensaje);
+
+            var catalogo = await response.Content.ReadFromJsonAsync<CatalogoOrdenDto>();
+            return (true, catalogo, string.Empty);
+        }
+
         // RF-NEG-02: crear borrador. La API toma el usuario del cuerpo/query y valida la sesión.
         public async Task<(bool Ok, int OrdenId, string Mensaje)> CrearAsync(CrearOrdenCompraRequest orden)
         {

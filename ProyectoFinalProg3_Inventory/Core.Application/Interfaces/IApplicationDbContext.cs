@@ -18,6 +18,7 @@ namespace Application.Interfaces
         DbSet<Notificacion> Notificaciones { get; set; }
         DbSet<OrdenCompra> OrdenesCompra { get; set; }
         DbSet<Proveedor> Proveedores { get; set; }
+        DbSet<Producto> Productos { get; set; }
         DbSet<RegistroAuditoria> Auditoria { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

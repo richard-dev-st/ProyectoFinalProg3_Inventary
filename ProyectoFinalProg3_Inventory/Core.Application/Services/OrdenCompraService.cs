@@ -73,6 +73,29 @@ namespace Application.Services
 
         public async Task<int> CrearBorradorAsync(CrearOrdenCompraDto dto, Guid usuarioId)
         {
+            // RD-07: entrada inválida se rechaza con un mensaje claro antes de tocar la BD.
+            // Sin esta validación, una FK inexistente salía como el error genérico de EF.
+            if (!await _context.Proveedores.AnyAsync(p => p.Id == dto.ProveedorId))
+            {
+                throw new InvalidOperationException(
+                    $"El proveedor {dto.ProveedorId} no existe.");
+            }
+
+            if (dto.ordenes.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "La orden debe incluir al menos un producto.");
+            }
+
+            foreach (var detalle in dto.ordenes)
+            {
+                if (!await _context.Productos.AnyAsync(p => p.Id == detalle.ProductoId))
+                {
+                    throw new InvalidOperationException(
+                        $"El producto {detalle.ProductoId} no existe.");
+                }
+            }
+
             var orden = new OrdenCompra
             {
                 ProveedorId = dto.ProveedorId,

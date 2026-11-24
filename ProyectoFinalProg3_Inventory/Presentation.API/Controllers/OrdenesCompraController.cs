@@ -5,6 +5,7 @@ using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace Presentation.API.Controllers
@@ -31,6 +32,24 @@ namespace Presentation.API.Controllers
             var ordenes = await _ordenCompraService.ListarAsync(
                 ObtenerUsuarioIdActual(), User.IsInRole("Administrador"));
             return Ok(ordenes);
+        }
+
+        // RF-NEG-02: proveedores y productos existentes para los desplegables del formulario.
+        [HttpGet("catalogo")]
+        [Authorize]
+        public async Task<IActionResult> Catalogo()
+        {
+            var proveedores = await _context.Proveedores.AsNoTracking()
+                .OrderBy(p => p.Nombre)
+                .Select(p => new ProveedorOpcionDto(p.Id, p.Nombre))
+                .ToListAsync();
+
+            var productos = await _context.Productos.AsNoTracking()
+                .OrderBy(p => p.Nombre)
+                .Select(p => new ProductoOpcionDto(p.Id, p.Nombre, p.Codigo, p.Precio, p.ProveedorId))
+                .ToListAsync();
+
+            return Ok(new CatalogoOrdenDto(proveedores, productos));
         }
 
         [HttpPost("crear-borrador")]

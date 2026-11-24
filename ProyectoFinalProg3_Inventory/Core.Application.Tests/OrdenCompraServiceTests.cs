@@ -1,4 +1,5 @@
 using Application.DTOs.Divisa;
+using Application.DTOs.Ordenes;
 using Application.Exceptions;
 using Application.Interfaces;
 using Application.Services;
@@ -106,6 +107,65 @@ public class OrdenCompraServiceTests
             () => service.ObtenerTotalEnDopAsync(7));
 
         Assert.Equal(ServicioExternoException.Causa.NoConfigurado, ex.Motivo);
+    }
+
+    [Fact]
+    public async Task CrearBorrador_ProveedorInexistente_LanzaMensajeClaro()
+    {
+        // Preparar: catálogo vacío, el proveedor no existe.
+        using var context = CreateContext();
+        var service = new OrdenCompraService(
+            new RepoFalso(null),
+            new TasaFalsa(59m),
+            context,
+            new NotificacionService(context));
+
+        var dto = new CrearOrdenCompraDto
+        {
+            ProveedorId = 99,
+            ordenes = new()
+            {
+                new() { ProductoId = 1, Cantidad = 1, Precio = 10m }
+            }
+        };
+
+        // Actuar y verificar: RD-07 devuelve un mensaje claro, no el error genérico de EF.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearBorradorAsync(dto, Guid.NewGuid()));
+
+        Assert.Contains("99", ex.Message);
+        Assert.Contains("no existe", ex.Message);
+    }
+
+    [Fact]
+    public async Task CrearBorrador_ProductoInexistente_LanzaMensajeClaro()
+    {
+        // Preparar: existe el proveedor pero no el producto.
+        using var context = CreateContext();
+        context.Proveedores.Add(new Proveedor { Id = 1, Nombre = "Proveedor" });
+        await context.SaveChangesAsync();
+
+        var service = new OrdenCompraService(
+            new RepoFalso(null),
+            new TasaFalsa(59m),
+            context,
+            new NotificacionService(context));
+
+        var dto = new CrearOrdenCompraDto
+        {
+            ProveedorId = 1,
+            ordenes = new()
+            {
+                new() { ProductoId = 77, Cantidad = 1, Precio = 10m }
+            }
+        };
+
+        // Actuar y verificar.
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CrearBorradorAsync(dto, Guid.NewGuid()));
+
+        Assert.Contains("77", ex.Message);
+        Assert.Contains("no existe", ex.Message);
     }
 
     [Fact]
