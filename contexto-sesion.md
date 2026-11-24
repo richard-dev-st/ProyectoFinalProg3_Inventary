@@ -3,20 +3,19 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `main` en `69804f9`, sincronizada con `origin/main`; PR #29 («Copiar id»
-en `/solicitudes`, RF-GP-06) mergeado después del PR #28 (frontend de permisos) y del PR #27
-(Asignación 4). No queda PR pendiente; la rama `feat/registro-auditoria` ya está integrada y
-etiquetada.
+**Rama de trabajo actual:** `feat/frontend-ordenes` (11 commits locales sobre `main`; aún sin push
+ni PR). `main`/`origin/main` en `0767cec`, con los PR #22–#29 ya mergeados (Práctica 5, registro,
+roles, contraseñas, Asignación 3, Asignación 4, frontend de permisos y «Copiar id»).
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
-otra cosa (79/92/103 pruebas, `main` en `3746eb5`/`e557148`, frontend «no iniciado», etc.),
-prevalece §0/§12.
+otra cosa (79/92/103/119 pruebas, `main` en `3746eb5`/`69804f9`, «frontend de negocio no iniciado»,
+etc.), prevalece §0/§12.
 **Asignación 4:** historial de auditoría RF-AUD-01..07; tag `asignacion-4`; bitácora en
-`docs/bitacora-asignacion-4.md`; suite **119/119**.
+`docs/bitacora-asignacion-4.md`; suite histórica **119/119** (hoy **136/136**).
 **Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
 `docs/bitacora-asignacion-3.md`; suite histórica **103/103**.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`; handoff actualizado → `0767cec`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
@@ -41,6 +40,8 @@ prevalece §0/§12.
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
 | Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026; mergeado a `main` en PR #28. `/solicitudes` muestra el id y tiene «Copiar id» para provocar RF-GP-06. No cambia el tag `asignacion-2` |
+| **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Implementado en `feat/frontend-ordenes`: listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
+| **Frontend — datos maestros (proveedores y productos)** | ✅ Implementado en `feat/frontend-ordenes`: listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -50,7 +51,7 @@ prevalece §0/§12.
 ```powershell
 dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → OK (warnings heredados)
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
-dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 119/119 (12 + 89 + 18)
+dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 136/136 (12 + 18 + 106)
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 ```
 
@@ -58,10 +59,11 @@ Recorrido manual RF-GP en frontend (24/11/2026)                            → O
 
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
 `/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
-`/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/` (Home con email/rol y logout).
+`/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/`, `/ordenes`, `/proveedores`,
+`/productos` (Home con email/rol y logout).
 El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
-«Mis solicitudes» y «Mis permisos»; «Usuarios» y «Solicitudes pendientes» solo con
-`<AuthorizeView Roles="Administrador">`.
+«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores» y «Productos»; «Usuarios» y
+«Solicitudes pendientes» solo con `<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
@@ -69,7 +71,9 @@ El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesi�
 restablecimiento y cambio de clave), `AdminUsuariosServices` (listado, cambio de rol y estado,
 forzado de restablecimiento), `SolicitudesPermisosServices` (crear, listar propias/pendientes,
 aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el permiso concedido),
-`SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un
+`OrdenesCompraServices` (listar, catálogo, detalle, crear, editar, transiciones y total DOP),
+`CatalogoServices` (listar y crear proveedores/productos), `SesionActual`,
+`SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un
 `DelegatingHandler` scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
@@ -91,14 +95,21 @@ aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el perm
   el perfil local `http` (5176), hay que poner `$env:ApiBaseUrl = "http://localhost:5176"` antes de
   `dotnet run`, o las pantallas de permisos darán error de red.
 - `README.Docker.md` está sin versionar: no agregarlo.
+- En `/ordenes` el desplegable de producto **filtra por el proveedor elegido**; al cambiarlo se
+  limpian las líneas. La API aplica la misma regla (`400` si el producto es de otro proveedor).
+- Un borrador solo se edita mientras siga en `Borrador`; después devuelve `400`. El detalle y la
+  edición de una orden ajena devuelven `403` al Estándar.
+- `OrdenCompra` no valida ni descuenta `StockActual`: es un dato informativo (decisión vigente).
 
 ### Cómo retomar
 
 1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
-   contraseñas, **Frontend — gestión de permisos** y **Asignación 4**), además de
-   `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
-2. Verificar build + `dotnet test` antes de tocar código.
-3. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia este handoff.
+   contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros** y
+   **Asignación 4**), además de `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
+2. Verificar build + `dotnet test` antes de tocar código (hoy **136/136**).
+3. El frontend de negocio se trabaja en `feat/frontend-ordenes`; el resto de módulos (Documentos,
+   Notificaciones, Reportes y Auditoría) siguen pendientes de interfaz. Trabajar en rama nueva desde
+   `main`; commit de docs aparte si cambia este handoff.
 
 ---
 
@@ -131,8 +142,8 @@ Verificación histórica al cierre de la Práctica 5 (19/11/2026):
 dotnet test → 79/79 (12 + 49 + 18)
 ```
 
-**Verificación vigente (24/11/2026): 119/119 (12 + 89 + 18).** Ver §0/§12. El valor 92/92
-corresponde al cierre de la Práctica 5.
+**Verificación vigente (24/11/2026): 136/136 (12 + 18 + 106).** Ver §0. Los valores 92/92 y
+119/119 corresponden a cierres anteriores (Práctica 5 y Asignación 4).
 
 > El build del backend mantiene warnings heredados (CS8618 en `Usuario`, CS0472 en `OrdenCompra`,
 > CS8613 en `AuthService`, CS8603 en `OrdenCompraRepository`). No bloquean.
