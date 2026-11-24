@@ -40,7 +40,7 @@ prevalece §0/§12.
 | Frontend — registro, activación y reenvío de enlace | ✅ Implementado (PR #23) |
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
-| Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026 en rama `feat/frontend-permisos` (pusheada; PR/merge pendiente); no cambia el tag `asignacion-2` |
+| Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026; mergeado a `main` en PR #28. `/solicitudes` muestra el id y tiene «Copiar id» para provocar RF-GP-06. No cambia el tag `asignacion-2` |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
