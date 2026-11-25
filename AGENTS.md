@@ -3,11 +3,12 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (24/11/2026):** `main`/`origin/main` en `0767cec`. El backend está completo
-> (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y se está construyendo
-> el **frontend del módulo de negocio** en la rama local `feat/frontend-ordenes` (órdenes de compra y
-> datos maestros de proveedores/productos; aún sin push ni PR). RF-GP-01..07 están implementados en
-> backend y frontend y verificados manualmente en `main`.
+> **Estado actual (25/11/2026):** `main`/`origin/main` en `bbe6056`. El backend está completo
+> (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y el **frontend del
+> módulo de negocio ya está mergeado** (PR #30: órdenes de compra y datos maestros de
+> proveedores/productos). Se acaba de añadir el **frontend de documentos** (`/documentos`:
+> subir, listar, descargar y eliminar). RF-GP-01..07 están implementados en backend y frontend y
+> verificados manualmente en `main`.
 > Baseline de pruebas: **136/136** (12 + 18 + 106).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).

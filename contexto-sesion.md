@@ -42,6 +42,7 @@ etc.), prevalece §0/§12.
 | Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026; mergeado a `main` en PR #28. `/solicitudes` muestra el id y tiene «Copiar id» para provocar RF-GP-06. No cambia el tag `asignacion-2` |
 | **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Implementado en `feat/frontend-ordenes`: listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
 | **Frontend — datos maestros (proveedores y productos)** | ✅ Implementado en `feat/frontend-ordenes`: listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
+| **Frontend — documentos (RF-DOC-01..04)** | ✅ Implementado el 25/11/2026: `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -53,6 +54,7 @@ dotnet build ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   → 0 errores, 0 warnings
 dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 136/136 (12 + 18 + 106)
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
+Recorrido manual de documentos en frontend (25/11/2026)                   → subir/listar/descargar/eliminar OK como Estándar y Administrador
 ```
 
 ### Rutas del frontend que ya existen
@@ -60,10 +62,10 @@ Recorrido manual RF-GP en frontend (24/11/2026)                            → O
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
 `/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
 `/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/`, `/ordenes`, `/proveedores`,
-`/productos` (Home con email/rol y logout).
+`/productos`, `/documentos` (Home con email/rol y logout).
 El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
-«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores» y «Productos»; «Usuarios» y
-«Solicitudes pendientes» solo con `<AuthorizeView Roles="Administrador">`.
+«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos» y «Documentos»; «Usuarios»
+y «Solicitudes pendientes» solo con `<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
@@ -72,9 +74,9 @@ restablecimiento y cambio de clave), `AdminUsuariosServices` (listado, cambio de
 forzado de restablecimiento), `SolicitudesPermisosServices` (crear, listar propias/pendientes,
 aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el permiso concedido),
 `OrdenesCompraServices` (listar, catálogo, detalle, crear, editar, transiciones y total DOP),
-`CatalogoServices` (listar y crear proveedores/productos), `SesionActual`,
-`SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un
-`DelegatingHandler` scoped (recibiría otra `SesionActual`).
+`CatalogoServices` (listar y crear proveedores/productos), `DocumentosServices` (subir, listar,
+descargar y eliminar documentos), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
+**por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
 
@@ -100,16 +102,24 @@ aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el perm
 - Un borrador solo se edita mientras siga en `Borrador`; después devuelve `400`. El detalle y la
   edición de una orden ajena devuelven `403` al Estándar.
 - `OrdenCompra` no valida ni descuenta `StockActual`: es un dato informativo (decisión vigente).
+- No usar `confirm()`/`alert()` de JS desde Blazor Server: bloquean el circuito y lo terminan. En
+  `/documentos` la confirmación de borrado es un panel en la propia página.
+- Para descargar binarios desde Blazor Server, pasar un `DotNetStreamReference` (con
+  `using`) a JS y leerlo con `streamRef.arrayBuffer()`. Enviar el `byte[]` completo como
+  base64 supera el límite de 32 KB por mensaje de SignalR en archivos grandes.
+- Un Estándar no puede descargar ni eliminar documentos ajenos (`403`); el Administrador sí. El
+  listado ya viene filtrado por el servidor, así que la UI no replica esa regla.
 
 ### Cómo retomar
 
 1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
-   contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros** y
-   **Asignación 4**), además de `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
+   contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros**, **documentos**
+   y **Asignación 4**), además de `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
 2. Verificar build + `dotnet test` antes de tocar código (hoy **136/136**).
-3. El frontend de negocio se trabaja en `feat/frontend-ordenes`; el resto de módulos (Documentos,
-   Notificaciones, Reportes y Auditoría) siguen pendientes de interfaz. Trabajar en rama nueva desde
-   `main`; commit de docs aparte si cambia este handoff.
+3. El frontend de negocio está mergeado en `main`; el de **documentos** está implementado y
+   pendiente de commit/PR. El resto de módulos (Notificaciones, Reportes y Auditoría) siguen
+   pendientes de interfaz. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia
+   este handoff.
 
 ---
 
@@ -457,11 +467,13 @@ Logout
 
 ### 5.4 Pendiente en el frontend (estado vigente)
 
+> Esta lista se conserva como histórico de la Práctica 4; el estado actual manda en §0.
+
 - ✅ `D.1`/`D.2`: ya hay `[Authorize(Roles = "Administrador")]` en `/admin/usuarios` y
   `<AuthorizeView Roles="Administrador">` en el menú (PR #24).
 - ✅ Registro, activación y reenvío de enlace (PR #23).
-- ⬜ Recuperación de contraseña: solo existe el backend; no hay UI.
-- ⬜ Pantallas de negocio (órdenes, documentos, etc.): no hay ninguna todavía.
+- ✅ Recuperación de contraseña (PR #25).
+- ✅ Pantallas de negocio: órdenes, proveedores, productos y documentos.
 
 ---
 

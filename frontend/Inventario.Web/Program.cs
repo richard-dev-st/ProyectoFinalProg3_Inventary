@@ -51,6 +51,12 @@ builder.Services.AddHttpClient<CatalogoServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// Práctica 4: cliente del manejador de documentos (RF-DOC-01..04).
+builder.Services.AddHttpClient<DocumentosServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();
