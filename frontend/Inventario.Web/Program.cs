@@ -57,6 +57,22 @@ builder.Services.AddHttpClient<DocumentosServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// Práctica 5: notificaciones, cola de correos y reportes.
+builder.Services.AddHttpClient<NotificacionesServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
+builder.Services.AddHttpClient<CorreosServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
+builder.Services.AddHttpClient<ReportesServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();

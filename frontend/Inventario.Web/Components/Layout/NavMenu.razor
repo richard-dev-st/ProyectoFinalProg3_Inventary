@@ -50,6 +50,16 @@
                         <span class="bi bi-file-earmark-text" aria-hidden="true"></span> Documentos
                     </NavLink>
                 </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="notificaciones">
+                        <span class="bi bi-bell" aria-hidden="true"></span> Notificaciones
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="reportes">
+                        <span class="bi bi-bar-chart-line" aria-hidden="true"></span> Reportes
+                    </NavLink>
+                </div>
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
@@ -66,6 +76,11 @@
         </AuthorizeView>
         <AuthorizeView Roles="Administrador">
             <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="admin/correos">
+                        <span class="bi bi-envelope-paper" aria-hidden="true"></span> Correos
+                    </NavLink>
+                </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="admin/usuarios">
                         <span class="bi bi-people" aria-hidden="true"></span> Usuarios

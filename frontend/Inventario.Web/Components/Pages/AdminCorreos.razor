@@ -1,0 +1,133 @@
+@page "/admin/correos"
+@attribute [Authorize(Roles = "Administrador")]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject CorreosServices ServicioCorreos
+
+<PageTitle>Cola de correos</PageTitle>
+<h1>Cola de correos</h1>
+
+<p class="text-muted">
+    RF-NOT-11: el Administrador consulta el estado de cada correo. El worker procesa los
+    <strong>Pendiente</strong>; un fallo se reintenta hasta <strong>3</strong> veces y luego queda
+    <strong>Fallido</strong> con su último error.
+</p>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <button class="btn btn-sm @(estadoFiltro is null ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick="() => FiltrarAsync(null)">
+        Todos
+    </button>
+    <button class="btn btn-sm @(estadoFiltro == "Pendiente" ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick='() => FiltrarAsync("Pendiente")'>
+        Pendientes
+    </button>
+    <button class="btn btn-sm @(estadoFiltro == "Enviado" ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick='() => FiltrarAsync("Enviado")'>
+        Enviados
+    </button>
+    <button class="btn btn-sm @(estadoFiltro == "Fallido" ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick='() => FiltrarAsync("Fallido")'>
+        Fallidos
+    </button>
+
+    <button class="btn btn-sm btn-outline-primary ms-auto"
+            disabled="@cargando"
+            @onclick="CargarAsync">
+        Actualizar
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p>Cargando cola de correos…</p>
+}
+else if (correos.Count == 0)
+{
+    <div class="alert alert-info">No hay correos para el filtro seleccionado.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Destinatario</th>
+                    <th>Asunto</th>
+                    <th>Estado</th>
+                    <th>Intentos</th>
+                    <th>Creado</th>
+                    <th>Enviado</th>
+                    <th>Último intento</th>
+                    <th>Último error</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var correo in correos)
+                {
+                    <tr>
+                        <td>@correo.Destinatario</td>
+                        <td>@correo.Asunto</td>
+                        <td>
+                            <span class="badge @ClaseEstado(correo.Estado)">@correo.Estado</span>
+                        </td>
+                        <td>@correo.Intentos</td>
+                        <td>@correo.FechaCreacion.ToLocalTime().ToString("g")</td>
+                        <td>@FormatearFecha(correo.FechaEnvio)</td>
+                        <td>@FormatearFecha(correo.FechaUltimoIntento)</td>
+                        <td class="text-danger small">@correo.UltimoError</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<CorreoEnColaDto> correos = new();
+    private string? estadoFiltro;
+    private bool cargando = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task FiltrarAsync(string? estado)
+    {
+        estadoFiltro = estado;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        error = null;
+
+        var resultado = await ServicioCorreos.ListarAsync(estadoFiltro);
+        if (resultado.Ok)
+        {
+            correos = resultado.Correos;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+
+        cargando = false;
+    }
+
+    private static string FormatearFecha(DateTime? fecha) =>
+        fecha?.ToLocalTime().ToString("g") ?? "—";
+
+    private static string ClaseEstado(string estado) => estado switch
+    {
+        "Pendiente" => "bg-warning text-dark",
+        "Enviado" => "bg-success",
+        "Fallido" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

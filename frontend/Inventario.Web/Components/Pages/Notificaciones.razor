@@ -1,0 +1,228 @@
+@page "/notificaciones"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject NotificacionesServices ServicioNotificaciones
+
+<PageTitle>Notificaciones</PageTitle>
+<h1>Notificaciones</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="h6 card-title">Canal de correo</h2>
+
+        @if (!preferenciaCargada)
+        {
+            <p class="text-muted mb-0">Cargando preferencia…</p>
+        }
+        else
+        {
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="recibe-correos"
+                       checked="@recibeCorreos"
+                       disabled="@guardandoPreferencia"
+                       @onchange="CambiarPreferenciaAsync" />
+                <label class="form-check-label" for="recibe-correos">
+                    Recibir también una copia por correo
+                </label>
+            </div>
+            <p class="text-muted small mb-0 mt-2">
+                El canal interno siempre está activo: aunque desactives el correo, la notificación
+                sigue apareciendo aquí (RF-NOT-06/07).
+            </p>
+        }
+    </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button class="btn btn-sm @(soloNoLeidas ? "btn-outline-secondary" : "btn-secondary")"
+            @onclick="() => soloNoLeidas = false">
+        Todas
+    </button>
+    <button class="btn btn-sm @(soloNoLeidas ? "btn-secondary" : "btn-outline-secondary")"
+            @onclick="() => soloNoLeidas = true">
+        No leídas
+    </button>
+
+    @if (NoLeidas > 0)
+    {
+        <span class="badge bg-primary">@NoLeidas sin leer</span>
+    }
+
+    <button class="btn btn-sm btn-outline-primary ms-auto"
+            disabled="@cargando"
+            @onclick="CargarAsync">
+        Actualizar
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p>Cargando notificaciones…</p>
+}
+else if (Visibles.Count == 0)
+{
+    <div class="alert alert-info">
+        @(soloNoLeidas ? "No tienes notificaciones sin leer." : "No tienes notificaciones.")
+    </div>
+}
+else
+{
+    @foreach (var notificacion in Visibles)
+    {
+        <div class="card mb-2 @(notificacion.Leida ? "" : "border-primary")">
+            <div class="card-body py-2">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <div>
+                        <span class="badge @(notificacion.Leida ? "bg-secondary" : "bg-primary")">
+                            @(notificacion.Leida ? "Leída" : "No leída")
+                        </span>
+                        <strong class="ms-2">@notificacion.Mensaje</strong>
+                    </div>
+                    <small class="text-muted">
+                        @notificacion.FechaCreacion.ToLocalTime().ToString("g")
+                    </small>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+                    <small class="text-muted">
+                        @notificacion.Tipo
+                        @if (!string.IsNullOrWhiteSpace(notificacion.ReferenciaId))
+                        {
+                            <span>· Ref. @notificacion.ReferenciaId</span>
+                        }
+                    </small>
+
+                    @if (!notificacion.Leida)
+                    {
+                        <button class="btn btn-sm btn-outline-primary"
+                                disabled="@(marcandoId == notificacion.Id)"
+                                @onclick="() => MarcarLeidaAsync(notificacion.Id)">
+                            @(marcandoId == notificacion.Id ? "Marcando…" : "Marcar como leída")
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<NotificacionDto> notificaciones = new();
+    private bool cargando = true;
+    private bool soloNoLeidas;
+    private bool recibeCorreos;
+    private bool preferenciaCargada;
+    private bool guardandoPreferencia;
+    private Guid? marcandoId;
+    private string? mensaje;
+    private string? error;
+
+    private int NoLeidas => notificaciones.Count(n => !n.Leida);
+
+    private List<NotificacionDto> Visibles =>
+        soloNoLeidas ? notificaciones.Where(n => !n.Leida).ToList() : notificaciones;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarPreferenciaAsync();
+        await CargarAsync();
+    }
+
+    // RF-NOT-04: el servidor ya filtra por el usuario del token.
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        error = null;
+
+        var resultado = await ServicioNotificaciones.ListarAsync();
+        if (resultado.Ok)
+        {
+            notificaciones = resultado.Notificaciones;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+
+        cargando = false;
+    }
+
+    // RF-NOT-05: se actualiza la fila sin recargar toda la bandeja.
+    private async Task MarcarLeidaAsync(Guid id)
+    {
+        mensaje = null;
+        error = null;
+        marcandoId = id;
+
+        var resultado = await ServicioNotificaciones.MarcarLeidaAsync(id);
+        marcandoId = null;
+
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        var indice = notificaciones.FindIndex(n => n.Id == id);
+        if (indice >= 0)
+        {
+            notificaciones[indice] = notificaciones[indice] with { Leida = true };
+        }
+
+        mensaje = "Notificación marcada como leída.";
+    }
+
+    private async Task CargarPreferenciaAsync()
+    {
+        var resultado = await ServicioNotificaciones.ObtenerPreferenciaAsync();
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        recibeCorreos = resultado.RecibeCorreos;
+        preferenciaCargada = true;
+    }
+
+    // RF-NOT-07: si falla el guardado se revierte el interruptor.
+    private async Task CambiarPreferenciaAsync(ChangeEventArgs e)
+    {
+        if (!preferenciaCargada)
+        {
+            return;
+        }
+
+        var nuevoValor = e.Value is bool valor && valor;
+        var anterior = recibeCorreos;
+
+        mensaje = null;
+        error = null;
+        recibeCorreos = nuevoValor;
+        guardandoPreferencia = true;
+
+        var resultado = await ServicioNotificaciones.ActualizarPreferenciaAsync(nuevoValor);
+        guardandoPreferencia = false;
+
+        if (!resultado.Ok)
+        {
+            recibeCorreos = anterior;
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = nuevoValor
+            ? "Recibirás también una copia por correo."
+            : "Ya no recibirás copias por correo; el canal interno sigue activo.";
+    }
+}

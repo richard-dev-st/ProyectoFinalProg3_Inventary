@@ -3,12 +3,13 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (25/11/2026):** `main`/`origin/main` en `bbe6056`. El backend está completo
+> **Estado actual (25/11/2026):** `main`/`origin/main` en `0bc2cdc`. El backend está completo
 > (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y el **frontend del
 > módulo de negocio ya está mergeado** (PR #30: órdenes de compra y datos maestros de
-> proveedores/productos). Se acaba de añadir el **frontend de documentos** (`/documentos`:
-> subir, listar, descargar y eliminar). RF-GP-01..07 están implementados en backend y frontend y
-> verificados manualmente en `main`.
+> proveedores/productos), igual que el **frontend de documentos** (`/documentos`, PR #31). El
+> **frontend de la Práctica 5** (`/notificaciones`, `/admin/correos` y `/reportes`) está en la rama
+> `feat/frontend-practica5`, pusheado y pendiente de merge. RF-GP-01..07 están implementados en
+> backend y frontend y verificados manualmente en `main`.
 > Baseline de pruebas: **136/136** (12 + 18 + 106).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
@@ -25,11 +26,11 @@ Cubre, por hitos:
 | Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
 | Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend mergeado en PR #28 y #29 (verificado 24/11; «Copiar id» incluido) |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
-| Órdenes de compra con máquina de estados | RF-NEG | Backend en `practica-3`; frontend en rama `feat/frontend-ordenes` (crear, editar, detalle, enviar, aprobar, recibir, cancelar y total DOP) |
-| Datos maestros (proveedores y productos) | RF-NEG | Frontend y endpoints de catálogo en rama `feat/frontend-ordenes` |
-| Manejador de documentos | RF-DOC | Implementado |
-| Notificaciones y cola de correos | RF-NOT | Implementado (Práctica 5, tag `practica-5`) |
-| Reportes con agregación | RF-REP | Implementado (Práctica 5, tag `practica-5`) |
+| Órdenes de compra con máquina de estados | RF-NEG | Backend en `practica-3`; frontend mergeado en PR #30 (crear, editar, detalle, enviar, aprobar, recibir, cancelar y total DOP) |
+| Datos maestros (proveedores y productos) | RF-NEG | Frontend y endpoints de catálogo mergeados en PR #30 |
+| Manejador de documentos | RF-DOC | Backend en `practica-4`; frontend mergeado en PR #31 (`0bc2cdc`) |
+| Notificaciones y cola de correos | RF-NOT | Backend completo (Práctica 5, tag `practica-5`); frontend en `feat/frontend-practica5` (`/notificaciones` y `/admin/correos`), pusheado y pendiente de merge |
+| Reportes con agregación | RF-REP | Backend completo (Práctica 5, tag `practica-5`); frontend en `feat/frontend-practica5` (`/reportes` con rango de fechas), pusheado y pendiente de merge |
 | Historial de auditoría | RF-AUD-01..07 | Implementado (Asignación 4, tag `asignacion-4`, PR #27) |
 
 ## 2. Lenguaje, framework y estructura

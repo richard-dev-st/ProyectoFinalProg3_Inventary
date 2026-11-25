@@ -1,11 +1,13 @@
-# Contexto de sesión — Handoff activo (actualizado 24/11/2026)
+# Contexto de sesión — Handoff activo (actualizado 25/11/2026)
 
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `feat/frontend-ordenes` (11 commits locales sobre `main`; aún sin push
-ni PR). `main`/`origin/main` en `0767cec`, con los PR #22–#29 ya mergeados (Práctica 5, registro,
-roles, contraseñas, Asignación 3, Asignación 4, frontend de permisos y «Copiar id»).
+**Rama de trabajo actual:** `feat/frontend-practica5`, pusheada y pendiente de merge. Parte de
+`449b24e` (ya integrado en `main` por el PR #31) y contiene `fe36d84` (interfaz), `3f196ff` y
+`5a52647` (documentación). `main`/`origin/main` en `0bc2cdc`, con los PR #22–#31 ya mergeados
+(Práctica 5, registro, roles, contraseñas, Asignación 3, Asignación 4, frontend de permisos,
+frontend de negocio, QA de frontend y frontend de documentos).
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
 otra cosa (79/92/103/119 pruebas, `main` en `3746eb5`/`69804f9`, «frontend de negocio no iniciado»,
@@ -15,7 +17,7 @@ etc.), prevalece §0/§12.
 **Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
 `docs/bitacora-asignacion-3.md`; suite histórica **103/103**.
 **Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`; handoff actualizado → `0767cec`
+**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`; PR #30 (frontend de negocio) → `9957255`; PR #31 (frontend de documentos) → `0bc2cdc`
 **Tag `practica-4`:** objeto `581c938` → commit `901a47f`
 **Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
 **Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
@@ -40,9 +42,10 @@ etc.), prevalece §0/§12.
 | Frontend — roles y administración de usuarios | ✅ Implementado (PR #24) |
 | Frontend — recuperación/restablecimiento/cambio/forzado de contraseña | ✅ Implementado y mergeado a `main` (PR #25, `e557148`) |
 | Frontend — gestión de permisos (RF-GP-01..07) | ✅ Verificado manualmente el 24/11/2026; mergeado a `main` en PR #28. `/solicitudes` muestra el id y tiene «Copiar id» para provocar RF-GP-06. No cambia el tag `asignacion-2` |
-| **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Implementado en `feat/frontend-ordenes`: listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
-| **Frontend — datos maestros (proveedores y productos)** | ✅ Implementado en `feat/frontend-ordenes`: listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
-| **Frontend — documentos (RF-DOC-01..04)** | ✅ Implementado el 25/11/2026: `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
+| **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Mergeado a `main` en PR #30 (`9957255`): listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
+| **Frontend — datos maestros (proveedores y productos)** | ✅ Mergeado a `main` en PR #30 (`9957255`): listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
+| **Frontend — documentos (RF-DOC-01..04)** | ✅ Mergeado a `main` en PR #31 (`0bc2cdc`): `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
+| **Frontend — notificaciones, cola y reportes (RF-NOT-04/05/07/11, RF-REP-01..05)** | ✅ Implementado el 25/11/2026 en `feat/frontend-practica5` (pusheada, pendiente de merge): `/notificaciones` (bandeja, marcar leída, preferencia de correo), `/admin/correos` (solo Administrador) y `/reportes` (dos reportes con rango de fechas). La agregación sigue en `ReporteService`; el backend no cambió |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -55,6 +58,7 @@ dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   →
 dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 136/136 (12 + 18 + 106)
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 Recorrido manual de documentos en frontend (25/11/2026)                   → subir/listar/descargar/eliminar OK como Estándar y Administrador
+Recorrido manual de notificaciones, cola y reportes (25/11/2026)          → bandeja y marcar leída OK; preferencia persiste; cola filtra por estado; reportes respetan rol y rango de fechas; `/admin/correos` da acceso denegado al Estándar
 ```
 
 ### Rutas del frontend que ya existen
@@ -62,10 +66,12 @@ Recorrido manual de documentos en frontend (25/11/2026)                   → su
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
 `/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
 `/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/`, `/ordenes`, `/proveedores`,
-`/productos`, `/documentos` (Home con email/rol y logout).
+`/productos`, `/documentos`, `/notificaciones`, `/reportes`, `/admin/correos` (Home con email/rol y
+logout).
 El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
-«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos» y «Documentos»; «Usuarios»
-y «Solicitudes pendientes» solo con `<AuthorizeView Roles="Administrador">`.
+«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos», «Documentos»,
+«Notificaciones» y «Reportes»; «Correos», «Usuarios» y «Solicitudes pendientes» solo con
+`<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
@@ -75,8 +81,11 @@ forzado de restablecimiento), `SolicitudesPermisosServices` (crear, listar propi
 aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el permiso concedido),
 `OrdenesCompraServices` (listar, catálogo, detalle, crear, editar, transiciones y total DOP),
 `CatalogoServices` (listar y crear proveedores/productos), `DocumentosServices` (subir, listar,
-descargar y eliminar documentos), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
-**por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
+descargar y eliminar documentos), `NotificacionesServices` (bandeja propia, marcar leída y
+preferencia de correo), `CorreosServices` (cola con filtro por estado, solo Administrador),
+`ReportesServices` (solicitudes y órdenes con `desde`/`hasta`), `SesionActual`,
+`SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un `DelegatingHandler`
+scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
 
@@ -109,17 +118,24 @@ descargar y eliminar documentos), `SesionActual`, `SesionAuthStateProvider`. El 
   base64 supera el límite de 32 KB por mensaje de SignalR en archivos grandes.
 - Un Estándar no puede descargar ni eliminar documentos ajenos (`403`); el Administrador sí. El
   listado ya viene filtrado por el servidor, así que la UI no replica esa regla.
+- `/reportes` **no** agrupa ni suma: muestra `grupos`, `total` y `montoTotalUsd` tal como los
+  devuelve `ReporteService`. Las fechas son inclusivas y un rango invertido responde `400`.
+- La preferencia de `/notificaciones` solo apaga la copia por correo (RF-NOT-07); el canal interno
+  siempre se crea. Si el `PUT` falla, el interruptor vuelve a su valor anterior.
+- `/admin/correos` se oculta en el menú al Estándar y la página exige el rol; si fuerza la URL ve
+  «Acceso denegado» y la API responde `403`.
 
 ### Cómo retomar
 
 1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
-   contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros**, **documentos**
-   y **Asignación 4**), además de `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
+   contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros**, **documentos**,
+   **notificaciones/cola/reportes** y **Asignación 4**), además de
+   `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
 2. Verificar build + `dotnet test` antes de tocar código (hoy **136/136**).
-3. El frontend de negocio está mergeado en `main`; el de **documentos** está implementado y
-   pendiente de commit/PR. El resto de módulos (Notificaciones, Reportes y Auditoría) siguen
-   pendientes de interfaz. Trabajar en rama nueva desde `main`; commit de docs aparte si cambia
-   este handoff.
+3. El frontend de negocio está mergeado en `main` (PR #30) y el de **documentos** también
+   (PR #31). El de **notificaciones/cola/reportes** (`feat/frontend-practica5`) está implementado,
+   pusheado y pendiente de merge. La única interfaz pendiente es la de **Auditoría**. Trabajar en
+   rama nueva desde `main`; commit de docs aparte si cambia este handoff.
 
 ---
 
