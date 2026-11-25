@@ -3,28 +3,30 @@
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `feat/frontend-practica5`, pusheada y pendiente de merge. Parte de
-`449b24e` (ya integrado en `main` por el PR #31) y contiene `fe36d84` (interfaz), `3f196ff` y
-`5a52647` (documentación). `main`/`origin/main` en `0bc2cdc`, con los PR #22–#31 ya mergeados
-(Práctica 5, registro, roles, contraseñas, Asignación 3, Asignación 4, frontend de permisos,
-frontend de negocio, QA de frontend y frontend de documentos).
+**Rama de trabajo actual:** `feat/docker-frontend`, con 3 commits locales sobre `origin/main`
+(`cb76d12`, `c267f53`, `3333ee2`) y pendiente de PR. No se ha hecho push de esta rama en esta sesión.
+**`origin/main`:** `955f49e` (`Merge pull request #33 from richard-dev-st/feat/frontend-auditoria`).
+Incluye PR #22–#33 (Práctica 5, registro, roles, contraseñas, Asignación 3, Asignación 4, frontend
+de permisos, frontend de negocio, QA frontend, documentos, notificaciones/cola/reportes y auditoría).
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
-otra cosa (79/92/103/119 pruebas, `main` en `3746eb5`/`69804f9`, «frontend de negocio no iniciado»,
-etc.), prevalece §0/§12.
+otra cosa (79/92/103/119 pruebas, `main` en `3746eb5`/`69804f9`/`0bc2cdc`, «frontend de negocio no
+iniciado», etc.), prevalece §0/§12.
 **Asignación 4:** historial de auditoría RF-AUD-01..07; tag `asignacion-4`; bitácora en
 `docs/bitacora-asignacion-4.md`; suite histórica **119/119** (hoy **136/136**).
 **Asignación 3:** auditoría de la Práctica 5; tag `asignacion-3`; bitácora en
 `docs/bitacora-asignacion-3.md`; suite histórica **103/103**.
-**Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado)
-**Hitos posteriores:** PR #22 (Práctica 5) → `97396e2`; PR #23 (registro/activación) → `4df728f`; PR #24 (roles/administración) → `3746eb5`; PR #25 (contraseñas) → `e557148`; PR #26 (Asignación 3) → `cc18f69`; PR #27 (Asignación 4) → `533b6ce`; PR #28 (frontend de permisos) → `41b4421`; PR #29 («Copiar id») → `69804f9`; PR #30 (frontend de negocio) → `9957255`; PR #31 (frontend de documentos) → `0bc2cdc`
-**Tag `practica-4`:** objeto `581c938` → commit `901a47f`
-**Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10)
-**Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10)
+**Historial de la Práctica 5:** último commit de código `82ad402`; README `f270878`; tag `practica-5` = `ddefd7f` (pusheado).
+**Hitos en `origin/main`:** PR #22 (`97396e2`), #23 (`4df728f`), #24 (`3746eb5`), #25 (`e557148`),
+#26 (`cc18f69`), #27 (`533b6ce`), #28 (`41b4421`), #29 (`69804f9`), #30 (`9957255`), #31 (`0bc2cdc`),
+#32 (`f396bf2`), #33 (`955f49e`).
+**Tag `practica-4`:** objeto `581c938` → commit `901a47f`.
+**Solución backend:** `ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx` (.NET 10).
+**Frontend:** `frontend/Inventario.Web` (Blazor Web App, .NET 10).
 
 > Este documento es el handoff que se usa al cambiar de agente. **Si algo cambia, actualízalo en el
-> mismo commit.** La Práctica 4, la Práctica 5 y la Asignación 3 están cerradas y etiquetadas; sus
-> detalles se conservan como referencia histórica en §4, §10 y §11. La Asignación 4 está en §12.
+> mismo commit.** La Práctica 4, la Práctica 5, la Asignación 3 y la Asignación 4 están cerradas y
+> etiquetadas; sus detalles se conservan como referencia histórica en §4, §10, §11 y §12.
 
 ---
 

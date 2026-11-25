@@ -3,14 +3,13 @@
 Este archivo describe el proyecto, cómo ejecutarlo, cómo probarlo y qué **no** se puede tocar.
 Cualquier agente que trabaje en este repositorio debe leerlo completo antes de escribir código.
 
-> **Estado actual (25/11/2026):** `main`/`origin/main` en `f396bf2`. El backend está completo
-> (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y el **frontend del
-> módulo de negocio ya está mergeado** (PR #30: órdenes de compra y datos maestros de
-> proveedores/productos), igual que el **frontend de documentos** (`/documentos`, PR #31) y el
-> **frontend de la Práctica 5** (`/notificaciones`, `/admin/correos` y `/reportes`, PR #32). La
-> consulta opcional de auditoría (`/admin/auditoria`, RF-AUD-07) se desarrolla en la rama
-> `feat/frontend-auditoria` y no cambia el tag `asignacion-4`. RF-GP-01..07 están implementados en
-> backend y frontend y verificados manualmente en `main`.
+> **Estado actual (25/11/2026):** `origin/main` en `955f49e` (PR #33 mergeado). El backend está completo
+> (auth, permisos, órdenes, documentos, notificaciones, reportes y auditoría) y el frontend cubre
+> login/registro/activación/contraseñas, administración de usuarios, permisos, órdenes/datos
+> maestros, documentos, notificaciones/cola/reportes y la consulta opcional de auditoría
+> (`/admin/auditoria`, PR #33; no cambia el tag `asignacion-4`). El contenedor del frontend Blazor
+> está implementado en la rama `feat/docker-frontend` (pendiente de PR a `main`). RF-GP-01..07 están
+> implementados en backend y frontend y verificados manualmente.
 > Baseline de pruebas: **136/136** (12 + 18 + 106).
 > Para retomar el trabajo, leer primero `contexto-sesion.md` (§0 = estado vigente; §12 = Asignación 4;
 > §1–§11 son el corte histórico de la Práctica 5 y la Asignación 3).
@@ -32,7 +31,7 @@ Cubre, por hitos:
 | Manejador de documentos | RF-DOC | Backend en `practica-4`; frontend mergeado en PR #31 (`0bc2cdc`) |
 | Notificaciones y cola de correos | RF-NOT | Backend completo (Práctica 5, tag `practica-5`); frontend mergeado en PR #32 (`/notificaciones` y `/admin/correos`) |
 | Reportes con agregación | RF-REP | Backend completo (Práctica 5, tag `practica-5`); frontend mergeado en PR #32 (`/reportes` con rango de fechas) |
-| Historial de auditoría | RF-AUD-01..07 | Backend en tag `asignacion-4` (PR #27); consulta opcional `/admin/auditoria` en `feat/frontend-auditoria` (RF-AUD-07, solo Administrador) |
+| Historial de auditoría | RF-AUD-01..07 | Backend en tag `asignacion-4` (PR #27); frontend `/admin/auditoria` mergeado en PR #33 (RF-AUD-07, solo Administrador, sin cambios al tag) |
 
 ## 2. Lenguaje, framework y estructura
 

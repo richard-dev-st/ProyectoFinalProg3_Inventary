@@ -467,19 +467,20 @@ Segunda pieza del Core: un usuario **Estándar** crea solicitudes de permiso y u
 La suite cubre el dominio, la capa de aplicación (autenticación, permisos, documentos, notificaciones, cola de correos y reportes) y la máquina de estados del módulo de negocio **sin levantar la aplicación completa** (RD-12):
 
 - `ProyectoFinalProg3_Inventory/Core.Domain.Tests`: 12 pruebas del dominio (entidad `SolicitudPermiso`, incluidas las transiciones prohibidas y las reglas de creación, aprobación y rechazo).
-- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 89 pruebas con EF Core InMemory:
+- `ProyectoFinalProg3_Inventory/Core.Application.Tests`: 106 pruebas con EF Core InMemory:
   - 15 de `AuthService` (registro/activación, login/logout y recuperación/cambio/restablecimiento de contraseña; RF-CA, RF-AUD-05).
-  - 13 de `SolicitudPermisoService` (RF-GP-01..07, con los límites de `permiso`, `descripcion` y `motivo`, y RF-AUD-02).
+  - 14 de `SolicitudPermisoService` (RF-GP-01..07, con los límites de `permiso`, `descripcion` y `motivo`, y RF-AUD-02).
   - 14 de `DocumentoService` (RF-DOC-01..04, RD-06 y RD-07, y RF-AUD-03).
   - 8 de `CurrencyApiTasaCambioService` (respuesta válida, clave ausente, `401/403/429`, JSON inválido, moneda ausente y timeout).
-  - 3 de `OrdenCompraService` (orden inexistente, conversión con redondeo y propagación del error externo).
+  - 12 de `OrdenCompraService` (borrador, edición, transiciones, detalle, autorización, total en DOP y propagación de errores externos).
+  - 8 de `CatalogoService` (proveedores y productos: validaciones, código único/generado y reglas de alta).
   - 3 de `EmailService` (fallback a log con SMTP vacío, valores de ejemplo y destinatario inválido).
   - 7 de `NotificacionService` (RF-NOT-01, 02, 03, 04, 05 y 07, más el caso sin Administrador activo).
   - 2 de `NotificacionTransaccionTests` (el evento de negocio y la notificación se guardan en una sola unidad de trabajo).
   - 5 de `ProcesadorCorreos` (RF-NOT-08..13: reintentos, máximo de 3 y correo `Fallido`).
   - 8 de `ReporteService` (RF-REP-01..05, con rango sin datos, rango invertido y `hasta=9999-12-31`).
-   - 3 de `AdminUsuarioService` (RF-AUD-04: cambio de rol, desactivación y reactivación).
-   - 7 de `AuditoriaService` (RF-AUD-06/07 y RD-06/07: rechazo a Estándar, filtros, paginación, límites de fecha, inmutabilidad y filtros inválidos).
+  - 3 de `AdminUsuarioService` (RF-AUD-04: cambio de rol, desactivación y reactivación).
+  - 7 de `AuditoriaService` (RF-AUD-06/07 y RD-06/07: rechazo a Estándar, filtros, paginación, límites de fecha, inmutabilidad y filtros inválidos).
 - `ProyectoFinalProg3_Inventory/Bussiness.inventory.Tests`: 18 pruebas del módulo de negocio:
   - 17 pruebas de la máquina de estados de `OrdenCompra` (`Business.Inventory.Entities.OrdenCompra`), cubriendo transiciones permitidas, transiciones prohibidas, estados terminales y la condición de la transición `Borrador → PendienteAprobacion`.
   - 1 prueba de integración (`OrdenCompraIntegracionTests`) entre Gestión de Permisos y el módulo de negocio, con los componentes reales (sin dobles): la operación `Recibir` se rechaza mientras la solicitud no está aprobada y se permite después de que un Administrador la aprueba.
