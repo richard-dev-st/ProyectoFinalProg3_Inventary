@@ -42,6 +42,22 @@ services:
     volumes:
       - documents_data:/app/uploads
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5299:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Desde el contenedor, `localhost` sería el propio frontend: se usa el servicio api.
+      ApiBaseUrl: http://api:8080
+    depends_on:
+      - api
+    volumes:
+      # Evita que un recreate regenere las claves y rompa la sesión/antiforgery.
+      - frontend_keys_data:/root/.aspnet/DataProtection-Keys
+
   worker:
     build:
       context: .
@@ -61,3 +77,4 @@ services:
 volumes:
   sqlserver_data:
   documents_data:
+  frontend_keys_data:
