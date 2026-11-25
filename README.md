@@ -340,6 +340,10 @@ Recorrido manual (con API y frontend en marcha):
 | RF-CA-20 | `PUT /api/admin/usuarios/{id}/estado` desactivar | Sesión abierta deja de ser válida; no se puede autodesactivar |
 | RF-CA-22 | `/cambiar-password` → `POST /api/Auth/cambiar-password` con sesión | Cambia la clave y expira el token actual |
 | RF-NEG-03/04/05 | Transiciones en `OrdenCompra` | Prohibidas lanzan error; `Recibida`/`Cancelada` son terminales |
+| RF-DOC-01..04 | `/documentos` → `api/documentos` | Subir, listar según rol, descargar y eliminar con confirmación |
+| RF-NOT-04/05/07 | `/notificaciones` → `api/notificaciones` | Bandeja propia, marcar leída (404 si es ajena) y preferencia de correo persistente |
+| RF-NOT-11 | `/admin/correos` → `GET api/correos` | Administrador ve estados, intentos y errores; Estándar recibe acceso denegado/403 |
+| RF-REP-01..05 | `/reportes` → `api/reportes/*` | Totales y grupos del servidor, rango inclusivo y alcance por rol |
 | RD-04 | `Business.Inventory/Entities/OrdenCompra.cs` | Transiciones declaradas en un solo lugar |
 | RD-06 | `[Authorize(Roles = "Administrador")]` en acciones destructivas | 403 sin el rol |
 

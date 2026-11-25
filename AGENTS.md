@@ -26,11 +26,11 @@ Cubre, por hitos:
 | Autenticación y sesión (registro, activación, login/logout, recuperación/cambio/restablecimiento de contraseña) | RF-CA | Implementado en backend y frontend (PR #25) |
 | Gestión de permisos de usuario | RF-GP | Backend en tag `asignacion-2`; frontend mergeado en PR #28 y #29 (verificado 24/11; «Copiar id» incluido) |
 | Roles y administración de usuarios (frontend) | RF-CA-04/05/06/08/20/21 | Implementado |
-| Órdenes de compra con máquina de estados | RF-NEG | Backend en `practica-3`; frontend en rama `feat/frontend-ordenes` (crear, editar, detalle, enviar, aprobar, recibir, cancelar y total DOP) |
-| Datos maestros (proveedores y productos) | RF-NEG | Frontend y endpoints de catálogo en rama `feat/frontend-ordenes` |
-| Manejador de documentos | RF-DOC | Implementado |
-| Notificaciones y cola de correos | RF-NOT | Backend completo (Práctica 5, tag `practica-5`); frontend en rama `feat/frontend-practica5` (`/notificaciones` y `/admin/correos`) |
-| Reportes con agregación | RF-REP | Backend completo (Práctica 5, tag `practica-5`); frontend en rama `feat/frontend-practica5` (`/reportes` con rango de fechas) |
+| Órdenes de compra con máquina de estados | RF-NEG | Backend en `practica-3`; frontend mergeado en PR #30 (crear, editar, detalle, enviar, aprobar, recibir, cancelar y total DOP) |
+| Datos maestros (proveedores y productos) | RF-NEG | Frontend y endpoints de catálogo mergeados en PR #30 |
+| Manejador de documentos | RF-DOC | Backend en `practica-4`; frontend en `feat/frontend-documentos` (pusheada, pendiente de merge) |
+| Notificaciones y cola de correos | RF-NOT | Backend completo (Práctica 5, tag `practica-5`); frontend en `feat/frontend-practica5` (`/notificaciones` y `/admin/correos`), pusheado y pendiente de merge |
+| Reportes con agregación | RF-REP | Backend completo (Práctica 5, tag `practica-5`); frontend en `feat/frontend-practica5` (`/reportes` con rango de fechas), pusheado y pendiente de merge |
 | Historial de auditoría | RF-AUD-01..07 | Implementado (Asignación 4, tag `asignacion-4`, PR #27) |
 
 ## 2. Lenguaje, framework y estructura
