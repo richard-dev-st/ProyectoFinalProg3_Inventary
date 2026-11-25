@@ -46,9 +46,16 @@ etc.), prevalece §0/§12.
 | **Frontend — datos maestros (proveedores y productos)** | ✅ Mergeado a `main` en PR #30 (`9957255`): listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
 | **Frontend — documentos (RF-DOC-01..04)** | ✅ Mergeado a `main` en PR #31 (`0bc2cdc`): `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
 | **Frontend — notificaciones, cola y reportes (RF-NOT-04/05/07/11, RF-REP-01..05)** | ✅ Implementado el 25/11/2026 en `feat/frontend-practica5` (pusheada, pendiente de merge): `/notificaciones` (bandeja, marcar leída, preferencia de correo), `/admin/correos` (solo Administrador) y `/reportes` (dos reportes con rango de fechas). La agregación sigue en `ReporteService`; el backend no cambió |
+| **Frontend en Docker** | ✅ Implementado el 25/11/2026 en `feat/docker-frontend` (desde `main`): `Dockerfile.frontend`, servicio `frontend` en `docker-compose.yml` (host 5299 → contenedor 8080, `ApiBaseUrl=http://api:8080`), `.dockerignore` y volumen `frontend_keys_data` para DataProtection. Verificado: build, arranque, render Blazor y login como Administrador |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
+
+> **Trampa de Docker (25/11/2026):** separar `dotnet restore` de `dotnet publish --no-restore`
+> con un `obj` limpio publica el proyecto **sin** los assets estáticos del framework; el navegador
+> pide `/_framework/blazor.web.js`, recibe `404` y Blazor Server nunca arranca. `Dockerfile.frontend`
+> publica con la restauración implícita (mismo patrón que `Dockerfile`/`Dockerfile.worker`) para
+> evitarlo. No «optimizar» ese paso partiendo el restore.
 
 ### Verificación actual
 
@@ -59,6 +66,8 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 Recorrido manual de documentos en frontend (25/11/2026)                   → subir/listar/descargar/eliminar OK como Estándar y Administrador
 Recorrido manual de notificaciones, cola y reportes (25/11/2026)          → bandeja y marcar leída OK; preferencia persiste; cola filtra por estado; reportes respetan rol y rango de fechas; `/admin/correos` da acceso denegado al Estándar
+docker compose build frontend                                             → OK (publish con restore implícita)
+docker compose up -d frontend                                             → HTTP 200 en :5299, sin 404 de `_framework/blazor.web.js`; login Administrador OK contra `api:8080`
 ```
 
 ### Rutas del frontend que ya existen

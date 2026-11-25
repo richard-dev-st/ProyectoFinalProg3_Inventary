@@ -1701,6 +1701,17 @@ docker compose up --build
 
 La API responde en **http://localhost:8080**.
 Documentación interactiva: **http://localhost:8080/swagger**.
+El frontend (Blazor Server) responde en **http://localhost:5299**.
+
+El servicio `frontend` se construye con `Dockerfile.frontend` y recibe
+`ApiBaseUrl=http://api:8080`: dentro de la red de compose, `localhost` apuntaría al propio
+contenedor, no a la API. El host publica el 5299 y la API sigue generando los enlaces de correo
+con `FRONTEND_BASE_URL` (por defecto `http://localhost:5299`), así que no cambia nada para el
+navegador. Para seguir ejecutando el frontend desde el host, usa
+`dotnet run --project frontend/Inventario.Web --launch-profile http` con la API en el 8080.
+El volumen `frontend_keys_data` conserva las claves de DataProtection, así que un `recreate` del
+contenedor no invalida la sesión ni los tokens antiforgery. `.dockerignore` evita copiar `bin/obj`
+de Windows y cualquier `.env` al contexto de build.
 
 Para detener el proyecto:
 
