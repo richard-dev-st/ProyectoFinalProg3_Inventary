@@ -45,7 +45,8 @@ etc.), prevalece §0/§12.
 | **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Mergeado a `main` en PR #30 (`9957255`): listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
 | **Frontend — datos maestros (proveedores y productos)** | ✅ Mergeado a `main` en PR #30 (`9957255`): listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
 | **Frontend — documentos (RF-DOC-01..04)** | ✅ Mergeado a `main` en PR #31 (`0bc2cdc`): `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
-| **Frontend — notificaciones, cola y reportes (RF-NOT-04/05/07/11, RF-REP-01..05)** | ✅ Implementado el 25/11/2026 en `feat/frontend-practica5` (pusheada, pendiente de merge): `/notificaciones` (bandeja, marcar leída, preferencia de correo), `/admin/correos` (solo Administrador) y `/reportes` (dos reportes con rango de fechas). La agregación sigue en `ReporteService`; el backend no cambió |
+| **Frontend — notificaciones, cola y reportes (RF-NOT-04/05/07/11, RF-REP-01..05)** | ✅ Mergeado a `main` en PR #32 (`f396bf2`): `/notificaciones` (bandeja, marcar leída, preferencia de correo), `/admin/correos` (solo Administrador) y `/reportes` (dos reportes con rango de fechas). La agregación sigue en `ReporteService`; el backend no cambió |
+| **Frontend — auditoría (RF-AUD-07, opcional)** | ✅ Implementado y verificado manualmente el 25/11/2026 en `feat/frontend-auditoria`: `/admin/auditoria` consulta el historial con filtros y paginación; solo Administrador y sin botones de modificación. No cambia el tag `asignacion-4` |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -59,6 +60,7 @@ dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   �
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 Recorrido manual de documentos en frontend (25/11/2026)                   → subir/listar/descargar/eliminar OK como Estándar y Administrador
 Recorrido manual de notificaciones, cola y reportes (25/11/2026)          → bandeja y marcar leída OK; preferencia persiste; cola filtra por estado; reportes respetan rol y rango de fechas; `/admin/correos` da acceso denegado al Estándar
+Recorrido manual de `/admin/auditoria` (25/11/2026)                        → Estándar sin enlace y con «Acceso denegado»; Administrador ve 22 registros de `Documento`, paginación 1/2 → 2/2, GUID inválido y rango invertido avisan; solo Consultar/Limpiar/Anterior/Siguiente
 ```
 
 ### Rutas del frontend que ya existen
@@ -66,12 +68,12 @@ Recorrido manual de notificaciones, cola y reportes (25/11/2026)          → ba
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
 `/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
 `/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/`, `/ordenes`, `/proveedores`,
-`/productos`, `/documentos`, `/notificaciones`, `/reportes`, `/admin/correos` (Home con email/rol y
-logout).
+`/productos`, `/documentos`, `/notificaciones`, `/reportes`, `/admin/correos`, `/admin/auditoria`
+(Home con email/rol y logout).
 El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
 «Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos», «Documentos»,
-«Notificaciones» y «Reportes»; «Correos», «Usuarios» y «Solicitudes pendientes» solo con
-`<AuthorizeView Roles="Administrador">`.
+«Notificaciones» y «Reportes»; «Correos», «Usuarios», «Solicitudes pendientes» y «Auditoría» solo
+con `<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
@@ -83,9 +85,9 @@ aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el perm
 `CatalogoServices` (listar y crear proveedores/productos), `DocumentosServices` (subir, listar,
 descargar y eliminar documentos), `NotificacionesServices` (bandeja propia, marcar leída y
 preferencia de correo), `CorreosServices` (cola con filtro por estado, solo Administrador),
-`ReportesServices` (solicitudes y órdenes con `desde`/`hasta`), `SesionActual`,
-`SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un `DelegatingHandler`
-scoped (recibiría otra `SesionActual`).
+`ReportesServices` (solicitudes y órdenes con `desde`/`hasta`), `AuditoriaServices` (consulta
+filtrable y paginada, solo Administrador), `SesionActual`, `SesionAuthStateProvider`. El `Bearer`
+se pone **por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
 
@@ -124,18 +126,21 @@ scoped (recibiría otra `SesionActual`).
   siempre se crea. Si el `PUT` falla, el interruptor vuelve a su valor anterior.
 - `/admin/correos` se oculta en el menú al Estándar y la página exige el rol; si fuerza la URL ve
   «Acceso denegado» y la API responde `403`.
+- `/admin/auditoria` es solo lectura (RF-AUD-06): no hay botones de editar/borrar ni llamadas
+  `POST/PUT/DELETE`. El enlace y la página exigen Administrador; el servidor responde `403` al
+  Estándar aunque fuerce `GET /api/auditoria`.
 
 ### Cómo retomar
 
 1. Leer §0 y §12, y el README (secciones de registro/activación, roles/administración,
    contraseñas, **gestión de permisos**, **órdenes de compra**, **datos maestros**, **documentos**,
-   **notificaciones/cola/reportes** y **Asignación 4**), además de
+   **notificaciones/cola/reportes**, **auditoría (opcional)** y **Asignación 4**), además de
    `docs/bitacora-asignacion-2.md` y `docs/bitacora-asignacion-4.md`.
 2. Verificar build + `dotnet test` antes de tocar código (hoy **136/136**).
-3. El frontend de negocio está mergeado en `main` (PR #30) y el de **documentos** también
-   (PR #31). El de **notificaciones/cola/reportes** (`feat/frontend-practica5`) está implementado,
-   pusheado y pendiente de merge. La única interfaz pendiente es la de **Auditoría**. Trabajar en
-   rama nueva desde `main`; commit de docs aparte si cambia este handoff.
+3. El frontend de negocio está mergeado en `main` (PR #30), el de **documentos** (PR #31) y el de
+   **notificaciones/cola/reportes** (PR #32, `f396bf2`). La interfaz opcional de **Auditoría** vive
+   en `feat/frontend-auditoria` y no cambia el tag `asignacion-4`. Trabajar en rama nueva desde
+   `main`; commit de docs aparte si cambia este handoff.
 
 ---
 
