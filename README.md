@@ -247,6 +247,30 @@ Backend añadido, de solo lectura para cualquier usuario autenticado y de alta s
 
 Con estos datos, el formulario de `/ordenes` deja de depender de ids tecleados a ciegas y el flujo de compras funciona de extremo a extremo.
 
+## Frontend — documentos (RF-DOC-01..04)
+
+La Práctica 4 dejó el manejador de documentos solo en backend (tag `practica-4`). La interfaz ya permite usarlo sin Swagger, **sin cambiar el controlador ni `DocumentoService`**:
+
+| Ruta | Acción |
+|---|---|
+| `/documentos` | Privada. Sube un archivo, lista los documentos permitidos, descarga y elimina con confirmación en pantalla. |
+
+- **Subir (RF-DOC-01):** `InputFile` envía `multipart/form-data` en el campo `archivo` a `POST /api/documentos/subir`. La UI avisa antes de enviar si el archivo está vacío o supera **10 MB**, y limita el selector a `.pdf, .png, .jpg, .jpeg, .docx, .xlsx, .txt`. El backend sigue siendo la autoridad y devuelve `400` con el motivo si algo no cumple.
+- **Listar (RF-DOC-02):** `GET /api/documentos`. El servidor decide el alcance: un Estándar ve solo lo suyo y un Administrador ve todo; los eliminados nunca aparecen.
+- **Descargar (RF-DOC-03):** `GET /api/documentos/{id}/descargar`. La página pide los bytes con el Bearer y los entrega como `DotNetStreamReference` a `descargarArchivo` de `wwwroot/js/descargas.js`; JS los lee en streaming (`arrayBuffer()`), crea el `Blob` y fuerza la descarga con el nombre original. Así un archivo de hasta 10 MB no supera el límite de mensaje de SignalR. Un usuario sin permiso recibe el `403` del servidor y ve el mensaje.
+- **Eliminar (RF-DOC-04):** `DELETE /api/documentos/{id}`. La confirmación es un panel dentro de la página (no `confirm()` de JS, que bloquea el circuito de Blazor); al aceptar, el documento desaparece del listado y una descarga posterior devuelve `404`.
+
+`DocumentosServices` envía el Bearer por petición desde `SesionActual`; un `401` cierra la sesión y los `400/403/404` muestran el `{ mensaje }` del servidor. El enlace «Documentos» aparece en el menú para cualquier usuario con sesión.
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Estándar y abre `/documentos`: el listado solo muestra tus archivos (RF-DOC-02).
+2. Sube un `.txt` o `.pdf` menor de 10 MB: aparece con nombre, tipo, tamaño, fecha y tu correo (RF-DOC-01).
+3. Pulsa **Descargar**: el archivo se guarda con su nombre original y contenido idéntico (RF-DOC-03).
+4. Pulsa **Eliminar** y confirma: el documento desaparece del listado; repetir la descarga con su id responde `404` (RF-DOC-04).
+5. Entra como Administrador: el mismo listado incluye los documentos de todos y permite descargarlos y eliminarlos.
+6. Intenta subir un archivo vacío o de más de 10 MB: la UI lo bloquea antes de enviar; si se fuerza la petición con una extensión no permitida, la API responde `400`.
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
