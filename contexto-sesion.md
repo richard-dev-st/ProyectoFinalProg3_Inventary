@@ -1,11 +1,12 @@
-# Contexto de sesión — Handoff activo (actualizado 24/11/2026)
+# Contexto de sesión — Handoff activo (actualizado 25/11/2026)
 
 **Proyecto:** `ProyectoFinalProg3_Inventary` — Sistema de inventario (Programación III, ITLA)
 **Autor:** Richard José Hernández Valdez
 **Repositorio:** https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary
-**Rama de trabajo actual:** `feat/frontend-ordenes` (11 commits locales sobre `main`; aún sin push
-ni PR). `main`/`origin/main` en `0767cec`, con los PR #22–#29 ya mergeados (Práctica 5, registro,
-roles, contraseñas, Asignación 3, Asignación 4, frontend de permisos y «Copiar id»).
+**Rama de trabajo actual:** `feat/frontend-practica5`, apilada sobre `feat/frontend-documentos`
+(2 commits pendientes de merge). `main`/`origin/main` en `bbe6056`, con los PR #22–#30 ya
+mergeados (Práctica 5, registro, roles, contraseñas, Asignación 3, Asignación 4, frontend de
+permisos, frontend de negocio y QA de frontend).
 **Estado vigente:** ver **§0**. Las secciones §1–§11 son el corte histórico de la Práctica 5
 (19–20/11/2026) y de la Asignación 3 (23/11/2026); §12 documenta la Asignación 4. Donde digan
 otra cosa (79/92/103/119 pruebas, `main` en `3746eb5`/`69804f9`, «frontend de negocio no iniciado»,
@@ -43,6 +44,7 @@ etc.), prevalece §0/§12.
 | **Frontend — órdenes de compra (RF-NEG-02..06)** | ✅ Implementado en `feat/frontend-ordenes`: listado, nombre del proveedor, detalle con líneas, crear/editar borrador, enviar, aprobar, recibir, cancelar y total DOP |
 | **Frontend — datos maestros (proveedores y productos)** | ✅ Implementado en `feat/frontend-ordenes`: listados para todos y alta solo Administrador, con endpoints `api/catalogo/*` |
 | **Frontend — documentos (RF-DOC-01..04)** | ✅ Implementado el 25/11/2026: `/documentos` sube, lista, descarga y elimina con confirmación en página; reutiliza el backend de la Práctica 4 sin cambios |
+| **Frontend — notificaciones, cola y reportes (RF-NOT-04/05/07/11, RF-REP-01..05)** | ✅ Implementado el 25/11/2026 en `feat/frontend-practica5`: `/notificaciones` (bandeja, marcar leída, preferencia de correo), `/admin/correos` (solo Administrador) y `/reportes` (dos reportes con rango de fechas). La agregación sigue en `ReporteService`; el backend no cambió |
 | Pruebas backend de contraseñas | ✅ 6 pruebas nuevas (RF-CA-09/10/11/13/22) |
 | Constantes/policies de rol centralizadas | ⬜ Pendiente (los roles siguen en literales `[Authorize(Roles = "Administrador")]`) |
 | Pruebas de `AdminUsuarioService` / endpoints de admin | ✅ 3 pruebas en `Core.Application.Tests/AdminUsuarioServiceTests.cs` (RF-AUD-04) |
@@ -55,6 +57,7 @@ dotnet build frontend/Inventario.Web/Inventario.Web.csproj                   →
 dotnet test  ProyectoFinalProg3_Inventory/ProyectoFinalProg3_Inventory.slnx   → 136/136 (12 + 18 + 106)
 Recorrido manual RF-GP en frontend (24/11/2026)                            → OK en los 9 pasos del README
 Recorrido manual de documentos en frontend (25/11/2026)                   → subir/listar/descargar/eliminar OK como Estándar y Administrador
+Recorrido manual de notificaciones, cola y reportes (25/11/2026)          → bandeja y marcar leída OK; preferencia persiste; cola filtra por estado; reportes respetan rol y rango de fechas; `/admin/correos` da acceso denegado al Estándar
 ```
 
 ### Rutas del frontend que ya existen
@@ -62,10 +65,12 @@ Recorrido manual de documentos en frontend (25/11/2026)                   → su
 `/login`, `/registrar`, `/activar?token=…`, `/reenviar-activacion`, `/recuperar-password`,
 `/restablecer-password`, `/cambiar-password`, `/admin/usuarios`, `/solicitudes`,
 `/solicitudes/pendientes`, `/mis-permisos`, `/acceso-denegado`, `/`, `/ordenes`, `/proveedores`,
-`/productos`, `/documentos` (Home con email/rol y logout).
+`/productos`, `/documentos`, `/notificaciones`, `/reportes`, `/admin/correos` (Home con email/rol y
+logout).
 El menú muestra «Iniciar sesión» y «Registrarse» sin autenticar; con sesión, «Cambiar contraseña»,
-«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos» y «Documentos»; «Usuarios»
-y «Solicitudes pendientes» solo con `<AuthorizeView Roles="Administrador">`.
+«Mis solicitudes», «Mis permisos», «Órdenes», «Proveedores», «Productos», «Documentos»,
+«Notificaciones» y «Reportes»; «Correos», «Usuarios» y «Solicitudes pendientes» solo con
+`<AuthorizeView Roles="Administrador">`.
 
 ### Servicios del frontend
 
@@ -75,8 +80,11 @@ forzado de restablecimiento), `SolicitudesPermisosServices` (crear, listar propi
 aprobar, rechazar, mis permisos), `InventarioServices` (exportar CSV con el permiso concedido),
 `OrdenesCompraServices` (listar, catálogo, detalle, crear, editar, transiciones y total DOP),
 `CatalogoServices` (listar y crear proveedores/productos), `DocumentosServices` (subir, listar,
-descargar y eliminar documentos), `SesionActual`, `SesionAuthStateProvider`. El `Bearer` se pone
-**por petición**, nunca en un `DelegatingHandler` scoped (recibiría otra `SesionActual`).
+descargar y eliminar documentos), `NotificacionesServices` (bandeja propia, marcar leída y
+preferencia de correo), `CorreosServices` (cola con filtro por estado, solo Administrador),
+`ReportesServices` (solicitudes y órdenes con `desde`/`hasta`), `SesionActual`,
+`SesionAuthStateProvider`. El `Bearer` se pone **por petición**, nunca en un `DelegatingHandler`
+scoped (recibiría otra `SesionActual`).
 
 ### Trampas ya resueltas que no hay que repetir
 
@@ -109,6 +117,12 @@ descargar y eliminar documentos), `SesionActual`, `SesionAuthStateProvider`. El 
   base64 supera el límite de 32 KB por mensaje de SignalR en archivos grandes.
 - Un Estándar no puede descargar ni eliminar documentos ajenos (`403`); el Administrador sí. El
   listado ya viene filtrado por el servidor, así que la UI no replica esa regla.
+- `/reportes` **no** agrupa ni suma: muestra `grupos`, `total` y `montoTotalUsd` tal como los
+  devuelve `ReporteService`. Las fechas son inclusivas y un rango invertido responde `400`.
+- La preferencia de `/notificaciones` solo apaga la copia por correo (RF-NOT-07); el canal interno
+  siempre se crea. Si el `PUT` falla, el interruptor vuelve a su valor anterior.
+- `/admin/correos` se oculta en el menú al Estándar y la página exige el rol; si fuerza la URL ve
+  «Acceso denegado» y la API responde `403`.
 
 ### Cómo retomar
 

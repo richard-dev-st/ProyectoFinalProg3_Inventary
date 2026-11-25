@@ -271,6 +271,60 @@ Recorrido manual (con API y frontend en marcha):
 5. Entra como Administrador: el mismo listado incluye los documentos de todos y permite descargarlos y eliminarlos.
 6. Intenta subir un archivo vacío o de más de 10 MB: la UI lo bloquea antes de enviar; si se fuerza la petición con una extensión no permitida, la API responde `400`.
 
+## Frontend — notificaciones, cola de correos y reportes (Práctica 5)
+
+La Práctica 5 dejó los tres módulos en backend (tag `practica-5`). La interfaz ya permite
+demostrarlos sin Swagger, **sin cambiar controladores, servicios de aplicación, worker ni
+migraciones**: la UI solo consume los contratos existentes.
+
+| Ruta | Quién entra | Qué permite |
+|---|---|---|
+| `/notificaciones` | Cualquier usuario con sesión | Bandeja propia, filtro leídas/no leídas, marcar leída y preferencia de correo |
+| `/admin/correos` | Solo Administrador | Cola de correos con estado, intentos, fechas y último error |
+| `/reportes` | Cualquier usuario con sesión | Los dos reportes con rango de fechas, totales y agrupaciones |
+
+- **Bandeja (RF-NOT-04/05):** `NotificacionesServices` llama a `GET /api/notificaciones`; el
+  servidor decide el destinatario desde el token y la UI no envía ningún id de usuario. Cada fila
+  distingue leída/no leída, muestra tipo, fecha y `referenciaId`. «Marcar como leída» usa
+  `POST /api/notificaciones/{id}/leer` (`204`) y actualiza solo esa fila; el `404` de una
+  notificación ajena se muestra como «no existe o no es tuya».
+- **Preferencia de correo (RF-NOT-06/07):** interruptor con `GET`/`PUT
+  /api/notificaciones/preferencia`. Al apagarlo se guarda `recibeCorreos = false`, la copia por
+  correo deja de encolarse y el canal interno sigue creando la notificación. Si el `PUT` falla, el
+  interruptor se revierte.
+- **Cola de correos (RF-NOT-11):** `CorreosServices` llama a `GET /api/correos?estado=…` con filtro
+  «Todos / Pendientes / Enviados / Fallidos». Columnas: destinatario, asunto, estado, intentos,
+  creación, envío, último intento y último error. Un Estándar no ve el enlace y, si fuerza
+  `/admin/correos`, recibe la página de acceso denegado; la API responde `403`.
+- **Reportes (RF-REP-01..05):** `ReportesServices` envía `desde`/`hasta` como `AAAA-MM-DD` y
+  muestra lo que devuelve `ReporteService`; la UI **no agrupa ni suma**. Si `hasta < desde`, la
+  página avisa antes de llamar y la API también responde `400`. El Estándar ve solo sus registros;
+  el Administrador, todo.
+
+`NotificacionesServices`, `CorreosServices` y `ReportesServices` se registran con
+`AddHttpClient` en `Program.cs` y envían el Bearer por petición desde `SesionActual`, igual que los
+demás clientes del frontend. En el menú aparecen «Notificaciones» y «Reportes» con sesión, y
+«Correos» solo dentro de `<AuthorizeView Roles="Administrador">`.
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Estándar y crea una solicitud en `/solicitudes`: la bandeja del Administrador recibe
+   «Nueva solicitud» (RF-NOT-01), visible en `/notificaciones`.
+2. Como Administrador, aprueba o rechaza en `/solicitudes/pendientes`: el solicitante ve la
+   notificación de resolución, con el motivo si fue rechazo (RF-NOT-02).
+3. En `/notificaciones`, marca una como leída y comprueba el filtro «No leídas»: la fila cambia a
+   «Leída» y desaparece del filtro (RF-NOT-04/05).
+4. Apaga «Recibir también una copia por correo»: el canal interno sigue mostrando la notificación y
+   los correos nuevos de ese usuario dejan de encolarse (RF-NOT-06/07).
+5. Envía una orden a aprobación desde `/ordenes` y revisa la notificación de los Administradores
+   (RF-NOT-03).
+6. Como Administrador, abre `/admin/correos`: los correos nuevos aparecen `Pendiente` y pasan a
+   `Enviado` o `Fallido` con sus intentos y fechas; el filtro separa cada estado (RF-NOT-08..11).
+7. Abre `/reportes` con y sin fechas: los totales y agrupaciones cambian con el rango (RF-REP-05),
+   el Estándar ve solo lo suyo y el Administrador ve todo (RF-REP-04).
+8. Prueba un rango invertido: la página muestra el aviso y no deja consultar; la API también
+   responde `400` si se fuerza.
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
@@ -1105,6 +1159,9 @@ Invoke-RestMethod "$base/api/OrdenesCompra/$ordenId/total-en-dop" `
 > **Asignación 3** auditó esta práctica y corrigió tres defectos; el resultado quedó en `main` y en
 > el tag [`asignacion-3`](https://github.com/richard-dev-st/ProyectoFinalProg3_Inventary/releases/tag/asignacion-3),
 > con la bitácora en [`docs/bitacora-asignacion-3.md`](docs/bitacora-asignacion-3.md).
+>
+> **Frontend (25/11/2026):** se añadieron `/notificaciones`, `/admin/correos` y `/reportes` sin
+> tocar el backend. Ver la sección **Frontend — notificaciones, cola de correos y reportes**.
 
 Esta práctica agrega tres piezas sobre lo ya existente, sin cambiar las rutas ni los contratos
 anteriores:
