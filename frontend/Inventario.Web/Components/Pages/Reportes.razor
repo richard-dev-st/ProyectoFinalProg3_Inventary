@@ -1,0 +1,211 @@
+@page "/reportes"
+@attribute [Authorize]
+@using System.Globalization
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject ReportesServices ServicioReportes
+
+<PageTitle>Reportes</PageTitle>
+<h1>Reportes</h1>
+
+<p class="text-muted">
+    RF-REP-01..05: los totales y agrupaciones los calcula el servidor. Las fechas son
+    <strong>inclusivas</strong>: si eliges solo el día, se incluye completo. El Estándar solo ve sus
+    registros; el Administrador ve todo.
+</p>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-4">
+                <label class="form-label" for="desde">Desde</label>
+                <input class="form-control" id="desde" type="date" @bind="desde" />
+            </div>
+            <div class="col-sm-4">
+                <label class="form-label" for="hasta">Hasta</label>
+                <input class="form-control" id="hasta" type="date" @bind="hasta" />
+            </div>
+            <div class="col-sm-4 d-flex gap-2">
+                <button class="btn btn-primary" disabled="@cargando" @onclick="ConsultarAsync">
+                    @(cargando ? "Consultando…" : "Consultar")
+                </button>
+                <button class="btn btn-outline-secondary" disabled="@cargando" @onclick="LimpiarAsync">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (cargando)
+{
+    <p>Calculando reportes…</p>
+}
+else if (consultado)
+{
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5 card-title">Solicitudes de permiso por estado</h2>
+                    <p class="text-muted small">
+                        ¿Cuántas solicitudes hay en cada estado dentro del período?
+                    </p>
+
+                    @if (reporteSolicitudes is not null)
+                    {
+                        <p class="mb-2">
+                            <strong>@reporteSolicitudes.Total</strong> solicitudes en
+                            <strong>@reporteSolicitudes.Grupos.Count</strong> estados.
+                        </p>
+
+                        @if (reporteSolicitudes.Grupos.Count == 0)
+                        {
+                            <div class="alert alert-info mb-0">Sin datos en el rango.</div>
+                        }
+                        else
+                        {
+                            <table class="table table-sm table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Estado</th>
+                                        <th class="text-end">Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var grupo in reporteSolicitudes.Grupos)
+                                    {
+                                        <tr>
+                                            <td>@grupo.Estado</td>
+                                            <td class="text-end">@grupo.Cantidad</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h5 card-title">Compras por proveedor y estado</h2>
+                    <p class="text-muted small">
+                        ¿Cuánto se compra a cada proveedor y en qué estado están esas órdenes?
+                    </p>
+
+                    @if (reporteOrdenes is not null)
+                    {
+                        <p class="mb-2">
+                            <strong>@reporteOrdenes.TotalOrdenes</strong> órdenes por
+                            <strong>@reporteOrdenes.MontoTotalUsd.ToString("N2") USD</strong>.
+                        </p>
+
+                        @if (reporteOrdenes.Grupos.Count == 0)
+                        {
+                            <div class="alert alert-info mb-0">Sin datos en el rango.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Proveedor</th>
+                                            <th>Estado</th>
+                                            <th class="text-end">Órdenes</th>
+                                            <th class="text-end">Monto USD</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var grupo in reporteOrdenes.Grupos)
+                                        {
+                                            <tr>
+                                                <td>@grupo.Proveedor</td>
+                                                <td>@grupo.Estado</td>
+                                                <td class="text-end">@grupo.CantidadOrdenes</td>
+                                                <td class="text-end">@grupo.MontoTotalUsd.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+        Rango consultado: @RangoTexto(reporteSolicitudes?.Desde, reporteSolicitudes?.Hasta)
+    </p>
+}
+
+@code {
+    private DateTime? desde;
+    private DateTime? hasta;
+    private ReporteSolicitudesDto? reporteSolicitudes;
+    private ReporteOrdenesDto? reporteOrdenes;
+    private bool cargando;
+    private bool consultado;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await ConsultarAsync();
+
+    private async Task ConsultarAsync()
+    {
+        error = null;
+
+        // RF-REP-05: el servidor también lo valida y responde 400.
+        if (desde.HasValue && hasta.HasValue && hasta.Value.Date < desde.Value.Date)
+        {
+            error = "El rango es inválido: 'hasta' no puede ser anterior a 'desde'.";
+            return;
+        }
+
+        cargando = true;
+
+        var solicitudes = await ServicioReportes.ObtenerSolicitudesAsync(desde, hasta);
+        var ordenes = await ServicioReportes.ObtenerOrdenesAsync(desde, hasta);
+
+        cargando = false;
+
+        if (!solicitudes.Ok || !ordenes.Ok)
+        {
+            error = !solicitudes.Ok ? solicitudes.Mensaje : ordenes.Mensaje;
+            return;
+        }
+
+        reporteSolicitudes = solicitudes.Reporte;
+        reporteOrdenes = ordenes.Reporte;
+        consultado = true;
+    }
+
+    private async Task LimpiarAsync()
+    {
+        desde = null;
+        hasta = null;
+        reporteSolicitudes = null;
+        reporteOrdenes = null;
+        consultado = false;
+        error = null;
+
+        await ConsultarAsync();
+    }
+
+    private static string RangoTexto(DateTime? desde, DateTime? hasta)
+    {
+        var inicio = desde?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "sin límite";
+        var fin = hasta?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "sin límite";
+
+        return $"{inicio} — {fin}";
+    }
+}
