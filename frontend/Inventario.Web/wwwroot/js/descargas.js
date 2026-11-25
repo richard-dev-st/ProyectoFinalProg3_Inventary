@@ -11,6 +11,23 @@ window.descargarTexto = (nombre, contenido, tipo) => {
     URL.revokeObjectURL(url);
 };
 
+// Práctica 4 (RF-DOC-03): descarga un archivo binario devuelto por
+// GET /api/documentos/{id}/descargar. Se recibe un DotNetStreamReference para
+// no enviar el archivo entero en un solo mensaje de JS Interop.
+window.descargarArchivo = async (nombre, streamRef, tipo) => {
+    const buffer = await streamRef.arrayBuffer();
+
+    const blob = new Blob([buffer], { type: tipo || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    URL.revokeObjectURL(url);
+};
+
 // RF-GP-06: copia el id de una solicitud para poder repetir la transición desde la API.
 window.copiarTexto = async (texto) => {
     try {

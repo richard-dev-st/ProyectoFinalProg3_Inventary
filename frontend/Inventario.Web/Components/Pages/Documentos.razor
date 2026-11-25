@@ -1,0 +1,286 @@
+@page "/documentos"
+@attribute [Authorize]
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject DocumentosServices ServicioDocumentos
+@inject IJSRuntime JS
+
+<PageTitle>Documentos</PageTitle>
+<h1>Documentos</h1>
+
+@if (mensaje is not null)
+{
+    <div class="alert alert-success">@mensaje</div>
+}
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+@if (documentoAEliminar is not null)
+{
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+        <span class="me-auto">
+            ¿Eliminar el documento "@documentoAEliminar.NombreOriginal"?
+        </span>
+        <button class="btn btn-sm btn-danger" @onclick="ConfirmarEliminarAsync">
+            Sí, eliminar
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="CancelarEliminar">
+            Cancelar
+        </button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-7">
+        <h2 class="h5">Listado</h2>
+        <p class="text-muted small">
+            El Estándar ve solo sus documentos; el Administrador ve los de todos. Los eliminados
+            no aparecen (RF-DOC-02 y RF-DOC-04).
+        </p>
+
+        @if (cargando)
+        {
+            <p>Cargando documentos...</p>
+        }
+        else if (documentos.Count == 0)
+        {
+            <p>No hay documentos para mostrar.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Tamaño</th>
+                            <th>Subido</th>
+                            <th>Por</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var documento in documentos)
+                        {
+                            <tr>
+                                <td>@documento.NombreOriginal</td>
+                                <td>@documento.TipoContenido</td>
+                                <td>@FormatearTamanio(documento.TamanioBytes)</td>
+                                <td>@documento.FechaSubida.ToLocalTime().ToString("g")</td>
+                                <td>@documento.SubidoPorEmail</td>
+                                <td class="text-nowrap">
+                                    <button class="btn btn-sm btn-outline-primary mb-1"
+                                            @onclick="() => DescargarAsync(documento)">
+                                        Descargar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger mb-1"
+                                            @onclick="() => PedirConfirmacion(documento)">
+                                        Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5 card-title">Subir documento</h2>
+                <p class="text-muted small mb-2">
+                    PDF, PNG, JPG, JPEG, DOCX, XLSX o TXT. Máximo 10 MB (RF-DOC-01).
+                </p>
+
+                <InputFile OnChange="AlSeleccionarArchivo"
+                           accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.txt" />
+
+                @if (archivoSeleccionado is not null)
+                {
+                    <p class="small mb-0 mt-2">
+                        @archivoSeleccionado.Name (@FormatearTamanio(archivoSeleccionado.Size))
+                    </p>
+                }
+
+                <button class="btn btn-primary w-100 mt-3"
+                        disabled="@(subiendo || !archivoValido)"
+                        @onclick="SubirAsync">
+                    @(subiendo ? "Subiendo..." : "Subir documento")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private const long TamanioMaximoBytes = 10 * 1024 * 1024; // 10 MB, igual que el backend.
+
+    private List<DocumentoDto> documentos = new();
+    private IBrowserFile? archivoSeleccionado;
+    private DocumentoDto? documentoAEliminar;
+    private bool archivoValido;
+    private bool cargando = true;
+    private bool subiendo;
+    private string? mensaje;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        cargando = true;
+        error = null;
+        var resultado = await ServicioDocumentos.ListarAsync();
+        if (resultado.Ok)
+        {
+            documentos = resultado.Documentos;
+        }
+        else
+        {
+            error = resultado.Mensaje;
+        }
+        cargando = false;
+    }
+
+    private void AlSeleccionarArchivo(InputFileChangeEventArgs e)
+    {
+        mensaje = null;
+        error = null;
+
+        archivoSeleccionado = e.File;
+        archivoValido = archivoSeleccionado.Size > 0
+            && archivoSeleccionado.Size <= TamanioMaximoBytes;
+
+        if (archivoSeleccionado.Size == 0)
+        {
+            error = "El archivo está vacío.";
+        }
+        else if (archivoSeleccionado.Size > TamanioMaximoBytes)
+        {
+            error = "El archivo supera el límite de 10 MB.";
+        }
+    }
+
+    private async Task SubirAsync()
+    {
+        mensaje = null;
+        error = null;
+
+        if (archivoSeleccionado is null)
+        {
+            error = "Selecciona un archivo.";
+            return;
+        }
+        if (archivoSeleccionado.Size == 0)
+        {
+            error = "El archivo está vacío.";
+            return;
+        }
+        if (archivoSeleccionado.Size > TamanioMaximoBytes)
+        {
+            error = "El archivo supera el límite de 10 MB.";
+            return;
+        }
+
+        subiendo = true;
+        try
+        {
+            await using var stream = archivoSeleccionado.OpenReadStream(TamanioMaximoBytes);
+            var resultado = await ServicioDocumentos.SubirAsync(
+                archivoSeleccionado.Name, archivoSeleccionado.ContentType, stream);
+
+            if (!resultado.Ok)
+            {
+                error = resultado.Mensaje;
+                return;
+            }
+
+            mensaje = $"Documento \"{resultado.Documento?.NombreOriginal}\" subido.";
+            archivoSeleccionado = null;
+            archivoValido = false;
+            await CargarAsync();
+        }
+        catch (IOException ex)
+        {
+            error = $"No se pudo leer el archivo: {ex.Message}";
+        }
+        finally
+        {
+            subiendo = false;
+        }
+    }
+
+    // RF-DOC-03: el servidor autoriza; aquí solo se entrega lo que llegó.
+    private async Task DescargarAsync(DocumentoDto documento)
+    {
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioDocumentos.DescargarAsync(documento.Id);
+        if (!resultado.Ok || resultado.Contenido is null)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        try
+        {
+            using var contenido = new MemoryStream(resultado.Contenido);
+            using var referencia = new DotNetStreamReference(contenido);
+
+            await JS.InvokeVoidAsync(
+                "descargarArchivo",
+                resultado.Nombre,
+                referencia,
+                resultado.TipoContenido);
+        }
+        catch (JSException ex)
+        {
+            error = $"No se pudo iniciar la descarga: {ex.Message}";
+        }
+    }
+
+    // RF-DOC-04: eliminación lógica; el documento deja de aparecer en el listado.
+    private void PedirConfirmacion(DocumentoDto documento)
+    {
+        mensaje = null;
+        error = null;
+        documentoAEliminar = documento;
+    }
+
+    private void CancelarEliminar() => documentoAEliminar = null;
+
+    private async Task ConfirmarEliminarAsync()
+    {
+        if (documentoAEliminar is null)
+        {
+            return;
+        }
+
+        var documento = documentoAEliminar;
+        documentoAEliminar = null;
+        mensaje = null;
+        error = null;
+
+        var resultado = await ServicioDocumentos.EliminarAsync(documento.Id);
+        if (!resultado.Ok)
+        {
+            error = resultado.Mensaje;
+            return;
+        }
+
+        mensaje = $"Documento \"{documento.NombreOriginal}\" eliminado.";
+        await CargarAsync();
+    }
+
+    private static string FormatearTamanio(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0.0} KB",
+        _ => $"{bytes / (1024.0 * 1024.0):0.0} MB"
+    };
+}
