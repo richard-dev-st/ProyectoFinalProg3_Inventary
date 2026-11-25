@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copiar primero todo el proyecto: el publish con restauración implícita incluye los
+# assets estáticos del framework (entre ellos `_framework/blazor.web.js`, indispensable
+# para Blazor Server). Un `restore` previo seguido de `--no-restore` los omite.
+COPY frontend/Inventario.Web/ frontend/Inventario.Web/
+
+RUN dotnet publish frontend/Inventario.Web/Inventario.Web.csproj \
+    -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+# Blazor Server: solo HTTP dentro de la red de compose; el host publica el puerto 5299.
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Inventario.Web.dll"]
