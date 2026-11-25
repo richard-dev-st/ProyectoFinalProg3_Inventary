@@ -1,0 +1,242 @@
+@page "/admin/auditoria"
+@attribute [Authorize(Roles = "Administrador")]
+@using System.Globalization
+@using Inventario.Web.Models
+@using Inventario.Web.Services
+@inject AuditoriaServices ServicioAuditoria
+
+<PageTitle>Historial de auditoría</PageTitle>
+<h1>Historial de auditoría</h1>
+
+<p class="text-muted">
+    RF-AUD-07: solo el Administrador consulta quién cambió qué y cuándo. Los registros son
+    inmutables (RF-AUD-06): esta pantalla no permite editarlos ni borrarlos.
+</p>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-4">
+                <label class="form-label" for="aud-usuario">Usuario (id)</label>
+                <input class="form-control" id="aud-usuario" @bind="usuarioIdTexto"
+                       placeholder="Guid del usuario" />
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label" for="aud-entidad">Entidad</label>
+                <input class="form-control" id="aud-entidad" @bind="entidad"
+                       placeholder="Documento, Usuario…" />
+            </div>
+            <div class="col-sm-2">
+                <label class="form-label" for="aud-desde">Desde</label>
+                <input class="form-control" id="aud-desde" type="date" @bind="desde" />
+            </div>
+            <div class="col-sm-2">
+                <label class="form-label" for="aud-hasta">Hasta</label>
+                <input class="form-control" id="aud-hasta" type="date" @bind="hasta" />
+            </div>
+            <div class="col-sm-1">
+                <label class="form-label" for="aud-tamano">Filas</label>
+                <select class="form-select" id="aud-tamano" @bind="tamanioPagina">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" disabled="@cargando" @onclick="ConsultarAsync">
+                    @(cargando ? "Consultando…" : "Consultar")
+                </button>
+                <button class="btn btn-outline-secondary" disabled="@cargando" @onclick="LimpiarAsync">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (consultado && resultado is not null)
+{
+    <p class="text-muted small mb-2">
+        @resultado.Total registro(s) · página @pagina de @TotalPaginas
+    </p>
+}
+
+@if (cargando)
+{
+    <p>Cargando historial…</p>
+}
+else if (resultado is null || resultado.Registros.Count == 0)
+{
+    <div class="alert alert-info">No hay registros para los filtros elegidos.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Entidad</th>
+                    <th>Entidad id</th>
+                    <th>Fecha</th>
+                    <th>Valor anterior</th>
+                    <th>Valor nuevo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var registro in resultado.Registros)
+                {
+                    <tr>
+                        <td>@registro.Id</td>
+                        <td>
+                            <div>@registro.UsuarioEmail</div>
+                            <div class="small text-muted">@registro.UsuarioId</div>
+                        </td>
+                        <td><span class="badge bg-secondary">@registro.Accion</span></td>
+                        <td>@registro.Entidad</td>
+                        <td class="small text-break">@registro.EntidadId</td>
+                        <td>
+                            <div>@FormatearLocal(registro.FechaHoraUtc)</div>
+                            <div class="small text-muted">@FormatearUtc(registro.FechaHoraUtc)</div>
+                        </td>
+                        <td class="small text-break"><code>@FormatearValor(registro.ValorAnterior)</code></td>
+                        <td class="small text-break"><code>@FormatearValor(registro.ValorNuevo)</code></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-primary" disabled="@(pagina <= 1)"
+                @onclick="() => IrAPaginaAsync(pagina - 1)">
+            Anterior
+        </button>
+        <span class="text-muted small">Página @pagina de @TotalPaginas</span>
+        <button class="btn btn-sm btn-outline-primary" disabled="@(pagina >= TotalPaginas)"
+                @onclick="() => IrAPaginaAsync(pagina + 1)">
+            Siguiente
+        </button>
+    </div>
+}
+
+@code {
+    private string? usuarioIdTexto;
+    private string? entidad;
+    private DateTime? desde;
+    private DateTime? hasta;
+    private int pagina = 1;
+    private int tamanioPagina = 20;
+    private ResultadoAuditoriaDto? resultado;
+    private bool cargando = true;
+    private bool consultado;
+    private string? error;
+
+    private int TotalPaginas => resultado is null || resultado.TamanioPagina <= 0
+        ? 1
+        : Math.Max(1, (int)Math.Ceiling(resultado.Total / (double)resultado.TamanioPagina));
+
+    protected override async Task OnInitializedAsync() => await CargarAsync();
+
+    private async Task ConsultarAsync()
+    {
+        pagina = 1;
+        await CargarAsync();
+    }
+
+    private async Task LimpiarAsync()
+    {
+        usuarioIdTexto = null;
+        entidad = null;
+        desde = null;
+        hasta = null;
+        tamanioPagina = 20;
+        await ConsultarAsync();
+    }
+
+    private async Task IrAPaginaAsync(int destino)
+    {
+        if (destino < 1 || destino > TotalPaginas)
+        {
+            return;
+        }
+
+        pagina = destino;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        error = null;
+
+        Guid? usuarioId = null;
+        if (!string.IsNullOrWhiteSpace(usuarioIdTexto))
+        {
+            if (!Guid.TryParse(usuarioIdTexto.Trim(), out var id))
+            {
+                error = "El id de usuario debe ser un GUID válido.";
+                return;
+            }
+
+            usuarioId = id;
+        }
+
+        // RF-AUD-07 / RD-07: el servidor también valida el rango invertido.
+        if (desde.HasValue && hasta.HasValue && hasta.Value.Date < desde.Value.Date)
+        {
+            error = "El rango es inválido: 'hasta' no puede ser anterior a 'desde'.";
+            return;
+        }
+
+        if (tamanioPagina < 1 || tamanioPagina > 100)
+        {
+            error = "El tamaño de página debe estar entre 1 y 100.";
+            return;
+        }
+
+        cargando = true;
+
+        var respuesta = await ServicioAuditoria.ConsultarAsync(
+            usuarioId,
+            string.IsNullOrWhiteSpace(entidad) ? null : entidad.Trim(),
+            desde,
+            hasta,
+            pagina,
+            tamanioPagina);
+
+        cargando = false;
+
+        if (!respuesta.Ok)
+        {
+            resultado = null;
+            consultado = false;
+            error = respuesta.Mensaje;
+            return;
+        }
+
+        resultado = respuesta.Resultado;
+        consultado = true;
+    }
+
+    private static DateTime ComoUtc(DateTime fecha) =>
+        fecha.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(fecha, DateTimeKind.Utc)
+            : fecha.ToUniversalTime();
+
+    private static string FormatearUtc(DateTime fecha) =>
+        ComoUtc(fecha).ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
+
+    private static string FormatearLocal(DateTime fecha) =>
+        ComoUtc(fecha).ToLocalTime().ToString("g");
+
+    private static string FormatearValor(string? valor) =>
+        string.IsNullOrWhiteSpace(valor) ? "—" : valor;
+}

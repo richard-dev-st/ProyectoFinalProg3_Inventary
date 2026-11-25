@@ -325,6 +325,42 @@ Recorrido manual (con API y frontend en marcha):
 8. Prueba un rango invertido: la página muestra el aviso y no deja consultar; la API también
    responde `400` si se fuerza.
 
+## Frontend — historial de auditoría (RF-AUD-07, opcional)
+
+La Asignación 4 está cerrada en backend (tag `asignacion-4`) y **no exige interfaz**. Esta pantalla
+es trabajo adicional para hacer visible `GET /api/auditoria` sin Swagger: no cambia el controlador,
+el servicio, las migraciones ni el tag.
+
+| Ruta | Quién entra | Qué permite |
+|---|---|---|
+| `/admin/auditoria` | Solo Administrador | Consultar el historial con filtros y paginación; solo lectura |
+
+- **Filtros (RF-AUD-07):** usuario (GUID), entidad (coincidencia exacta), `desde`/`hasta` y
+  tamaño de página (10/20/50/100, máximo 100). La página valida el GUID y el rango invertido antes
+  de llamar; el servidor vuelve a validarlos y responde `400` si se fuerzan.
+- **Resultado:** tabla con id, usuario (correo + id), acción, entidad, id de la entidad, fecha local
+  y fecha UTC, valor anterior y valor nuevo. El orden lo decide el servicio: fecha descendente.
+- **Paginación:** `pagina` / `tamanioPagina` con botones «Anterior» y «Siguiente»; el total se
+  muestra tal como lo devuelve la API.
+- **Inmutabilidad (RF-AUD-06):** no hay botones de editar ni borrar. El frontend solo llama a `GET`.
+- **Alcance (RD-06):** `[Authorize(Roles = "Administrador")]` en la página y enlace dentro de
+  `<AuthorizeView Roles="Administrador">`. Un Estándar no ve «Auditoría» en el menú; si fuerza la
+  URL, ve «Acceso denegado» y la API responde `403`.
+- **Mensajes:** `AuditoriaServices` envía el Bearer desde `SesionActual`; un `401` cierra la sesión
+  y los `400/403` muestran el mensaje del servidor.
+
+Recorrido manual (con API y frontend en marcha):
+
+1. Entra como Estándar: el menú no muestra «Auditoría». Fuerza `/admin/auditoria`: acceso denegado.
+2. Entra como Administrador y abre `/admin/auditoria`: se cargan los registros ordenados por fecha.
+3. Filtra por entidad `Documento` y luego por `Usuario`; el total baja en cada caso (RF-AUD-07).
+4. Filtra por un rango de fechas y comprueba que solo aparecen registros dentro de él.
+5. Cambia «Filas» a 10 y usa «Siguiente»/«Anterior»: la página y el total se mantienen coherentes.
+6. Provoca un cambio desde otra pantalla (por ejemplo, subir un documento) y vuelve a consultar:
+   aparece un registro nuevo con su valor anterior/nuevo, sin secrets.
+7. Comprueba que la tabla no ofrece editar ni borrar (RF-AUD-06) y que un rango invertido muestra
+   el aviso local.
+
 ## Criterios implementados y cómo verificarlos
 
 | Criterio | Endpoint / acción | Evidencia esperada |
@@ -344,6 +380,7 @@ Recorrido manual (con API y frontend en marcha):
 | RF-NOT-04/05/07 | `/notificaciones` → `api/notificaciones` | Bandeja propia, marcar leída (404 si es ajena) y preferencia de correo persistente |
 | RF-NOT-11 | `/admin/correos` → `GET api/correos` | Administrador ve estados, intentos y errores; Estándar recibe acceso denegado/403 |
 | RF-REP-01..05 | `/reportes` → `api/reportes/*` | Totales y grupos del servidor, rango inclusivo y alcance por rol |
+| RF-AUD-07 | `/admin/auditoria` → `GET api/auditoria` | Administrador filtra por usuario/entidad/fechas y pagina; Estándar recibe acceso denegado/403 |
 | RD-04 | `Business.Inventory/Entities/OrdenCompra.cs` | Transiciones declaradas en un solo lugar |
 | RD-06 | `[Authorize(Roles = "Administrador")]` en acciones destructivas | 403 sin el rol |
 
@@ -1679,6 +1716,9 @@ try { Api Get '/api/auditoria?pagina=0' $adm } catch { $_.Exception.Response.Sta
 ```
 
 **Esperado:** los cuatro filtros producen totales distintos y coherentes; cada registro trae los ocho campos de RF-AUD-01; en ningún `ValorAnterior`/`ValorNuevo` aparece una contraseña ni un código de recuperación; el Estándar recibe `403` y `pagina=0` recibe `400`. No existe `POST`, `PUT` ni `DELETE` sobre `/api/auditoria` (RF-AUD-06).
+
+La misma consulta se puede hacer desde la interfaz opcional `/admin/auditoria` (sección
+«Frontend — historial de auditoría» más arriba), sin Swagger y sin botones de modificación.
 
 ### Persistencia (RD-09)
 

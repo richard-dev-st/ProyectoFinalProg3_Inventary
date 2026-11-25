@@ -73,6 +73,12 @@ builder.Services.AddHttpClient<ReportesServices>(client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
 });
 
+// Asignación 4: consulta de auditoría (RF-AUD-07), solo Administrador.
+builder.Services.AddHttpClient<AuditoriaServices>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+});
+
 builder.Services.AddScoped<SesionActual>();
 
 var app = builder.Build();
